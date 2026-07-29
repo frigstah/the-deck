@@ -191,20 +191,35 @@
                                                  HoldDb="{Binding WindowPeakDb}" />
 
                         <!-- The traffic light, as a badge. This is the thing users read instead of
-                             dBFS, so it is set apart from the numbers rather than sat among them. -->
+                             dBFS, so it is set apart from the numbers rather than sat among them.
+
+                             The badge and its sentence can be switched off; the numbers beside them
+                             cannot. Turning off the coaching should not turn off the measurement. -->
                         <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                            <Border Style="{StaticResource PillStyle}" Background="{Binding AdvicePillBrush}">
+                            <!-- The gap belongs to the pill, not to the readout. Put it on the
+                                 readout instead and hiding the pill leaves the number indented by
+                                 twelve pixels against nothing. -->
+                            <Border Style="{StaticResource PillStyle}" Background="{Binding AdvicePillBrush}"
+                                    Margin="0,0,12,0"
+                                    Visibility="{Binding ShowLevelCoaching, Converter={StaticResource BoolToVisibility}}">
                                 <TextBlock Text="{Binding AdviceHeadlineUpper}"
                                            Style="{StaticResource PillTextStyle}"
                                            Foreground="{Binding AdviceBrush}" />
                             </Border>
-                            <TextBlock Text="{Binding LevelReadout}" Style="{StaticResource ReadoutStyle}"
-                                       Margin="12,0,0,0" />
+                            <TextBlock Text="{Binding LevelReadout}" Style="{StaticResource ReadoutStyle}" />
                             <TextBlock Text="{Binding CorrelationSummary}" Style="{StaticResource ReadoutStyle}"
                                        Margin="12,0,0,0"
                                        Visibility="{Binding CorrelationSummary, Converter={StaticResource TextToVisibility}}" />
                         </StackPanel>
-                        <TextBlock Text="{Binding AdviceHint}" Style="{StaticResource HintStyle}" Margin="0,8,0,0" />
+                        <TextBlock Text="{Binding AdviceHint}" Style="{StaticResource HintStyle}" Margin="0,8,0,0"
+                                   Visibility="{Binding ShowLevelCoaching, Converter={StaticResource BoolToVisibility}}" />
+
+                        <CheckBox Content="Level coaching — tell me when I am too quiet or too loud"
+                                  Style="{StaticResource ToggleSwitchStyle}"
+                                  IsChecked="{Binding ShowLevelCoaching}" Margin="0,14,0,0"
+                                  ToolTip="Hides the verdict badge and its advice. The meter and the numbers stay." />
+                        <TextBlock Text="{Binding LevelCoachingHint}" Style="{StaticResource HintStyle}"
+                                   Margin="48,6,0,0" />
 
                         <CheckBox Content="Voice Enhance — steadier level and less rumble for speech"
                                   IsChecked="{Binding VoiceEnhance}" Margin="0,16,0,0" />
@@ -905,12 +920,24 @@
                     </Border>
                     <TextBlock Text="{Binding UptimeText}" Style="{StaticResource StatusValueStyle}"
                                Margin="14,0,18,0" />
+
+                    <!-- Where it is going, who is listening, and in what. The mockup's strip reads
+                         "Main + 1 backup · 42 listeners · MP3 256k", and all three are things
+                         you should never have to change pane to check while on air.
+
+                         The quality is the short form, not the sentence from the Servers pane. An
+                         earlier attempt put the full summary here and it read as the same setting
+                         twice on one screen; "MP3 256k" is a fact about what is going out. -->
+                    <TextBlock Text="{Binding BroadcastTargetText}" Style="{StaticResource StatusChipStyle}"
+                               MaxWidth="220" TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding BroadcastTargetText}"
+                               Visibility="{Binding BroadcastTargetText, Converter={StaticResource TextToVisibility}}" />
                     <TextBlock Text="{Binding ListenerText}" Style="{StaticResource StatusChipStyle}"
                                Visibility="{Binding ListenerText, Converter={StaticResource TextToVisibility}}" />
+                    <TextBlock Text="{Binding QualityShort}" Style="{StaticResource StatusChipStyle}"
+                               ToolTip="{Binding QualitySummary}"
+                               Visibility="{Binding QualityShort, Converter={StaticResource TextToVisibility}}" />
                     <TextBlock Text="{Binding SentText}" Style="{StaticResource StatusChipStyle}" />
-                    <!-- The quality summary deliberately is not here. The strip carries state, not
-                         settings, and it already sits on the Servers pane - where it appeared twice
-                         on screen at once. -->
                 </StackPanel>
 
                 <!-- The middle column carries whatever is currently wrong. Dead air is the loudest

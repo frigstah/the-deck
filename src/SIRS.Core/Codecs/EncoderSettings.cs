@@ -100,4 +100,12 @@ public sealed record EncoderSettings
                 : $"{Codec.DisplayName()} {BitrateKbps} kbps, {shape}";
         }
     }
+
+    /// <summary>
+    /// The same thing in as few characters as it can be said in, e.g. "MP3 256k" - for the on-air
+    /// strip, where it sits beside four other facts and has to earn its width.
+    /// </summary>
+    public string ShortSummary => Codec.IsLossless()
+        ? $"{Codec.DisplayName()} lossless"
+        : $"{Codec.DisplayName()} {BitrateKbps}k";
 }

@@ -555,6 +555,58 @@
 
     <!-- Status strip along the bottom. Present on every pane, which is the whole point: you can be
          deep in the recording settings and still see that you are on air. -->
+    <!--
+        A switch, for the settings that are a state rather than a list of things ticked. Built on
+        CheckBox rather than as a control of its own, so it keeps the toggle semantics a screen reader
+        already understands (I6) - it announces as something with an on and an off, which is exactly
+        what it is.
+
+        Square track, square thumb. Every switch in every other program is a rounded capsule, and one
+        here would be the second rounded thing on screen after the verdict pill, which is the one
+        shape that is supposed to be unique.
+    -->
+    <Style x:Key="ToggleSwitchStyle" TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <StackPanel Orientation="Horizontal" Background="Transparent">
+                        <Border x:Name="Track" Width="38" Height="20" VerticalAlignment="Center"
+                                Background="{DynamicResource NeutralSoftBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                            <Border x:Name="Thumb" Width="14" Height="14"
+                                    HorizontalAlignment="Left" VerticalAlignment="Center"
+                                    Margin="2,0,0,0"
+                                    Background="{DynamicResource MutedTextBrush}" />
+                        </Border>
+                        <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center"
+                                          RecognizesAccessKey="True" />
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentBrush}" />
+                            <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right" />
+                            <Setter TargetName="Thumb" Property="Margin" Value="0,0,2,0" />
+                            <Setter TargetName="Thumb" Property="Background" Value="{DynamicResource OnAccentBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                        </Trigger>
+                        <!-- Focus has to be visible, not just hover (I6). -->
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="StatusChipStyle" TargetType="TextBlock" BasedOn="{StaticResource ReadoutStyle}">
         <Setter Property="FontSize" Value="11.5" />
         <Setter Property="Margin" Value="0,0,18,0" />
