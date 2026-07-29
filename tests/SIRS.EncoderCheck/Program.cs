@@ -113,6 +113,11 @@ internal static class Program
         Console.WriteLine(midiFailures == 0 ? "PASS\n" : $"{midiFailures} case(s) FAILED\n");
         failures += midiFailures;
 
+        Console.WriteLine("--- Updates ---");
+        var updateFailures = UpdateChecks.Run();
+        Console.WriteLine(updateFailures == 0 ? "PASS\n" : $"{updateFailures} case(s) FAILED\n");
+        failures += updateFailures;
+
         Console.WriteLine("--- Remote control and command line ---");
         var controlFailures = ControlChecks.Run();
         Console.WriteLine(controlFailures == 0 ? "PASS\n" : $"{controlFailures} case(s) FAILED\n");

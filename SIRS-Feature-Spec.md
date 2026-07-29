@@ -159,7 +159,7 @@ Priority key: **P0** = v1.0 must-ship · **P1** = v1.1, strongly wanted · **P2*
 | I6 | Keyboard navigation + screen-reader labels | P1 | Rocket does this; blind broadcasters are a real, underserved segment |
 | I7 | Portable mode (config next to the .exe) alongside the installer | P1 | BUTT users expect this |
 | I8 | Localization framework + English; community translations after | P2 — **built** | |
-| I9 | Auto-update check | P2 — **built** | |
+| I9 | Auto-update check | P2 — **built** | Extended past the original scope on request: SIRS now installs the update as well as reporting it. Pinned repository, https only, SHA-256 verified |
 | I10 | CLI / remote control API | P3 — **built** | Both. Off by default, loopback unless deliberately opened, and opening it needs a password |
 | I11 | MIDI CC control | P3 — **built** | Learn-by-moving-the-control. Everything below the driver is checked from raw bytes |
 

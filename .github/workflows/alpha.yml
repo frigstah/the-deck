@@ -1,0 +1,110 @@
+# Builds an alpha pre-release from every push to main.
+#
+# The version is 1.3.0.<run number>: a four-part number so the built-in updater can compare it
+# against the running build with System.Version and get an unambiguous answer. The run number only
+# ever goes up, so a later push is always a later version.
+#
+# The check suite runs before anything is packaged. A commit that fails it does not become a
+# download - an alpha is allowed to be rough, but it is not allowed to be known-broken.
+
+name: Alpha release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  # A newer push supersedes an older build rather than racing it to the same release.
+  group: alpha-release
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Work out the version
+        id: version
+        shell: pwsh
+        run: |
+          $base = ([xml](Get-Content src/SIRS.App/SIRS.App.csproj)).Project.PropertyGroup.Version |
+                  Where-Object { $_ } | Select-Object -First 1
+          $parts = "$base".Trim().Split('.')
+          $version = "$($parts[0]).$($parts[1]).$($parts[2]).${{ github.run_number }}"
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=v$version"    >> $env:GITHUB_OUTPUT
+          Write-Host "building $version"
+
+      - name: Build
+        run: dotnet build SIRS.sln -c Release --nologo -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Run the check suite
+        run: dotnet run --project tests/SIRS.EncoderCheck -c Release --nologo
+
+      - name: Package installer and portable
+        shell: pwsh
+        run: ./build/package.ps1 -Version ${{ steps.version.outputs.version }}
+
+      - name: Release notes
+        shell: pwsh
+        run: |
+          $sums = Get-Content publish/SHA256SUMS.txt | ForEach-Object { "    $_" }
+          @"
+          Built automatically from ``${{ github.sha }}`` on $(Get-Date -Format 'yyyy-MM-dd HH:mm') UTC.
+
+          **This is an alpha.** It is whatever was on ``main`` at the time. The check suite passed,
+          which is the only promise being made. Nothing here has been through a release review, and
+          the [README](https://github.com/${{ github.repository }}#not-yet-verified) lists at length
+          what is still unverified.
+
+          ### Which download
+
+          | | |
+          |---|---|
+          | ``SIRS-*-setup.exe`` | Installer. Per-user, no administrator rights needed. Updates in place. |
+          | ``SIRS-*-portable-win-x64.zip`` | Unzip and run. Keeps its settings beside itself. |
+          | ``SIRS-*-update-win-x64.zip`` | What the built-in updater downloads. Not meant to be unzipped by hand. |
+
+          Nothing needs .NET installed. Windows will warn that it does not recognise the program,
+          because these builds are not code-signed.
+
+          ### Checksums
+
+          Verify with ``Get-FileHash <file> -Algorithm SHA256``. The updater checks this for itself
+          and refuses anything that does not match.
+
+          ``````
+          $($sums -join "`n")
+          ``````
+          "@ | Set-Content publish/NOTES.md -Encoding UTF8
+
+      - name: Publish the pre-release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create ${{ steps.version.outputs.tag }} `
+            --prerelease `
+            --title "SIRS ${{ steps.version.outputs.version }} (alpha)" `
+            --notes-file publish/NOTES.md `
+            --target ${{ github.sha }} `
+            (Get-Item publish/*.exe, publish/*.zip, publish/SHA256SUMS.txt | ForEach-Object { $_.FullName })
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SIRS-${{ steps.version.outputs.version }}
+          path: |
+            publish/*.exe
+            publish/*.zip
+            publish/SHA256SUMS.txt
+          retention-days: 14

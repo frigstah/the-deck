@@ -47,6 +47,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     private RelayCommand? _copyEndpointUrlCommand;
     private RelayCommand? _copyControlUrlCommand;
     private AsyncRelayCommand? _checkUpdatesCommand;
+    private AsyncRelayCommand? _installUpdateCommand;
+    private bool _installingUpdate;
+    private double _updateProgress;
     private RelayCommand? _openReleaseCommand;
     private readonly UpdateChecker _updates = new();
     private ReleaseInfo? _release;
@@ -1931,7 +1934,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         }
     }
 
-    public string VersionText => $"SIRS {UpdateChecker.CurrentVersion.Major}.{UpdateChecker.CurrentVersion.Minor}";
+    public string VersionText => $"SIRS {UpdateChecker.CurrentVersion}";
 
     public string UpdateStatus
     {
@@ -1943,18 +1946,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
 
     public AsyncRelayCommand CheckUpdatesCommand => _checkUpdatesCommand ??= new AsyncRelayCommand(CheckForUpdatesAsync);
 
-    /// <summary>
-    /// Opens the release page in the browser. SIRS never downloads or installs anything itself -
-    /// an encoder that can replace its own binary is one that can be made to run someone else's
-    /// code, and that is not a key to hand over on a machine that goes on air.
-    /// </summary>
+    /// <summary>Opens the release page in the browser, for anyone who would rather install by hand.</summary>
     public RelayCommand OpenReleasePageCommand => _openReleaseCommand ??= new RelayCommand(() =>
     {
-        if (_release is null || !UpdateChecker.CanOpen(_release)) return;
+        var url = _release is not null && UpdateChecker.CanOpen(_release)
+            ? _release.Url
+            : UpdateChecker.ReleasesPage;
 
         try
         {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_release.Url)
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url)
             {
                 UseShellExecute = true,
             });
@@ -1973,8 +1974,86 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
 
         _release = result.Available ? result.Release : null;
         UpdateStatus = result.Summary;
-        Raise(nameof(UpdateAvailable));
+        RaiseUpdateState();
     }
+
+    // ---------------------------------------------------------------- installing an update (I9)
+
+    /// <summary>
+    /// True once a newer release has been found and it carries something SIRS can install. A
+    /// release with no update package, or one SIRS cannot write over, leaves this false and the
+    /// user with the release page instead — which is what SIRS did for its first four phases.
+    /// </summary>
+    public bool CanInstallUpdate =>
+        _release?.UpdatePayload is not null && !IsInstallingUpdate && UpdateInstaller.CanInstallInPlace(out _);
+
+    public bool IsInstallingUpdate
+    {
+        get => _installingUpdate;
+        private set => Set(ref _installingUpdate, value);
+    }
+
+    public double UpdateProgressFraction
+    {
+        get => _updateProgress;
+        private set => Set(ref _updateProgress, value);
+    }
+
+    public string InstallUpdateButtonText => _release is null
+        ? "Install the update"
+        : $"Install {_release.DisplayVersion} and restart";
+
+    /// <summary>
+    /// Downloads the release, checks it against its published digest, and hands over to it.
+    /// <para>
+    /// Refuses outright while on air. Taking a station off the air to install an update is not a
+    /// thing SIRS should decide to do, and an update that waits ten minutes costs nothing.
+    /// </para>
+    /// </summary>
+    public AsyncRelayCommand InstallUpdateCommand => _installUpdateCommand ??= new AsyncRelayCommand(async () =>
+    {
+        if (_release is null || IsInstallingUpdate) return;
+
+        if (StreamState.IsBroadcasting())
+        {
+            UpdateStatus = "SIRS is on air. Come off air first — an update restarts the program.";
+            return;
+        }
+
+        IsInstallingUpdate = true;
+        UpdateProgressFraction = 0;
+        RaiseUpdateState();
+
+        var installer = new UpdateInstaller();
+        installer.Progress += (_, p) => OnUi(() =>
+        {
+            UpdateProgressFraction = p.Fraction;
+            UpdateStatus = $"{p.Stage}… {p.Fraction:P0}";
+        });
+
+        var result = await installer.InstallAsync(_release).ConfigureAwait(true);
+
+        UpdateStatus = result.Message;
+
+        if (!result.Ok)
+        {
+            IsInstallingUpdate = false;
+            RaiseUpdateState();
+            return;
+        }
+
+        // The replacement is already running and waiting for this process to let go of its files.
+        // Closing the window runs the normal shutdown, so servers and settings are saved first.
+        _engine.Log.Info($"Installing update {_release.DisplayVersion}. SIRS will restart.");
+        UpdateRequested?.Invoke(this, EventArgs.Empty);
+    });
+
+    /// <summary>Raised when an update has been staged and the window should close so it can land.</summary>
+    public event EventHandler? UpdateRequested;
+
+    private void RaiseUpdateState() => RaiseAll(
+        nameof(UpdateAvailable), nameof(CanInstallUpdate), nameof(InstallUpdateButtonText),
+        nameof(IsInstallingUpdate), nameof(UpdateProgressFraction));
 
     /// <summary>Mutes or unmutes the main input. Bound to a global hotkey (I3).</summary>
     public void ToggleMute()
