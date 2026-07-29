@@ -9,6 +9,24 @@
         UseLayoutRounding="True">
 
     <!--
+        The window draws its own title bar. Windows will not let an application colour the system
+        one, so a dark SIRS sat under a light caption with a light SIRS under a dark one - whichever
+        way round, a visible seam across the top of the product.
+
+        CaptionHeight is what makes the top strip behave like a title bar: dragging moves the window
+        and a double-click maximises it, both handled by Windows rather than reimplemented here.
+        Anything that needs to be clicked inside that strip has to opt out with
+        WindowChrome.IsHitTestVisibleInChrome.
+    -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="40"
+                      ResizeBorderThickness="6"
+                      CornerRadius="0"
+                      GlassFrameThickness="1"
+                      UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <!--
         The "Rail" layout: a navigation rail down the left, one subject in the pane beside it, and a
         status strip along the bottom that is present on every pane.
 
@@ -35,20 +53,67 @@
             <Setter Property="Padding" Value="26,22,26,26" />
         </Style>
 
-        <!-- Panes are a single readable column, not a full-width sprawl. -->
+        <!--
+            Panes are a single readable column, not a full-width sprawl.
+
+            The width is taken from the scroller's viewport rather than left to the content. A
+            left-aligned StackPanel is only as wide as its widest child, and on the Sound pane the
+            widest child is usually the coaching sentence under the meter - which rewrites itself as
+            you speak. "Nothing is reaching SIRS..." wraps to the full 620; "Your level is in the
+            right range." does not. The meter stretches to the column, so it was changing width by
+            around 200 pixels every time the verdict changed: it visibly breathed with the audio it
+            was supposed to be measuring. Anchoring the column to the viewport makes the width a
+            property of the window, which is the only thing it should ever have depended on.
+        -->
         <Style x:Key="PaneBodyStyle" TargetType="StackPanel">
             <Setter Property="MaxWidth" Value="620" />
             <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Width"
+                    Value="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" />
         </Style>
     </Window.Resources>
 
-    <Grid>
+    <Grid x:Name="RootLayout">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TabControl Grid.Row="0"
+        <!-- ==================================================== title bar
+
+             Two halves. The left is a block of rail colour exactly the width of the rail, so the
+             rail appears to run to the very top of the window and the wordmark sits at the head of
+             it. The right is the window's own background, so the caption simply is the pane: no
+             line, no band, nothing to notice. All that is left of a title bar is three buttons. -->
+        <Grid Grid.Row="0" Height="40">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Background="{DynamicResource RailBrush}" Width="{StaticResource RailWidth}">
+                <TextBlock Style="{StaticResource WordmarkStyle}" />
+            </Border>
+
+            <!-- The buttons have to opt out of the caption, or Windows treats a click on them as a
+                 click on the title bar and starts dragging the window instead. -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal"
+                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                        WindowChrome.IsHitTestVisibleInChrome="True">
+                <Button x:Name="MinimiseButton" Content="&#xE921;" Click="OnMinimiseWindow"
+                        Style="{StaticResource CaptionButtonStyle}"
+                        AutomationProperties.Name="Minimise" ToolTip="Minimise" />
+                <Button x:Name="MaximiseButton" Content="&#xE922;" Click="OnMaximiseOrRestoreWindow"
+                        Style="{StaticResource CaptionButtonStyle}"
+                        AutomationProperties.Name="Maximise" ToolTip="Maximise" />
+                <Button x:Name="CloseButton" Content="&#xE8BB;" Click="OnCloseWindow"
+                        Style="{StaticResource CaptionCloseButtonStyle}"
+                        AutomationProperties.Name="Close" ToolTip="Close" />
+            </StackPanel>
+        </Grid>
+
+        <TabControl Grid.Row="1"
                     Style="{StaticResource RailTabControlStyle}"
                     ItemContainerStyle="{StaticResource RailItemStyle}"
                     SelectedIndex="{Binding SelectedSection}">
@@ -813,7 +878,7 @@
              Always present, on every pane. This is the whole argument for the layout: you can be
              deep in the recording settings and still see that you are on air, how long for, and
              what has gone wrong. -->
-        <Border Grid.Row="1" Background="{DynamicResource StatusBarBrush}"
+        <Border Grid.Row="2" Background="{DynamicResource StatusBarBrush}"
                 BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
                 Padding="20,9">
             <Grid>

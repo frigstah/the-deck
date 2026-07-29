@@ -218,6 +218,11 @@ public partial class App : Application
         Set("RailTextColor", "#FF79828A");
         Set("StatusBarColor", "#FF101317");
 
+        // Caption hover: a light wash on a dark window, where the light theme uses a dark one.
+        // Black at 9% over #15181B is very nearly nothing at all.
+        Set("CaptionHoverColor", "#20FFFFFF");
+        Set("CaptionPressedColor", "#38FFFFFF");
+
         // Lit segments stay close to their light-theme hues - a green meter is a green meter - but
         // the unlit ones become deep tints instead of pale ones, or the whole scale would glow.
         Set("MeterQuietColor", "#FF6E7A78");

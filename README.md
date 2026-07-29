@@ -322,6 +322,12 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   spent two hours broadcasting with it and found out which pane they wish they were on.
 - **The remote control has not been driven by real automation software.** The endpoint is proven
   from a socket and from SIRS's own command line, but no playout system has been pointed at it.
+- **The title bar does not offer Windows 11's Snap Layouts.** Hovering the maximise button on a
+  system title bar shows the layout flyout; reproducing that means answering hit-test messages with
+  `HTMAXBUTTON` and driving the hover and click states by hand. Dragging to a screen edge and the
+  <kbd>Win</kbd>+arrow shortcuts are unaffected — only the hover flyout is missing.
+- **The dialogs still use the system title bar.** The wizard, the server editor and the log window
+  were not part of the rail design and have not been changed, so they do not match the main window.
 
 ---
 
@@ -394,6 +400,22 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
 - **The rail is a `TabControl` underneath.** That control already means "one of these at a time", so
   it brings keyboard navigation, focus handling and screen-reader semantics with it. A stack of
   buttons driving a visibility flag would have looked identical and quietly lost all three.
+- **The window draws its own title bar.** Windows will not let an application colour the system one,
+  so a dark SIRS sat under a light caption — a seam across the top of the product, whichever theme
+  you were in. The caption is now two halves: a block of rail colour exactly the width of the rail,
+  so the rail appears to run to the top of the window with the wordmark at its head, and beyond it
+  the window's own background, so the rest of the caption simply *is* the pane. All that is left of
+  a title bar is three buttons.
+- **A maximised window needs its edges giving back.** Windows positions a maximised window so its
+  resize border falls outside the screen — invisible on an ordinary window, whose outer pixels are
+  frame nobody draws in. With a custom caption those pixels are content, so the right of the close
+  button and the bottom of the on-air strip went off the screen. The overhang is measured at each
+  maximise, rather than assumed to be eight pixels, because it scales with the display.
+- **The pane column is as wide as the window, not as wide as its text.** A left-aligned stack is
+  only as wide as its widest child, and on the Sound pane that is usually the coaching sentence
+  under the meter — which rewrites itself as you speak. The meter stretches to the column, so it was
+  changing width by around 200 pixels every time the verdict changed: it visibly breathed with the
+  audio it was measuring.
 - **The level meter is segmented, not a solid bar.** A filled bar reads as a progress indicator,
   which is the wrong idea entirely — a level is not a thing that fills up. The unlit segments also
   keep the whole scale on screen, so the green target zone is visible while the level is somewhere
