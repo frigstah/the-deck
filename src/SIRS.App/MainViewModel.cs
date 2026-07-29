@@ -191,6 +191,34 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         _suppressPersist = false;
     }
 
+    // ---------------------------------------------------------------- which pane is open
+
+    /// <summary>
+    /// The pane the rail is showing. An index rather than an enum because it binds straight to the
+    /// TabControl that does the switching — the control already owns "one pane at a time", so there
+    /// is nothing here for the view model to reimplement.
+    /// <para>
+    /// Clamped on the way in: a settings file written by a later version of SIRS, or edited by
+    /// hand, must not open on a pane that does not exist.
+    /// </para>
+    /// </summary>
+    public int SelectedSection
+    {
+        get => Math.Clamp(_settings.SelectedSection, 0, SectionCount - 1);
+        set
+        {
+            var index = Math.Clamp(value, 0, SectionCount - 1);
+            if (_settings.SelectedSection == index) return;
+
+            _settings.SelectedSection = index;
+            Persist();
+            Raise();
+        }
+    }
+
+    /// <summary>Sound, Process, Servers, Track, Record, Control, SIRS.</summary>
+    private const int SectionCount = 7;
+
     // ---------------------------------------------------------------- devices and input level
 
     public ObservableCollection<AudioDevice> InputDevices { get; } = [];
@@ -981,6 +1009,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     };
 
     public string GoLiveButtonText => StreamState.IsBroadcasting() ? "Stop broadcasting" : "Go live";
+
+    /// <summary>
+    /// Colour for the on-air control in the status strip. Deliberately not <see cref="StateBrush"/>:
+    /// that is grey while off air, which made the one button the whole program exists for look
+    /// disabled. Off air it is the accent, inviting; on air it is the live colour, so stopping a
+    /// broadcast is never a click you make without noticing.
+    /// </summary>
+    public Brush GoLiveButtonBrush => StreamState.IsBroadcasting()
+        ? (Brush)AppResource("LiveBrush")
+        : (Brush)AppResource("AccentBrush");
 
     public string UptimeText
     {
@@ -2010,7 +2048,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
 
         RaiseAll(
             nameof(StreamState), nameof(IsLive), nameof(StateHeadline), nameof(StateBrush),
-            nameof(GoLiveButtonText), nameof(CanGoLive), nameof(UptimeText), nameof(SilenceAlert));
+            nameof(GoLiveButtonText), nameof(GoLiveButtonBrush), nameof(CanGoLive),
+            nameof(UptimeText), nameof(SilenceAlert));
     });
 
     /// <summary>Shown while a dropped-out device is being waited for (A6).</summary>

@@ -20,6 +20,19 @@ public static class AudioMath
         return MathF.Pow(linear, 0.65f);
     }
 
+    /// <summary>
+    /// The inverse of <see cref="DbToMeterScale"/>: what level a given position on the meter stands
+    /// for. Needed by a segmented meter, which has to know what each segment means in order to
+    /// colour it before it lights up.
+    /// </summary>
+    public static float MeterScaleToDb(float scale, float floorDb = -60f)
+    {
+        if (scale <= 0f) return floorDb;
+        if (scale >= 1f) return 0f;
+
+        return (MathF.Pow(scale, 1f / 0.65f) * -floorDb) + floorDb;
+    }
+
     public static float Clamp(float value, float min, float max) =>
         value < min ? min : value > max ? max : value;
 }

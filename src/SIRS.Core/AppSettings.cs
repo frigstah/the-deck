@@ -98,6 +98,12 @@ public sealed class AppSettings
     /// <summary>Whether the spectrum and phase panel is open (B9). Closed by default.</summary>
     public bool ShowAdvancedMeters { get; set; }
 
+    /// <summary>
+    /// Which pane of the window was open last. Remembered because someone who spends a show on the
+    /// sound pane should not be put back on the servers pane every time SIRS starts.
+    /// </summary>
+    public int SelectedSection { get; set; }
+
     // ---- remote control (I10)
 
     /// <summary>

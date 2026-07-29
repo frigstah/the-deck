@@ -15,6 +15,34 @@ internal static class InputChecks
 
         // ---------------------------------------------------------------- channel selection (A7)
 
+        failures += Check("the meter scale inverts exactly", () =>
+        {
+            // The segmented meter asks what level each segment stands for in order to colour it,
+            // so this inverse decides where green becomes amber becomes red. An error here would
+            // mis-colour the whole scale while still looking like a working meter.
+            for (var db = -60f; db <= 0f; db += 0.5f)
+            {
+                var scale = AudioMath.DbToMeterScale(db);
+                var back = AudioMath.MeterScaleToDb(scale);
+
+                Expect(Math.Abs(back - db) < 0.01f,
+                    $"{db:0.0} dB went to {scale:0.0000} and came back as {back:0.0} dB");
+            }
+
+            // The ends have to be exact, or the top and bottom segments never light.
+            Expect(Math.Abs(AudioMath.MeterScaleToDb(0f) + 60f) < 0.001f, "the bottom of the scale is not -60 dB");
+            Expect(Math.Abs(AudioMath.MeterScaleToDb(1f)) < 0.001f, "the top of the scale is not 0 dB");
+
+            // Monotonic: a segment further right must never mean a quieter level.
+            var previous = float.NegativeInfinity;
+            for (var i = 0; i <= 64; i++)
+            {
+                var db = AudioMath.MeterScaleToDb(i / 64f);
+                Expect(db >= previous, $"the scale went backwards at segment {i}");
+                previous = db;
+            }
+        });
+
         failures += Check("a four-input device offers pairs first, then singles", () =>
         {
             var options = ChannelSelection.For(4).Select(o => o.Label).ToList();

@@ -126,7 +126,7 @@ These decided every argument during the build. They are worth keeping.
 | Listeners | Live count from Icecast, SHOUTcast v1 and v2 where the server reports it, summed across destinations |
 | Language | English built in, community translations as JSON files with coverage shown and English as the fallback |
 | Updates | Opt-in check for a newer release. It tells you; it never downloads or installs anything |
-| UI | Single window, first-run wizard, High-DPI, follows Windows light/dark |
+| UI | Single window laid out as a navigation rail — one subject in the pane at a time, and an on-air strip along the bottom that is present on every pane. First-run wizard, High-DPI, follows Windows light/dark |
 
 ### Verified
 
@@ -210,6 +210,12 @@ These decided every argument during the build. They are worth keeping.
   took effect, and a command SIRS could not honour returned a non-zero exit code. Killing SIRS
   outright leaves the handshake file behind, and the next command correctly reports "not running"
   rather than hanging on a dead port.
+- **The rail layout.** Every one of the seven panes was rendered from the running app and checked
+  by eye, and all seven rail entries are reported to UI Automation as selectable tab items, so the
+  navigation is reachable by keyboard and by a screen reader rather than only by mouse. Two defects
+  were found this way and fixed: the on-air button took its colour from the connection state, which
+  made the single most important control in the program look disabled while off air, and the quality
+  summary appeared twice on screen at once on the Servers pane.
 - **Screen-reader output.** The drawn meters report live values through UI Automation — confirmed
   against the running app, which read back "Loudest -27 decibels".
 - **The app itself.** Runs, captures live audio from a real interface, the level coaching responds
@@ -276,6 +282,9 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   thing only hardware settles.
 - **The spectrum and phase panel has not been looked at while live.** The numbers behind it are
   verified; whether 24 bars at that decay rate read well in motion is a judgement no test makes.
+- **The rail layout has not been used to run a show.** Every pane has been rendered and checked, and
+  the rail is reachable by keyboard and reported correctly to screen readers — but nobody has yet
+  spent two hours broadcasting with it and found out which pane they wish they were on.
 - **The remote control has not been driven by real automation software.** The endpoint is proven
   from a socket and from SIRS's own command line, but no playout system has been pointed at it.
 
@@ -329,6 +338,17 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
 - **ASIO drivers get a thread of their own.** They are COM objects requiring a single-threaded
   apartment, and the device watchdog runs on a timer, which is not one. Without a dedicated STA
   thread an ASIO input would open when chosen and then never recover from a glitch.
+- **The window is a rail, not a wall of cards.** Twenty feature areas given equal weight in two
+  scrolling columns is a control panel, whichever way it is styled. One subject per pane means the
+  screen only ever holds what you came for — and the on-air strip along the bottom is the reason
+  this layout won over the alternatives: the answer to "am I still live?" can no longer scroll off.
+- **The rail is a `TabControl` underneath.** That control already means "one of these at a time", so
+  it brings keyboard navigation, focus handling and screen-reader semantics with it. A stack of
+  buttons driving a visibility flag would have looked identical and quietly lost all three.
+- **The level meter is segmented, not a solid bar.** A filled bar reads as a progress indicator,
+  which is the wrong idea entirely — a level is not a thing that fills up. The unlit segments also
+  keep the whole scale on screen, so the green target zone is visible while the level is somewhere
+  else, which is what makes the meter teach rather than just report.
 
 ---
 
