@@ -267,7 +267,8 @@ worth making: the alternative was a first screen that looks like a control panel
 - **The installer and the updater, for real.** The installer was built, installed silently, and the
   result checked: per-user location, correct version stamp, uninstall entry present, no portable
   marker. Then a genuinely newer build was staged and handed the running copy's process id, and the
-  install went from 1.3.0.9001 to 1.3.0.9002 with the new version left running — the actual
+  install went from 1.3.0.9001 to 1.3.0.9002 with the new version left running — those numbers
+  predate the renumber to 1.0.0 and are left as the run actually happened; the actual
   download-close-replace-restart sequence, minus the download. Repeated against a portable layout,
   where the marker and the `data` folder both survived untouched. Uninstalling left `%APPDATA%\Deck`
   alone, as intended.

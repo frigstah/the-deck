@@ -34,7 +34,7 @@ public sealed class ReleaseInfo
     [JsonPropertyName("assets")]
     public List<ReleaseAsset> Assets { get; set; } = [];
 
-    /// <summary>The tag as a comparable number. Tags are written "v1.3.0.42".</summary>
+    /// <summary>The tag as a comparable number. Tags are written "v1.0.0.42".</summary>
     public Version? ParsedVersion =>
         Version.TryParse(Tag.TrimStart('v', 'V'), out var version) ? version : null;
 

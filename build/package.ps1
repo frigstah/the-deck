@@ -8,7 +8,7 @@
 
     Usage:
         .\build\package.ps1                      # version from the csproj
-        .\build\package.ps1 -Version 1.3.0.42    # what CI does
+        .\build\package.ps1 -Version 1.0.0.42    # what CI does
 #>
 
 [CmdletBinding()]
@@ -32,8 +32,8 @@ if (-not $Version) {
     $Version = $Matches[1]
 }
 
-# System.Version needs four parts to compare cleanly against a release tag, so a plain 1.3.0
-# becomes 1.3.0.0 rather than being left short.
+# System.Version needs four parts to compare cleanly against a release tag, so a plain 1.0.0
+# becomes 1.0.0.0 rather than being left short.
 $parts = $Version.Split('.')
 while ($parts.Count -lt 4) { $parts += "0" }
 $Version = ($parts[0..3]) -join '.'
