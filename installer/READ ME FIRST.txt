@@ -1,7 +1,7 @@
-Deck - Simple Internet Radio Streamer
+The Deck
 
-A Windows live audio encoder for Icecast and SHOUTcast. Free and unrestricted:
-no paid tier, no bitrate cap, no locked features.
+A live radio broadcaster for Windows, built as one screen. Icecast and SHOUTcast,
+free and unrestricted: no paid tier, no bitrate cap, no locked features.
 
 
 THIS IS AN ALPHA BUILD
@@ -26,15 +26,30 @@ in a "data" folder here instead. The portable download has that file already;
 the installer does not.
 
 
+THE WINDOW
+----------
+The Deck opens on the deck: whether you are on air, for how long, the meter,
+what you sound like, where it is going, and what listeners are seeing. That is
+the whole screen and it holds no settings at all.
+
+Everything you can change is behind the Setup button, as a panel that covers the
+deck. Press "Deck" in the bottom-left of that panel to come back. While setup is
+open a strip along the bottom keeps showing whether you are live, so you never
+lose sight of it.
+
+The window is deliberately short. It is meant to sit along the edge of a screen
+while something else plays the music.
+
+
 THE FIRST THREE MINUTES
 -----------------------
-This is the part worth your attention, because it is the whole point of Deck:
+This is the part worth your attention, because it is the whole point:
 
-  1. Sound      - pick your input, watch the level bar say "Sounds good",
-                  press Sound Check to hear yourself as listeners will.
-  2. Servers    - paste the stream URL your host gave you. Deck fills in the
-                  rest. Press Test.
-  3. Go live    - bottom right, on every screen.
+  1. Setup, Sound    - pick your input, watch the level say "Sounds good",
+                       press Sound Check to hear yourself as listeners will.
+  2. Setup, Servers  - paste the stream URL your host gave you. The Deck fills
+                       in the rest. Press Test.
+  3. Back to the deck and press Go live.
 
 If any of that took longer than three minutes, or you had to guess at
 something, that is a bug worth reporting.

@@ -23,10 +23,10 @@
 ; Never change this GUID. It is how Windows and every future installer recognise
 ; an existing Deck and upgrade it in place rather than leaving two copies behind.
 AppId={{8D3F1C6E-5A47-4C2B-9E88-1B7A2F0D6C13}
-AppName=Deck
+AppName=The Deck
 AppVersion={#AppVersion}
-AppVerName=Deck {#AppVersion}
-AppPublisher=Deck contributors
+AppVerName=The Deck {#AppVersion}
+AppPublisher=The Deck contributors
 AppSupportURL=https://github.com/frigstah/the-deck
 AppUpdatesURL=https://github.com/frigstah/the-deck/releases
 DefaultDirName={autopf}\Deck
