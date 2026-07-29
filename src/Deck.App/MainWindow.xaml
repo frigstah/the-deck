@@ -418,21 +418,21 @@
                             <TextBlock Text="{Binding AdviceHint}" Style="{StaticResource HintStyle}" Margin="0,8,0,4"
                                        Visibility="{Binding ShowLevelCoaching, Converter={StaticResource BoolToVisibility}}" />
 
-                            <local:SettingRow Label="Level coaching" ContentWidth="48"
+                            <local:SettingRow Label="Level coaching" ContentWidth="38"
                                               Hint="{Binding LevelCoachingHint}">
                                 <CheckBox Style="{StaticResource ToggleSwitchStyle}"
                                           IsChecked="{Binding ShowLevelCoaching}"
                                           AutomationProperties.Name="Level coaching" />
                             </local:SettingRow>
 
-                            <local:SettingRow Label="Voice Enhance" ContentWidth="48"
+                            <local:SettingRow Label="Voice Enhance" ContentWidth="38"
                                               Hint="Steadier level and less rumble, for speech.">
                                 <CheckBox Style="{StaticResource ToggleSwitchStyle}"
                                           IsChecked="{Binding VoiceEnhance}"
                                           AutomationProperties.Name="Voice Enhance" />
                             </local:SettingRow>
 
-                            <local:SettingRow Label="Automatic level" ContentWidth="48" ShowRule="False"
+                            <local:SettingRow Label="Automatic level" ContentWidth="38" ShowRule="False"
                                               Hint="Slowly corrects if you drift closer to the microphone or further away.">
                                 <CheckBox Style="{StaticResource ToggleSwitchStyle}"
                                           IsChecked="{Binding AutoGain}"
@@ -470,7 +470,7 @@
                         <StackPanel Style="{StaticResource SettingGroupStyle}">
                             <TextBlock Text="H E A D P H O N E S" Style="{StaticResource GroupHeadingStyle}" />
 
-                            <local:SettingRow Label="Listen while I broadcast" ContentWidth="48">
+                            <local:SettingRow Label="Listen while I broadcast" ContentWidth="38">
                                 <CheckBox Style="{StaticResource ToggleSwitchStyle}"
                                           IsChecked="{Binding MonitorEnabled}"
                                           AutomationProperties.Name="Listen while I broadcast" />
@@ -498,7 +498,7 @@
                         <StackPanel Style="{StaticResource SettingGroupStyle}" Margin="0,22,0,8">
                             <TextBlock Text="S E C O N D   S O U R C E" Style="{StaticResource GroupHeadingStyle}" />
 
-                            <local:SettingRow Label="Add a second source" ContentWidth="48"
+                            <local:SettingRow Label="Add a second source" ContentWidth="38"
                                               ShowRule="{Binding SecondarySourceEnabled}"
                                               Hint="Play music from any app underneath your microphone, or talk over a guest.">
                                 <CheckBox Style="{StaticResource ToggleSwitchStyle}"
@@ -833,88 +833,116 @@
                     <StackPanel Style="{StaticResource PaneBodyStyle}">
 
                         <TextBlock Text="Track" Style="{StaticResource PaneHeadingStyle}" />
-                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
+                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,4"
                                    Text="What listeners see as now playing, and where that text comes from." />
 
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBox Text="{Binding NowPlayingInput, UpdateSourceTrigger=PropertyChanged}"
-                                     IsEnabled="{Binding UsingTextFileMetadata, Converter={StaticResource InverseBoolean}, Mode=OneWay}"
-                                     KeyDown="OnNowPlayingKeyDown" />
-                            <Button Grid.Column="1" Content="Send" Margin="8,0,0,0"
-                                    Command="{Binding UpdateNowPlayingCommand}" />
-                        </Grid>
+                        <StackPanel Style="{StaticResource SettingGroupStyle}" Margin="0,14,0,0">
+                            <TextBlock Text="N O W   P L A Y I N G" Style="{StaticResource GroupHeadingStyle}" />
 
-                        <TextBlock Text="{Binding NowPlayingStatus}" Style="{StaticResource HintStyle}" Margin="0,8,0,0" />
+                            <local:SettingRow Label="Title" ContentWidth="330"
+                                              Hint="{Binding NowPlayingStatus}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding NowPlayingInput, UpdateSourceTrigger=PropertyChanged}"
+                                             IsEnabled="{Binding UsingTextFileMetadata, Converter={StaticResource InverseBoolean}, Mode=OneWay}"
+                                             KeyDown="OnNowPlayingKeyDown"
+                                             AutomationProperties.Name="Now playing title" />
+                                    <Button Grid.Column="1" Content="Send"
+                                            Command="{Binding UpdateNowPlayingCommand}"
+                                            Style="{StaticResource RowButtonStyle}" />
+                                </Grid>
+                            </local:SettingRow>
 
-                        <WrapPanel Margin="0,12,0,0">
-                            <Button Content="Follow what Windows plays" Click="OnUseMediaSession"
-                                    Margin="0,0,8,6"
-                                    ToolTip="Picks up titles automatically from Spotify, your browser, or any player." />
-                            <Button Content="Read from a file…" Click="OnChooseMetadataFile" Margin="0,0,8,6"
-                                    ToolTip="Point Deck at the file your playout software updates on each track." />
-                            <Button Content="Type it myself" Click="OnUseManualMetadata" Margin="0,0,0,6"
-                                    Visibility="{Binding UsingTextFileMetadata, Converter={StaticResource BoolToVisibility}}" />
-                        </WrapPanel>
+                            <local:SettingRow Label="Where titles come from" ContentWidth="330"
+                                              Hint="Deck can follow whatever Windows is playing, or read a file your playout software writes.">
+                                <WrapPanel HorizontalAlignment="Right">
+                                    <Button Content="Windows" Click="OnUseMediaSession"
+                                            Style="{StaticResource RowButtonStyle}"
+                                            ToolTip="Pick up titles automatically from Spotify, your browser, or any player." />
+                                    <Button Content="A file…" Click="OnChooseMetadataFile"
+                                            Style="{StaticResource RowButtonStyle}"
+                                            ToolTip="Point Deck at the file your playout software updates on each track." />
+                                    <Button Content="Type it myself" Click="OnUseManualMetadata"
+                                            Style="{StaticResource RowButtonStyle}"
+                                            Visibility="{Binding UsingTextFileMetadata, Converter={StaticResource BoolToVisibility}}" />
+                                </WrapPanel>
+                            </local:SettingRow>
 
-                        <CheckBox Content="Hold the current title — for adverts and jingles" Margin="0,8,0,0"
-                                  IsChecked="{Binding HoldNowPlaying}"
-                                  ToolTip="Listeners keep seeing the last track until you turn this off again." />
-
-                        <Border Style="{StaticResource RuleStyle}" />
-
-                        <TextBlock Text="T I T L E   F O R M A T" Style="{StaticResource GroupHeadingStyle}" />
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBox Text="{Binding TitleTemplateText, UpdateSourceTrigger=PropertyChanged, Delay=250}" />
-                            <ComboBox Grid.Column="1" ItemsSource="{Binding TitleTemplateExamples}"
-                                      SelectedItem="{Binding TitleTemplateText}" Width="130" Margin="8,0,0,0"
-                                      ToolTip="Common formats." />
-                        </Grid>
-                        <TextBlock Text="{Binding TitleTemplatePreview}" Style="{StaticResource HintStyle}"
-                                   Margin="0,6,0,0" />
-
-                        <Border Style="{StaticResource RuleStyle}" />
-
-                        <TextBlock Text="A U T O M A T I O N" Style="{StaticResource GroupHeadingStyle}" />
-                        <CheckBox Content="Let my playout software send titles to Deck"
-                                  IsChecked="{Binding MetadataEndpointEnabled}"
-                                  ToolTip="Opens a small address on this computer that automation systems can post to." />
-
-                        <StackPanel Margin="0,10,0,0"
-                                    Visibility="{Binding ShowMetadataEndpointDetails, Converter={StaticResource BoolToVisibility}}">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="80" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="Port" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                <TextBox Grid.Column="1" Text="{Binding MetadataPort, Delay=500}" />
-                                <Button Grid.Column="2" Content="Copy the address" Margin="8,0,0,0"
-                                        HorizontalAlignment="Left"
-                                        Command="{Binding CopyEndpointUrlCommand}" />
-                            </Grid>
-
-                            <CheckBox Content="Allow other computers on my network to send titles"
-                                      IsChecked="{Binding MetadataAllowOtherComputers}" Margin="0,10,0,0" />
-
-                            <TextBlock Text="Password (needed for other computers)"
-                                       Style="{StaticResource FieldLabelStyle}" Margin="0,10,0,0" />
-                            <TextBox Text="{Binding MetadataToken, Delay=500}" />
-
-                            <TextBlock Text="{Binding MetadataEndpointUrl}" Style="{StaticResource HintStyle}"
-                                       Margin="0,8,0,0" TextWrapping="Wrap" />
+                            <local:SettingRow Label="Hold the current title" ContentWidth="38" ShowRule="False"
+                                              Hint="For adverts and jingles: listeners keep seeing the last track until you turn this off.">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding HoldNowPlaying}"
+                                          AutomationProperties.Name="Hold the current title" />
+                            </local:SettingRow>
                         </StackPanel>
 
-                        <TextBlock Text="{Binding MetadataEndpointStatus}" Style="{StaticResource HintStyle}"
-                                   Margin="0,8,0,0" TextWrapping="Wrap" />
+                        <StackPanel Style="{StaticResource SettingGroupStyle}">
+                            <TextBlock Text="T I T L E   F O R M A T" Style="{StaticResource GroupHeadingStyle}" />
+
+                            <local:SettingRow Label="Format" ContentWidth="330" ShowRule="False"
+                                              Hint="{Binding TitleTemplatePreview}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding TitleTemplateText, UpdateSourceTrigger=PropertyChanged, Delay=250}"
+                                             AutomationProperties.Name="Title format" />
+                                    <ComboBox Grid.Column="1" ItemsSource="{Binding TitleTemplateExamples}"
+                                              SelectedItem="{Binding TitleTemplateText}" Width="118" Margin="8,0,0,0"
+                                              AutomationProperties.Name="Common formats"
+                                              ToolTip="Common formats." />
+                                </Grid>
+                            </local:SettingRow>
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource SettingGroupStyle}" Margin="0,22,0,8">
+                            <TextBlock Text="A U T O M A T I O N" Style="{StaticResource GroupHeadingStyle}" />
+
+                            <local:SettingRow Label="Let my playout software send titles" ContentWidth="38"
+                                              ShowRule="{Binding ShowMetadataEndpointDetails}"
+                                              Hint="{Binding MetadataEndpointStatus}">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding MetadataEndpointEnabled}"
+                                          AutomationProperties.Name="Let my playout software send titles" />
+                            </local:SettingRow>
+
+                            <StackPanel Visibility="{Binding ShowMetadataEndpointDetails, Converter={StaticResource BoolToVisibility}}">
+                                <local:SettingRow Label="Port" ContentWidth="330">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="86" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Text="{Binding MetadataPort, Delay=500}"
+                                                 AutomationProperties.Name="Port" />
+                                        <Button Grid.Column="1" Content="Copy the address"
+                                                Command="{Binding CopyEndpointUrlCommand}"
+                                                Style="{StaticResource RowButtonStyle}"
+                                                HorizontalAlignment="Right" />
+                                    </Grid>
+                                </local:SettingRow>
+
+                                <local:SettingRow Label="Allow other computers" ContentWidth="38"
+                                                  Hint="Off means this computer only, which is what almost everyone wants.">
+                                    <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                              IsChecked="{Binding MetadataAllowOtherComputers}"
+                                              AutomationProperties.Name="Allow other computers to send titles" />
+                                </local:SettingRow>
+
+                                <local:SettingRow Label="Password" ContentWidth="330" ShowRule="False"
+                                                  Hint="Required before Deck will accept titles from another computer.">
+                                    <TextBox Text="{Binding MetadataToken, Delay=500}"
+                                             AutomationProperties.Name="Endpoint password" />
+                                </local:SettingRow>
+
+                                <TextBlock Text="{Binding MetadataEndpointUrl}" Style="{StaticResource HintStyle}"
+                                           Margin="0,12,0,0" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </StackPanel>
 
                     </StackPanel>
                 </ScrollViewer>
@@ -925,36 +953,47 @@
                 <ScrollViewer Style="{StaticResource PaneScrollStyle}">
                     <StackPanel Style="{StaticResource PaneBodyStyle}">
 
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Record" Style="{StaticResource PaneHeadingStyle}" />
-                            <TextBlock Grid.Column="1" Text="{Binding RecordingShort}"
-                                       Style="{StaticResource ReadoutStyle}" VerticalAlignment="Bottom"
-                                       Margin="12,0,0,3" />
-                        </Grid>
-                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
+                        <!--
+                            No readout beside the heading. The rail panes used to carry one - "recording
+                            · 04:12" here, the loudness target on Sound - to answer the question you
+                            would otherwise change pane to ask. On The Deck that question is already
+                            answered twice over, by the deck itself and by the strip along the bottom.
+                            Setup configures; the deck reports. Keeping both would be stating the same
+                            fact in two places on one screen.
+                        -->
+                        <TextBlock Text="Record" Style="{StaticResource PaneHeadingStyle}" />
+                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,4"
                                    Text="Keep a copy while you broadcast, or use Deck as a plain recorder with no server at all." />
 
-                        <StackPanel Orientation="Horizontal">
-                            <Button Content="{Binding RecordButtonText}" Click="OnToggleRecording"
-                                    Style="{StaticResource PrimaryButtonStyle}" MinWidth="160" />
-                            <Button Content="Choose folder…" Click="OnChooseRecordingFolder" Margin="8,0,0,0" />
-                            <Button Content="Open folder" Click="OnOpenRecordingFolder" Margin="8,0,0,0" />
+                        <StackPanel Style="{StaticResource SettingGroupStyle}" Margin="0,14,0,8">
+                            <local:SettingRow Label="Recording" ContentWidth="330"
+                                              Hint="{Binding RecordingStatus}">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button Content="{Binding RecordButtonText}" Click="OnToggleRecording"
+                                            Style="{StaticResource PrimaryButtonStyle}" MinWidth="150" />
+                                    <Button Content="Folder…" Click="OnChooseRecordingFolder"
+                                            Style="{StaticResource RowButtonStyle}"
+                                            ToolTip="Choose where recordings are saved." />
+                                    <Button Content="Open" Click="OnOpenRecordingFolder"
+                                            Style="{StaticResource RowButtonStyle}"
+                                            ToolTip="Open the recordings folder." />
+                                </StackPanel>
+                            </local:SettingRow>
+
+                            <local:SettingRow Label="Saved as" ContentWidth="330"
+                                              Hint="What the file is, independently of what goes out to listeners.">
+                                <ComboBox ItemsSource="{Binding RecordingFormatLabels}"
+                                          SelectedItem="{Binding SelectedRecordingFormatLabel}"
+                                          AutomationProperties.Name="Recording format" />
+                            </local:SettingRow>
+
+                            <local:SettingRow Label="Split into files" ContentWidth="330" ShowRule="False"
+                                              Hint="Long shows are easier to handle as several files than as one.">
+                                <ComboBox ItemsSource="{Binding SplitLabels}"
+                                          SelectedItem="{Binding SelectedSplitLabel}"
+                                          AutomationProperties.Name="Split recordings into files" />
+                            </local:SettingRow>
                         </StackPanel>
-
-                        <TextBlock Text="S A V E D   A S" Style="{StaticResource MicroLabelStyle}" Margin="0,18,0,4" />
-                        <ComboBox ItemsSource="{Binding RecordingFormatLabels}"
-                                  SelectedItem="{Binding SelectedRecordingFormatLabel}"
-                                  ToolTip="What the recording is saved as, independently of what goes out to listeners." />
-
-                        <TextBlock Text="S P L I T   I N T O   F I L E S" Style="{StaticResource MicroLabelStyle}" Margin="0,12,0,4" />
-                        <ComboBox ItemsSource="{Binding SplitLabels}" SelectedItem="{Binding SelectedSplitLabel}"
-                                  ToolTip="Long shows are easier to handle as several files." />
-
-                        <TextBlock Text="{Binding RecordingStatus}" Style="{StaticResource HintStyle}" Margin="0,14,0,0" />
 
                     </StackPanel>
                 </ScrollViewer>
