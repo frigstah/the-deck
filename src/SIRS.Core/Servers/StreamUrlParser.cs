@@ -23,6 +23,13 @@ public static partial class StreamUrlParser
             return new UrlParseResult(false, null, [], "Paste the details your host gave you.");
         }
 
+        // Line endings are normalised before anything looks at the text. This is not tidiness: the
+        // labelled-field pattern is multiline, and in .NET a multiline "$" matches *after* a
+        // carriage return, so on Windows line endings the value group - which cannot contain one -
+        // failed to reach the anchor and the whole block silently parsed as nothing. A control
+        // panel's instructions copied on Windows are exactly the input this feature exists for.
+        input = input.Replace("\r\n", "\n").Replace('\r', '\n');
+
         var profile = new ServerProfile();
         var recognised = new List<string>();
 
