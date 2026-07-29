@@ -1,15 +1,42 @@
-# Deck — Simple Internet Radio Streamer
+# The Deck
 
-A Windows live audio encoder for Icecast and SHOUTcast. Everything a small station needs, nothing
-it doesn't, and it explains itself.
+**A live radio broadcaster for Windows, built as one screen.**
 
-Free and unrestricted: no paid tier, no bitrate cap, no locked features. [GPL-3.0](LICENSE).
+Icecast and SHOUTcast, everything a small station needs, and a window you can read from across the
+room. Free and unrestricted: no paid tier, no bitrate cap, no locked features. [GPL-3.0](LICENSE).
 
-> **Beta.** Deck has streamed live to a real Icecast server and its encoders are verified in
+> **Beta.** The Deck has streamed live to a real Icecast server and its encoders are verified in
 > detail, but it has never been run by anyone other than its author. Expect rough edges, and read
 > [Not yet verified](#not-yet-verified) before trusting it with a show that matters.
 
-See [Deck-Feature-Spec.md](Deck-Feature-Spec.md) for the full feature set, priorities and roadmap.
+## The idea
+
+The Deck holds around twenty feature areas, and shows you five things.
+
+Everything you need while a show is going out — whether you are on air, for how long, what you sound
+like, where it is going, and what listeners are seeing — is on one dark screen with no tabs and
+nothing to scroll. **The meter is the interface.** Everything that *configures* anything lives behind
+a single Setup button, as a panel that covers the deck and says so.
+
+That split is the whole design. A setting cannot be reached by accident at 3 a.m., because reaching
+one is a deliberate act. And the deck never has to compete for space with a settings screen, so it
+can be sized to be read rather than sized to fit.
+
+The window is 1020×482 on purpose. It is an instrument panel, not a document: it parks along the
+edge of a screen and leaves the rest to whatever is playing the music.
+
+## Lineage
+
+The Deck is a fork of [SIRS](https://github.com/frigstah/SIRS), which is the same audio engine behind
+a different idea about interfaces — a navigation rail with one subject per pane. SIRS answers "how do
+you fit twenty feature areas into one window?" by making them all reachable. The Deck answers it by
+deciding that during a show you need five of them, and putting the other fifteen behind a door.
+
+Both are GPL-3.0 and both keep the full history of the other. The engine — encoders, meters, source
+protocols, the verification suite — is shared ancestry and improvements in either are worth carrying
+across.
+
+See [Deck-Feature-Spec.md](Deck-Feature-Spec.md) for the full feature set and where it came from.
 
 ---
 
@@ -78,27 +105,40 @@ src/Deck.Core/          No UI. Everything below is usable headless.
   Updates/              Opt-in release check. Never downloads or installs anything.
   BroadcastEngine.cs    Ties it together; owns the single audio callback
 
-src/Deck.App/           WPF single-window UI, server editor, first-run wizard, tray, hotkeys
-tests/Deck.EncoderCheck/ Encoder, DSP, parser, recording, endpoint, MIDI, ASIO and translation checks
+src/Deck.App/           The deck, the setup panel, server editor, first-run wizard, tray, hotkeys
+  MainWindow.xaml       The deck in row 1, setup over the top of it, the strip below
+  SettingRow.cs         One setting: label left, control right, hairline between. 54 of these.
+  Theme.xaml            Both palettes and every style. Dark is applied over it in App.xaml.cs.
+  LevelMeterControl.cs  The segmented meter, drawn; SpectrumControl.cs the 24-band spectrum
+tests/Deck.EncoderCheck/ Encoders, DSP, parsers, endpoints, MIDI, ASIO, palettes and contrast
 ```
 
-Config lives in `%APPDATA%\Deck`. Dropping a file named `deck-portable.txt` next to the executable
-switches to portable mode, with config in a `data` folder alongside it. Translations go in
-`%APPDATA%\Deck\languages`.
+Config lives in `%APPDATA%\Deck` — its own folder, not SIRS's, so the two can be installed side by
+side without overwriting each other's servers. Dropping a file named `deck-portable.txt` next to the
+executable switches to portable mode, with config in a `data` folder alongside it.
 
 ---
 
 ## Design rules
 
-These decided every argument during the build. They are worth keeping.
+These decided every argument during the build. The first two are The Deck's own; the rest are
+inherited from SIRS and still right.
 
-1. **One window.** Everything else is one click deep, at most.
-2. **Plain language over jargon.** "Stream address", not "mount point".
-3. **Every failure explains itself.** Never a raw socket error — `HTTP 401` becomes
+1. **The deck holds no settings.** If it configures something it lives behind Setup. What is on
+   screen during a show is only what you need during a show.
+2. **The deck reports; setup configures.** Nothing states the same fact in both places. The status
+   strip appears only while setup covers the deck, so exactly one of the two is always answering
+   "am I still live?".
+3. **Plain language over jargon.** "Stream address", not "mount point".
+4. **Every failure explains itself.** Never a raw socket error — `HTTP 401` becomes
    *"The server rejected the username or password for 'My Station'."*
-4. **Test before you trust.** Inputs and destinations both have a test that answers in seconds.
-5. **Safe defaults, visible escape hatch.** 128 kbps MP3 works everywhere; Advanced holds the rest.
-6. **Free and unhobbled.** No feature gating, ever.
+5. **Test before you trust.** Inputs and destinations both have a test that answers in seconds.
+6. **Safe defaults, visible escape hatch.** 128 kbps MP3 works everywhere; Advanced holds the rest.
+7. **Free and unhobbled.** No feature gating, ever.
+
+One rule was dropped on the way from SIRS: *"everything is one click deep, at most."* The Deck cannot
+honour it — a setting is now two clicks away, Setup then the pane. That was the trade, and it was
+worth making: the alternative was a first screen that looks like a control panel.
 
 ---
 
@@ -253,8 +293,24 @@ These decided every argument during the build. They are worth keeping.
   technology. `TabControl` publishes the selected pane's contents only through the content host it
   finds by the name `PART_SelectedContentHost`, and the rail template had left it unnamed. Naming it
   took the window from five reachable buttons to every one of them.
+- **Both palettes define the same colours.** Checked as text, because nothing else catches it: the
+  light palette lives in `Theme.xaml` and the dark one is applied over it in code, so a colour added
+  to one and forgotten in the other builds, runs, and leaves a single stubbornly light element on a
+  dark window. All 29 keys are present in both.
+- **Contrast, computed rather than judged.** The WCAG relative-luminance formula over both palettes:
+  text and hint text to AA, the on-air block and every meter zone to the large-element bar. It caught
+  two colours on the first run — light hint text at 4.3:1 against the new ground, and a quiet meter
+  zone lifted so far from "slab" that lit and unlit were 1.44:1 apart. Both colours were fixed rather
+  than the thresholds lowered.
+- **The deck and every setup pane render.** Each of the seven panes selected in turn through the
+  automation tree and photographed, which is also how they were confirmed to expose themselves to a
+  screen reader — Sound publishes 68 automation elements, Control 60.
 - **The app itself.** Runs, captures live audio from a real interface, the level coaching responds
-  correctly, and selecting a loopback source switches the on-screen guidance to match.
+  correctly, and selecting a loopback source switches the on-screen guidance to match. Both palettes
+  were looked at on the deck and in setup, which is where three faults were found that no test would
+  have reported: the meter's spare height splitting above *and* below it, an empty outlined chip where
+  the quality goes before a server exists, and a black wordmark block sitting in the corner of the
+  light theme with no rail underneath it.
 - **A live broadcast.** Deck has connected to a real Icecast server and streamed MP3 at 256 kbps,
   48 kHz stereo over a plain connection, and it sounded right on the listening end. The source
   handshake, encoder and send path are proven end to end.
@@ -335,11 +391,55 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
 - **Message boxes are still the system's.** The "you are still on air" confirmation and the update
   and crash notices use `MessageBox`, which cannot be themed. They will look like Windows, not like
   Deck.
+- **Nobody has watched the deck during a real show.** The whole claim of the layout is that five
+  readouts at that size answer everything you need while on air. That is a claim about a person
+  halfway through a sentence glancing up from four metres away, and it has been tested by looking at
+  screenshots. It may turn out the clock wants to be bigger, or that the chips are noise, or that a
+  sixth thing is missing.
+- **The on-air state has only been seen off air.** Every screenshot of both palettes shows OFF AIR.
+  The lamp, the red state block and the elapsed clock are all bound and the colours are checked for
+  contrast, but no capture exists of the deck while it is actually live.
+- **The light theme has not been used for a show.** It is designed and its contrast is computed, but
+  the dark one is what has been lived in.
+- **The first-run wizard has not been re-fitted to the deck.** It is inherited from SIRS unchanged and
+  still describes a window that no longer exists in quite that shape.
 
 ---
 
 ## Notable decisions
 
+- **The deck holds no settings at all, and that is the fork.** Everything configurable is behind one
+  flag. It costs a click and buys a first screen that cannot be misread, cannot be fiddled with by
+  accident mid-show, and never has to share space with a settings form.
+- **The window is short on purpose.** 482 pixels. The deck has five rows and then it is finished, so a
+  taller window would only add emptiness under it. An earlier version was 760 and the slack pooled
+  above and below the meter, which made three things look adrift in a dark rectangle instead of one
+  instrument.
+- **The status strip appears only while setup is open.** The deck states the same facts in far larger
+  type, so showing both would say everything twice on one screen. Exactly one of the two is always
+  visible, so the answer to "am I live?" never leaves.
+- **Setup has no header row.** It held the word SETUP, which the rail already says, and a close button,
+  which belongs in the strip with the other things you press. Removing it freed exactly the height the
+  rail needed to show all seven entries in a window this short — the difference between a rail you
+  scroll and one you just read.
+- **Every setting is a row, through one template.** 54 of them. The panes inherited from SIRS put a
+  label above each control in one column, which is how a *form* is built — and a form reads as
+  something to fill in top to bottom whether or not you care about any of it. A list of rows reads as
+  something to scan.
+- **Shape follows what a thing is, not what it resembles.** Bass, middle and treble became three rows;
+  the mixer's two faders stayed a grid. They look alike, but tone is three independent settings with no
+  second axis, whereas a mixer source has a level *and* a mute. Same reasoning keeps the backup
+  tick-list and the destination status as lists: their length depends on how many servers exist.
+- **Dark is the default, and light is designed rather than inverted.** A lit meter on a dark ground is
+  how broadcast equipment has answered "am I on air?" for fifty years. The light palette had to be
+  rethought, not recoloured: on a pale ground a lit segment is *darker* than the ground, so carrying
+  the dark theme's quiet grey drew a heavy slab across two thirds of the meter and made a quiet signal
+  look loud.
+- **The settings folder is The Deck's own.** It is a fork, so both are installable side by side, and
+  sharing one file would have each overwrite the other's servers whenever it closed.
+- **The DPAPI entropy still says SIRS.** It is not a secret, only a value that has to match whatever
+  encrypted a password — so a `servers.json` copied across from SIRS still decrypts. Renaming it would
+  have silently blanked every carried-over password.
 - **No AAC.** The patent pool costs money to redistribute. Opus is free and better below 96 kbps.
   MP3 patents expired in 2017, so LAME ships freely.
 - **Opus via Concentus**, a managed port, so there is no native Opus DLL to ship per architecture.
@@ -482,14 +582,20 @@ implemented directly in Deck, so there is no third-party component for it.
 
 ## Licence
 
-Deck is free software under the **GNU General Public License, version 3 or later**. The full text is
-in [LICENSE](LICENSE).
+The Deck is free software under the **GNU General Public License, version 3 or later**. The full text
+is in [LICENSE](LICENSE).
 
-Copyleft rather than a permissive licence, and deliberately so. Design rule #6 is that Deck is free
-and unhobbled, with no feature gating ever — and the competitor this exists to answer paywalls
-multi-stream, SSL, AAC and fast reconnect. A permissive licence would let anyone take this work,
-close it, and sell exactly the tiers Deck was built to make unnecessary. The GPL is the only part of
-that promise that survives contact with someone who disagrees with it.
+Copyleft rather than a permissive licence, and deliberately so. The last design rule is that The Deck
+is free and unhobbled, with no feature gating ever — and the commercial encoder this exists to answer
+paywalls multi-stream, SSL, AAC and fast reconnect. A permissive licence would let anyone take this
+work, close it, and sell exactly the tiers The Deck was built to make unnecessary. The GPL is the only
+part of that promise that survives contact with someone who disagrees with it.
 
 All four dependencies above are compatible: MIT and BSD-3-Clause are permissive, and LGPL code that
 is dynamically linked combines with GPL-3.0 without difficulty.
+
+**Fork attribution.** The Deck is a fork of [SIRS](https://github.com/frigstah/SIRS), also GPL-3.0, and
+carries its full commit history — so the lineage is in the repository itself rather than only in this
+paragraph. The audio engine, the source protocols and most of the verification suite are shared
+ancestry. What is original to The Deck is the interface: the deck window, the setting-row pane
+language, and both palettes.

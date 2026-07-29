@@ -1,7 +1,17 @@
-# Deck — Simple Internet Radio Streamer
+# The Deck — feature set and lineage
 
-**Windows live audio encoder for Icecast / SHOUTcast.**
-Positioning: everything a small station actually needs, nothing it doesn't, and it explains itself.
+**Windows live radio broadcaster for Icecast / SHOUTcast.**
+Positioning: everything a small station actually needs, on one screen you can read across a room.
+
+> **This document is inherited.** It was written for [SIRS](https://github.com/frigstah/SIRS), whose
+> feature set The Deck shares in full — the fork changed the interface, not the capabilities. Sections
+> 1 to 4 and the phase history below are SIRS's and still accurate; §2 is the exception, because the
+> design principles are the one part The Deck deliberately rewrote. The current rules live in
+> [README.md](README.md) and supersede §2 where the two disagree.
+>
+> Kept rather than rewritten because it records *why* each feature exists and what was deliberately
+> refused — including the two P3 items declined permanently on licensing and reliability grounds. That
+> reasoning did not stop being true when the window changed.
 
 ---
 
@@ -199,6 +209,13 @@ Keeping these out is what makes Deck simple. Say no on purpose:
 > has been evaluated and decided: four of its six items are built, two are declined for reasons that
 > are not going to change. See [README.md](README.md) for what works, what is verified, and — just
 > as important — what is not.
+>
+> **Phase 5 — the fork.** After Phase 4, three interface directions were mocked up against the same
+> feature set. SIRS took the *Rail* direction: a navigation rail, one subject per pane, a permanent
+> status strip. The Deck took *Deck*: one dark screen holding only what a show needs, with everything
+> configurable behind a single Setup panel. Same engine, opposite answer to "how do twenty feature
+> areas fit in one window?" — SIRS makes them all reachable; The Deck decides five of them matter
+> during a show and puts the rest behind a door.
 
 ### Phase 0 — Spike — *skipped*
 Was: prove WASAPI → LAME → Icecast from a console before building UI. Skipped by decision; the
