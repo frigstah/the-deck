@@ -78,7 +78,7 @@ public partial class MainWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        MaximiseBounds.Keep(this, RootLayout);
+        MaximiseBounds.Keep(this);
     }
 
     private void OnMinimiseWindow(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;

@@ -813,6 +813,14 @@
                         <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
                                    Text="Set once and forget. Nothing here affects what goes out." />
 
+                        <TextBlock Text="A P P E A R A N C E" Style="{StaticResource GroupHeadingStyle}" />
+                        <ComboBox ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding SelectedTheme}"
+                                  ToolTip="Whether SIRS follows the Windows light and dark setting, or stays on one." />
+                        <TextBlock Text="{Binding ThemeHint}" Style="{StaticResource HintStyle}"
+                                   Margin="0,6,0,0" TextWrapping="Wrap" />
+
+                        <Border Style="{StaticResource RuleStyle}" />
+
                         <TextBlock Text="L A N G U A G E" Style="{StaticResource GroupHeadingStyle}" />
                         <ComboBox ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding SelectedLanguage}" />
                         <TextBlock Text="{Binding LanguageHint}" Style="{StaticResource HintStyle}"

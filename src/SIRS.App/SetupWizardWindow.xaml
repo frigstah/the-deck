@@ -9,12 +9,25 @@
         TextOptions.TextFormattingMode="Display"
         UseLayoutRounding="True">
 
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="40" ResizeBorderThickness="6" CornerRadius="0"
+                      GlassFrameThickness="1" UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
     <Window.Resources>
         <local:TextToVisibilityConverter x:Key="TextToVisibility" />
         <local:BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     </Window.Resources>
 
-    <Grid Margin="24">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <local:WindowTitleBar Grid.Row="0" />
+
+        <Grid Grid.Row="1" Margin="24,0,24,24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -148,6 +161,7 @@
                 <Button x:Name="NextButton" Content="Next" Click="OnNext" Style="{StaticResource PrimaryButtonStyle}"
                         MinWidth="120" Margin="8,0,0,0" />
             </StackPanel>
+        </Grid>
         </Grid>
     </Grid>
 </Window>

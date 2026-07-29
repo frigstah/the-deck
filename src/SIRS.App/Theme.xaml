@@ -400,7 +400,15 @@
                             <StackPanel IsItemsHost="True" />
                         </Border>
 
-                        <ContentPresenter Grid.Column="1" ContentSource="SelectedContent" />
+                        <!--
+                            The name is not decoration. TabControl looks up exactly this name to
+                            find its content host, and its automation peer publishes the selected
+                            pane's contents only if it found one. Without the name the rail reported
+                            seven tabs and nothing inside any of them - every picker, slider and
+                            button on every pane was invisible to a screen reader (I6).
+                        -->
+                        <ContentPresenter x:Name="PART_SelectedContentHost" Grid.Column="1"
+                                          ContentSource="SelectedContent" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>

@@ -1,6 +1,7 @@
 <Window x:Class="Sirs.App.LogWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Sirs.App"
         xmlns:diag="clr-namespace:Sirs.Core.Diagnostics;assembly=SIRS.Core"
         Title="Session log"
         Height="560" Width="760" MinHeight="360" MinWidth="520"
@@ -9,7 +10,20 @@
         TextOptions.TextFormattingMode="Display"
         UseLayoutRounding="True">
 
-    <Grid Margin="20">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="40" ResizeBorderThickness="6" CornerRadius="0"
+                      GlassFrameThickness="1" UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <local:WindowTitleBar Grid.Row="0" />
+
+        <Grid Grid.Row="1" Margin="20,0,20,20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -69,6 +83,7 @@
                 <Button Content="Open log folder" Click="OnOpenFolder" Margin="8,0,0,0" MinWidth="130" />
                 <Button Content="Close" Click="OnClose" Margin="8,0,0,0" MinWidth="90" />
             </StackPanel>
+        </Grid>
         </Grid>
     </Grid>
 </Window>
