@@ -1,0 +1,17 @@
+# Normalise line endings so a clone on another machine does not show every file as modified.
+* text=auto
+
+*.cs      text diff=csharp
+*.xaml    text
+*.csproj  text
+*.sln     text eol=crlf
+*.md      text
+*.json    text
+*.manifest text
+
+# The licence is a verbatim copy and should stay byte-for-byte as published.
+LICENSE   text eol=lf
+
+*.png binary
+*.ico binary
+*.zip binary
