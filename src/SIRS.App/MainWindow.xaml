@@ -3,151 +3,209 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Sirs.App"
         Title="SIRS — Simple Internet Radio Streamer"
-        Height="780" Width="1080" MinHeight="640" MinWidth="900"
+        Height="760" Width="1000" MinHeight="600" MinWidth="820"
         Background="{DynamicResource BackgroundBrush}"
         TextOptions.TextFormattingMode="Display"
         UseLayoutRounding="True">
+
+    <!--
+        The "Rail" layout: a navigation rail down the left, one subject in the pane beside it, and a
+        status strip along the bottom that is present on every pane.
+
+        The strip is the reason this layout was chosen. The old window put the on-air state in a
+        header that scrolled with everything else, so the answer to "am I still live?" depended on
+        where you happened to be scrolled to. Here it cannot leave the screen.
+    -->
 
     <Window.Resources>
         <local:TextToVisibilityConverter x:Key="TextToVisibility" />
         <local:BooleanToVisibilityConverter x:Key="BoolToVisibility" />
         <local:BooleanToVisibilityConverter x:Key="BoolToVisibilityInverted" Invert="True" />
         <local:InverseBooleanConverter x:Key="InverseBoolean" />
+
+        <Style x:Key="RuleStyle" TargetType="Border">
+            <Setter Property="Height" Value="1" />
+            <Setter Property="Background" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="Margin" Value="0,22,0,18" />
+        </Style>
+
+        <Style x:Key="PaneScrollStyle" TargetType="ScrollViewer">
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+            <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+            <Setter Property="Padding" Value="26,22,26,26" />
+        </Style>
+
+        <!-- Panes are a single readable column, not a full-width sprawl. -->
+        <Style x:Key="PaneBodyStyle" TargetType="StackPanel">
+            <Setter Property="MaxWidth" Value="620" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+
+        <Style x:Key="StripButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="Padding" Value="18,6" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
     </Window.Resources>
 
-    <Grid Margin="20">
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Grid Grid.Row="0" Margin="0,0,0,16">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="SIRS" FontSize="22" FontWeight="Bold" />
-                <TextBlock Text="Simple Internet Radio Streamer" Margin="12,0,0,0"
-                           Foreground="{DynamicResource MutedTextBrush}" />
-            </StackPanel>
+        <TabControl Grid.Row="0"
+                    Style="{StaticResource RailTabControlStyle}"
+                    ItemContainerStyle="{StaticResource RailItemStyle}"
+                    SelectedIndex="{Binding SelectedSection}">
 
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                <Border Background="{Binding StateBrush}" CornerRadius="5" Padding="12,5">
-                    <TextBlock Text="{Binding StateHeadline}" Foreground="White" FontWeight="Bold" />
-                </Border>
-                <TextBlock Text="{Binding UptimeText}" Margin="14,0,0,0" FontFamily="Consolas" FontSize="15" />
-                <TextBlock Text="{Binding ListenerText}" Margin="14,0,0,0" FontSize="12"
-                           Visibility="{Binding ListenerText, Converter={StaticResource TextToVisibility}}" />
-                <TextBlock Text="{Binding SentText}" Margin="14,0,0,0"
-                           Foreground="{DynamicResource MutedTextBrush}" FontSize="12" />
-                <Button Content="Log" Click="OnOpenLog" Margin="14,0,0,0" Padding="10,4"
-                        ToolTip="What SIRS has done this session." />
-            </StackPanel>
-        </Grid>
+            <!-- ==================================================== 1. SOUND -->
+            <TabItem Header="Sound" Tag="◉">
+                <ScrollViewer Style="{StaticResource PaneScrollStyle}">
+                    <StackPanel Style="{StaticResource PaneBodyStyle}">
 
-        <!-- Body -->
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="20" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+                        <TextBlock Text="Sound" Style="{StaticResource PaneHeadingStyle}" />
+                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
+                                   Text="What goes into the stream, and how it sounds before anything else touches it." />
 
-            <!-- ============ Left: sound ============ -->
-            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
-                <StackPanel>
+                        <TextBlock Text="Input" Style="{StaticResource FieldLabelStyle}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox ItemsSource="{Binding InputDevicesView}"
+                                      SelectedItem="{Binding SelectedInput}"
+                                      ItemTemplate="{StaticResource DeviceItemTemplate}"
+                                      ToolTip="A microphone or line input, the sound this PC is playing, or a professional interface.">
+                                <ComboBox.GroupStyle>
+                                    <StaticResource ResourceKey="DeviceGroupStyle" />
+                                </ComboBox.GroupStyle>
+                            </ComboBox>
+                            <Button Grid.Column="1" Content="Refresh" Margin="8,0,0,0"
+                                    Click="OnRefreshDevices"
+                                    ToolTip="Look for devices you have just plugged in." />
+                        </Grid>
 
-                    <!-- Input and level -->
-                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,14">
-                        <StackPanel>
-                            <TextBlock Text="1. YOUR SOUND" Style="{StaticResource SectionHeadingStyle}" />
+                        <TextBlock Text="{Binding InputSourceHint}" Style="{StaticResource HintStyle}"
+                                   Margin="0,6,0,0"
+                                   Visibility="{Binding InputSourceHint, Converter={StaticResource TextToVisibility}}" />
 
-                            <TextBlock Text="Input" Style="{StaticResource FieldLabelStyle}" />
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <ComboBox ItemsSource="{Binding InputDevicesView}"
-                                          SelectedItem="{Binding SelectedInput}"
-                                          ItemTemplate="{StaticResource DeviceItemTemplate}"
-                                          ToolTip="A microphone or line input, or the sound this PC is playing.">
-                                    <ComboBox.GroupStyle>
-                                        <StaticResource ResourceKey="DeviceGroupStyle" />
-                                    </ComboBox.GroupStyle>
-                                </ComboBox>
-                                <Button Grid.Column="1" Content="Refresh" Margin="8,0,0,0"
-                                        Click="OnRefreshDevices"
-                                        ToolTip="Look for devices you have just plugged in." />
-                            </Grid>
-
-                            <TextBlock Text="{Binding InputSourceHint}" Style="{StaticResource HintStyle}"
-                                       Margin="0,6,0,0"
-                                       Visibility="{Binding InputSourceHint, Converter={StaticResource TextToVisibility}}" />
-
-                            <!-- Which inputs on the device actually feed the stream (A7). -->
-                            <StackPanel Margin="0,10,0,0"
-                                        Visibility="{Binding ShowInputChannels, Converter={StaticResource BoolToVisibility}}">
-                                <ComboBox ItemsSource="{Binding InputChannelOptions}"
-                                          SelectedItem="{Binding SelectedInputChannelLabel}" />
-                                <TextBlock Text="{Binding InputChannelHint}" Style="{StaticResource HintStyle}"
-                                           Margin="0,6,0,0" />
-                            </StackPanel>
-
-                            <Border Background="{DynamicResource WarnBrush}" CornerRadius="6" Padding="10,7" Margin="0,8,0,0"
-                                    Visibility="{Binding WaitingForDevice, Converter={StaticResource TextToVisibility}}">
-                                <TextBlock Text="{Binding WaitingForDevice}" Foreground="White" TextWrapping="Wrap" />
-                            </Border>
-
-                            <TextBlock Text="Input level" Style="{StaticResource FieldLabelStyle}" Margin="0,14,0,4" />
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <Slider Minimum="-24" Maximum="24" TickFrequency="6"
-                                        Value="{Binding InputGainDb, Delay=40}"
-                                        IsSnapToTickEnabled="False" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="1" Text="{Binding InputGainText}" Width="64"
-                                           TextAlignment="Right" FontFamily="Consolas" />
-                            </Grid>
-
-                            <local:LevelMeterControl Height="44" Margin="0,12,0,0"
-                                                     PeakDbLeft="{Binding PeakDbLeft}"
-                                                     PeakDbRight="{Binding PeakDbRight}"
-                                                     HoldDb="{Binding WindowPeakDb}" />
-
-                            <!-- The traffic light. This is the thing users read instead of dBFS. -->
-                            <Grid Margin="0,10,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <Ellipse Width="12" Height="12" Fill="{Binding AdviceBrush}" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="1" Text="{Binding AdviceHeadline}" Margin="8,0,0,0"
-                                           FontWeight="SemiBold" Foreground="{Binding AdviceBrush}" />
-                                <TextBlock Grid.Column="2" Text="{Binding LevelReadout}" FontFamily="Consolas"
-                                           FontSize="11" Foreground="{DynamicResource MutedTextBrush}" />
-                            </Grid>
-                            <TextBlock Text="{Binding AdviceHint}" Style="{StaticResource HintStyle}" Margin="20,4,0,0" />
-
-                            <CheckBox Content="Voice Enhance — steadier level and less rumble for speech"
-                                      IsChecked="{Binding VoiceEnhance}" Margin="0,14,0,0" />
-                            <CheckBox Content="Automatic level — slowly corrects if you drift closer or further away"
-                                      IsChecked="{Binding AutoGain}" Margin="0,8,0,0" />
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Programme processing. Preset-driven on purpose; see the spec on E4. -->
-                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,14">
-                        <StackPanel>
-                            <TextBlock Text="SOUND PROCESSING" Style="{StaticResource SectionHeadingStyle}" />
-
-                            <ComboBox ItemsSource="{Binding ProcessingPresetNames}"
-                                      SelectedItem="{Binding SelectedProcessingPresetName}"
-                                      ToolTip="Evens out the dynamics across three frequency bands." />
-                            <TextBlock Text="{Binding ProcessingDescription}" Style="{StaticResource HintStyle}"
+                        <StackPanel Margin="0,10,0,0"
+                                    Visibility="{Binding ShowInputChannels, Converter={StaticResource BoolToVisibility}}">
+                            <ComboBox ItemsSource="{Binding InputChannelOptions}"
+                                      SelectedItem="{Binding SelectedInputChannelLabel}" />
+                            <TextBlock Text="{Binding InputChannelHint}" Style="{StaticResource HintStyle}"
                                        Margin="0,6,0,0" />
+                        </StackPanel>
+
+                        <Border Background="{DynamicResource WarnBrush}" CornerRadius="6" Padding="10,7" Margin="0,10,0,0"
+                                Visibility="{Binding WaitingForDevice, Converter={StaticResource TextToVisibility}}">
+                            <TextBlock Text="{Binding WaitingForDevice}" Foreground="White" TextWrapping="Wrap" />
+                        </Border>
+
+                        <TextBlock Text="Input level" Style="{StaticResource FieldLabelStyle}" Margin="0,18,0,4" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Slider Minimum="-24" Maximum="24" TickFrequency="6"
+                                    Value="{Binding InputGainDb, Delay=40}"
+                                    IsSnapToTickEnabled="False" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding InputGainText}" Width="64"
+                                       TextAlignment="Right" FontFamily="Consolas" />
+                        </Grid>
+
+                        <local:LevelMeterControl Height="48" Margin="0,14,0,0"
+                                                 PeakDbLeft="{Binding PeakDbLeft}"
+                                                 PeakDbRight="{Binding PeakDbRight}"
+                                                 HoldDb="{Binding WindowPeakDb}" />
+
+                        <!-- The traffic light. This is the thing users read instead of dBFS. -->
+                        <Grid Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Ellipse Width="12" Height="12" Fill="{Binding AdviceBrush}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding AdviceHeadline}" Margin="8,0,0,0"
+                                       FontWeight="SemiBold" FontSize="15" Foreground="{Binding AdviceBrush}" />
+                            <TextBlock Grid.Column="2" Text="{Binding LevelReadout}" FontFamily="Consolas"
+                                       FontSize="11" Foreground="{DynamicResource MutedTextBrush}" />
+                        </Grid>
+                        <TextBlock Text="{Binding AdviceHint}" Style="{StaticResource HintStyle}" Margin="20,4,0,0" />
+
+                        <CheckBox Content="Voice Enhance — steadier level and less rumble for speech"
+                                  IsChecked="{Binding VoiceEnhance}" Margin="0,16,0,0" />
+                        <CheckBox Content="Automatic level — slowly corrects if you drift closer or further away"
+                                  IsChecked="{Binding AutoGain}" Margin="0,8,0,0" />
+
+                        <Border Style="{StaticResource RuleStyle}" />
+
+                        <TextBlock Text="SOUND CHECK" Style="{StaticResource GroupHeadingStyle}" />
+                        <TextBlock Text="Hear yourself the way listeners will."
+                                   Style="{StaticResource HintStyle}" Margin="0,0,0,10" />
+
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="{Binding SoundCheckButtonText}"
+                                    Command="{Binding SoundCheckCommand}"
+                                    Style="{StaticResource PrimaryButtonStyle}" MinWidth="150" />
+                            <Button Content="{Binding SoundCheckPlayText}"
+                                    Command="{Binding PlaySoundCheckCommand}"
+                                    IsEnabled="{Binding CanPlaySoundCheck}"
+                                    Margin="8,0,0,0" MinWidth="120" />
+                        </StackPanel>
+
+                        <ProgressBar Height="4" Margin="0,10,0,0" Minimum="0" Maximum="1"
+                                     Value="{Binding SoundCheckProgress, Mode=OneWay}"
+                                     Visibility="{Binding IsSoundCheckRecording, Converter={StaticResource BoolToVisibility}}" />
+
+                        <TextBlock Text="{Binding SoundCheckStatus}" Style="{StaticResource HintStyle}"
+                                   Foreground="{Binding SoundCheckBrush}" Margin="0,10,0,0" />
+
+                        <Border Style="{StaticResource RuleStyle}" />
+
+                        <TextBlock Text="HEADPHONES" Style="{StaticResource GroupHeadingStyle}" />
+
+                        <CheckBox Content="Listen while I broadcast" IsChecked="{Binding MonitorEnabled}" />
+
+                        <ComboBox ItemsSource="{Binding MonitorDevices}"
+                                  SelectedItem="{Binding SelectedMonitorDevice}"
+                                  ItemTemplate="{StaticResource DeviceItemTemplate}" Margin="0,10,0,0" />
+
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Volume" VerticalAlignment="Center" />
+                            <Slider Grid.Column="1" Minimum="0" Maximum="1" Margin="10,0,0,0"
+                                    Value="{Binding MonitorVolume, Delay=40}" VerticalAlignment="Center" />
+                        </Grid>
+
+                        <TextBlock Text="{Binding MonitorWarning}" Style="{StaticResource HintStyle}"
+                                   Foreground="{DynamicResource WarnBrush}" Margin="0,8,0,0"
+                                   Visibility="{Binding MonitorWarning, Converter={StaticResource TextToVisibility}}" />
+
+                        <Border Style="{StaticResource RuleStyle}" />
+
+                        <TextBlock Text="MIX IN A SECOND SOURCE" Style="{StaticResource GroupHeadingStyle}" />
+
+                        <CheckBox Content="Add a second sound source" IsChecked="{Binding SecondarySourceEnabled}" />
+                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,6,0,0"
+                                   Text="Play music from any app underneath your microphone, or talk over a guest's audio." />
+
+                        <StackPanel Margin="0,12,0,0"
+                                    Visibility="{Binding SecondarySourceEnabled, Converter={StaticResource BoolToVisibility}}">
+                            <ComboBox ItemsSource="{Binding InputDevicesView}"
+                                      SelectedItem="{Binding SelectedSecondaryInput}"
+                                      ItemTemplate="{StaticResource DeviceItemTemplate}">
+                                <ComboBox.GroupStyle>
+                                    <StaticResource ResourceKey="DeviceGroupStyle" />
+                                </ComboBox.GroupStyle>
+                            </ComboBox>
 
                             <Grid Margin="0,14,0,0">
                                 <Grid.ColumnDefinitions>
@@ -159,570 +217,596 @@
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Bass" Width="56" VerticalAlignment="Center" />
-                                <Slider Grid.Row="0" Grid.Column="1" Minimum="-12" Maximum="12" Margin="8,0,8,0"
-                                        Value="{Binding ToneLowDb, Delay=40}" VerticalAlignment="Center" />
-                                <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding ToneLowText}" Width="56"
-                                           TextAlignment="Right" FontFamily="Consolas" FontSize="11"
-                                           VerticalAlignment="Center" />
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding PrimaryFaderLabel}"
+                                           Width="112" TextTrimming="CharacterEllipsis" />
+                                <Slider Grid.Row="0" Grid.Column="1" Minimum="-40" Maximum="12" Margin="8,0,8,0"
+                                        Value="{Binding PrimaryGainDb, Delay=40}" VerticalAlignment="Center" />
+                                <CheckBox Grid.Row="0" Grid.Column="2" Content="Mute" IsChecked="{Binding PrimaryMuted}" />
 
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Middle" Width="56"
-                                           VerticalAlignment="Center" Margin="0,6,0,0" />
-                                <Slider Grid.Row="1" Grid.Column="1" Minimum="-12" Maximum="12" Margin="8,6,8,0"
-                                        Value="{Binding ToneMidDb, Delay=40}" VerticalAlignment="Center" />
-                                <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding ToneMidText}" Width="56"
-                                           TextAlignment="Right" FontFamily="Consolas" FontSize="11"
-                                           VerticalAlignment="Center" Margin="0,6,0,0" />
+                                <local:LevelMeterControl Grid.Row="1" Grid.Column="1" Height="10" Margin="8,4,8,10"
+                                                         ShowScale="False"
+                                                         PeakDbLeft="{Binding PrimaryPeakDb}"
+                                                         PeakDbRight="{Binding PrimaryPeakDb}" />
 
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Treble" Width="56"
-                                           VerticalAlignment="Center" Margin="0,6,0,0" />
-                                <Slider Grid.Row="2" Grid.Column="1" Minimum="-12" Maximum="12" Margin="8,6,8,0"
-                                        Value="{Binding ToneHighDb, Delay=40}" VerticalAlignment="Center" />
-                                <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding ToneHighText}" Width="56"
-                                           TextAlignment="Right" FontFamily="Consolas" FontSize="11"
-                                           VerticalAlignment="Center" Margin="0,6,0,0" />
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Second source"
+                                           Width="112" TextTrimming="CharacterEllipsis" />
+                                <Slider Grid.Row="2" Grid.Column="1" Minimum="-40" Maximum="12" Margin="8,0,8,0"
+                                        Value="{Binding SecondaryGainDb, Delay=40}" VerticalAlignment="Center" />
+                                <CheckBox Grid.Row="2" Grid.Column="2" Content="Mute" IsChecked="{Binding SecondaryMuted}" />
+
+                                <local:LevelMeterControl Grid.Row="3" Grid.Column="1" Height="10" Margin="8,4,8,0"
+                                                         ShowScale="False"
+                                                         PeakDbLeft="{Binding SecondaryPeakDb}"
+                                                         PeakDbRight="{Binding SecondaryPeakDb}" />
                             </Grid>
 
-                            <Button Content="Back to flat" Command="{Binding ResetToneCommand}"
-                                    HorizontalAlignment="Left" Margin="0,12,0,0" />
+                            <TextBlock Text="{Binding MixHint}" Style="{StaticResource HintStyle}" Margin="0,12,0,0"
+                                       Visibility="{Binding MixHint, Converter={StaticResource TextToVisibility}}" />
                         </StackPanel>
-                    </Border>
 
-                    <!-- Loudness. A different question from level: how loud this feels, not how close to clipping. -->
-                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,14">
-                        <StackPanel>
-                            <TextBlock Text="HOW LOUD IT FEELS" Style="{StaticResource SectionHeadingStyle}" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
 
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <ComboBox ItemsSource="{Binding LoudnessTargetNames}"
-                                          SelectedItem="{Binding SelectedLoudnessTargetName}"
-                                          ToolTip="Where this show is going. Each platform normalises to its own number." />
-                                <Button Grid.Column="1" Content="Start again" Margin="8,0,0,0"
-                                        Command="{Binding ResetLoudnessCommand}"
-                                        ToolTip="Measures the whole-show figure again from now." />
-                            </Grid>
+            <!-- ==================================================== 2. PROCESS -->
+            <TabItem Header="Process" Tag="◎">
+                <ScrollViewer Style="{StaticResource PaneScrollStyle}">
+                    <StackPanel Style="{StaticResource PaneBodyStyle}">
 
-                            <TextBlock Text="{Binding LoudnessTargetDetail}" Style="{StaticResource HintStyle}"
-                                       Margin="0,6,0,0" />
+                        <TextBlock Text="Process" Style="{StaticResource PaneHeadingStyle}" />
+                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
+                                   Text="Shaping and measurement. Everything here is optional — a show sounds fine with all of it left alone." />
 
-                            <Grid Margin="0,12,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel>
-                                    <TextBlock Text="Right now" FontSize="11"
-                                               Foreground="{DynamicResource MutedTextBrush}" />
-                                    <TextBlock Text="{Binding ShortTermLoudnessText}" FontFamily="Consolas"
-                                               FontSize="16" />
-                                </StackPanel>
-                                <StackPanel Grid.Column="1">
-                                    <TextBlock Text="Whole show" FontSize="11"
-                                               Foreground="{DynamicResource MutedTextBrush}" />
-                                    <TextBlock Text="{Binding IntegratedLoudnessText}" FontFamily="Consolas"
-                                               FontSize="16" Foreground="{Binding LoudnessBrush}" />
-                                </StackPanel>
-                            </Grid>
+                        <TextBlock Text="COMPRESSION" Style="{StaticResource GroupHeadingStyle}" />
+                        <ComboBox ItemsSource="{Binding ProcessingPresetNames}"
+                                  SelectedItem="{Binding SelectedProcessingPresetName}"
+                                  ToolTip="Evens out the dynamics across three frequency bands." />
+                        <TextBlock Text="{Binding ProcessingDescription}" Style="{StaticResource HintStyle}"
+                                   Margin="0,6,0,0" />
 
-                            <TextBlock Text="{Binding LoudnessVerdict}" Style="{StaticResource HintStyle}"
-                                       Foreground="{Binding LoudnessBrush}" Margin="0,10,0,0" />
+                        <TextBlock Text="TONE" Style="{StaticResource GroupHeadingStyle}" Margin="0,20,0,8" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
 
-                            <!-- Spectrum and phase (B9). Collapsed by default: this is the most
-                                 encoder-shaped thing in SIRS and the first screen must not look
-                                 like one. The phase reading is the half that earns its place. -->
-                            <CheckBox Content="Show frequencies and stereo phase" Margin="0,16,0,0"
-                                      IsChecked="{Binding ShowAdvancedMeters}"
-                                      ToolTip="For checking a wiring fault or a heavy-handed EQ. Not needed for a normal show." />
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Bass" Width="56" VerticalAlignment="Center" />
+                            <Slider Grid.Row="0" Grid.Column="1" Minimum="-12" Maximum="12" Margin="8,0,8,0"
+                                    Value="{Binding ToneLowDb, Delay=40}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding ToneLowText}" Width="56"
+                                       TextAlignment="Right" FontFamily="Consolas" FontSize="11"
+                                       VerticalAlignment="Center" />
 
-                            <StackPanel Margin="0,10,0,0"
-                                        Visibility="{Binding ShowAdvancedMeters, Converter={StaticResource BoolToVisibility}}">
-                                <local:SpectrumControl Height="90"
-                                                       Bars="{Binding SpectrumBars}"
-                                                       EdgesHz="{Binding SpectrumEdgesHz}" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Middle" Width="56"
+                                       VerticalAlignment="Center" Margin="0,6,0,0" />
+                            <Slider Grid.Row="1" Grid.Column="1" Minimum="-12" Maximum="12" Margin="8,6,8,0"
+                                    Value="{Binding ToneMidDb, Delay=40}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding ToneMidText}" Width="56"
+                                       TextAlignment="Right" FontFamily="Consolas" FontSize="11"
+                                       VerticalAlignment="Center" Margin="0,6,0,0" />
 
-                                <TextBlock Text="Stereo phase" Style="{StaticResource FieldLabelStyle}"
-                                           Margin="0,12,0,0" />
-                                <TextBlock Text="{Binding CorrelationText}" FontFamily="Consolas" FontSize="14"
-                                           Foreground="{Binding CorrelationBrush}" />
-                                <TextBlock Text="{Binding CorrelationVerdict}" Style="{StaticResource HintStyle}"
-                                           Foreground="{Binding CorrelationBrush}" Margin="0,4,0,0"
-                                           TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Treble" Width="56"
+                                       VerticalAlignment="Center" Margin="0,6,0,0" />
+                            <Slider Grid.Row="2" Grid.Column="1" Minimum="-12" Maximum="12" Margin="8,6,8,0"
+                                    Value="{Binding ToneHighDb, Delay=40}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding ToneHighText}" Width="56"
+                                       TextAlignment="Right" FontFamily="Consolas" FontSize="11"
+                                       VerticalAlignment="Center" Margin="0,6,0,0" />
+                        </Grid>
+
+                        <Button Content="Back to flat" Command="{Binding ResetToneCommand}"
+                                HorizontalAlignment="Left" Margin="0,12,0,0" />
+
+                        <Border Style="{StaticResource RuleStyle}" />
+
+                        <TextBlock Text="HOW LOUD IT FEELS" Style="{StaticResource GroupHeadingStyle}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox ItemsSource="{Binding LoudnessTargetNames}"
+                                      SelectedItem="{Binding SelectedLoudnessTargetName}"
+                                      ToolTip="Where this show is going. Each platform normalises to its own number." />
+                            <Button Grid.Column="1" Content="Start again" Margin="8,0,0,0"
+                                    Command="{Binding ResetLoudnessCommand}"
+                                    ToolTip="Measures the whole-show figure again from now." />
+                        </Grid>
+
+                        <TextBlock Text="{Binding LoudnessTargetDetail}" Style="{StaticResource HintStyle}"
+                                   Margin="0,6,0,0" />
+
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Right now" FontSize="11"
+                                           Foreground="{DynamicResource MutedTextBrush}" />
+                                <TextBlock Text="{Binding ShortTermLoudnessText}" FontFamily="Consolas"
+                                           FontSize="20" />
                             </StackPanel>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="Whole show" FontSize="11"
+                                           Foreground="{DynamicResource MutedTextBrush}" />
+                                <TextBlock Text="{Binding IntegratedLoudnessText}" FontFamily="Consolas"
+                                           FontSize="20" Foreground="{Binding LoudnessBrush}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="{Binding LoudnessVerdict}" Style="{StaticResource HintStyle}"
+                                   Foreground="{Binding LoudnessBrush}" Margin="0,10,0,0" />
+
+                        <Border Style="{StaticResource RuleStyle}" />
+
+                        <!-- Spectrum and phase (B9). Still behind a switch even on its own pane: it
+                             costs a lock the audio thread wants, and most shows never need it. -->
+                        <TextBlock Text="FREQUENCIES AND PHASE" Style="{StaticResource GroupHeadingStyle}" />
+                        <CheckBox Content="Show frequencies and stereo phase"
+                                  IsChecked="{Binding ShowAdvancedMeters}"
+                                  ToolTip="For checking a wiring fault or a heavy-handed EQ. Not needed for a normal show." />
+
+                        <StackPanel Margin="0,12,0,0"
+                                    Visibility="{Binding ShowAdvancedMeters, Converter={StaticResource BoolToVisibility}}">
+                            <local:SpectrumControl Height="110"
+                                                   Bars="{Binding SpectrumBars}"
+                                                   EdgesHz="{Binding SpectrumEdgesHz}" />
+
+                            <TextBlock Text="Stereo phase" Style="{StaticResource FieldLabelStyle}"
+                                       Margin="0,14,0,0" />
+                            <TextBlock Text="{Binding CorrelationText}" FontFamily="Consolas" FontSize="15"
+                                       Foreground="{Binding CorrelationBrush}" />
+                            <TextBlock Text="{Binding CorrelationVerdict}" Style="{StaticResource HintStyle}"
+                                       Foreground="{Binding CorrelationBrush}" Margin="0,4,0,0"
+                                       TextWrapping="Wrap" />
                         </StackPanel>
-                    </Border>
 
-                    <!-- Second source: music under a live mic. Capped at two on purpose. -->
-                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,14">
-                        <StackPanel>
-                            <TextBlock Text="MIX IN A SECOND SOURCE" Style="{StaticResource SectionHeadingStyle}" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
 
-                            <CheckBox Content="Add a second sound source" IsChecked="{Binding SecondarySourceEnabled}" />
-                            <TextBlock Style="{StaticResource HintStyle}" Margin="0,6,0,0"
-                                       Text="Play music from any app underneath your microphone, or talk over a guest's audio." />
+            <!-- ==================================================== 3. SERVERS -->
+            <TabItem Header="Servers" Tag="◈">
+                <ScrollViewer Style="{StaticResource PaneScrollStyle}">
+                    <StackPanel Style="{StaticResource PaneBodyStyle}">
 
-                            <StackPanel Margin="0,12,0,0"
-                                        Visibility="{Binding SecondarySourceEnabled, Converter={StaticResource BoolToVisibility}}">
-                                <ComboBox ItemsSource="{Binding InputDevicesView}"
-                                          SelectedItem="{Binding SelectedSecondaryInput}"
-                                          ItemTemplate="{StaticResource DeviceItemTemplate}">
-                                    <ComboBox.GroupStyle>
-                                        <StaticResource ResourceKey="DeviceGroupStyle" />
-                                    </ComboBox.GroupStyle>
-                                </ComboBox>
+                        <TextBlock Text="Servers" Style="{StaticResource PaneHeadingStyle}" />
+                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
+                                   Text="Where the show goes. Paste the address your host gave you and SIRS will work out the rest." />
 
-                                <!-- Two faders, each with its own meter and mute -->
-                                <Grid Margin="0,14,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
+                        <ComboBox ItemsSource="{Binding Servers}"
+                                  SelectedItem="{Binding SelectedServer}"
+                                  ItemTemplate="{StaticResource NameItemTemplate}" />
 
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding PrimaryFaderLabel}"
-                                               Width="112" TextTrimming="CharacterEllipsis" />
-                                    <Slider Grid.Row="0" Grid.Column="1" Minimum="-40" Maximum="12" Margin="8,0,8,0"
-                                            Value="{Binding PrimaryGainDb, Delay=40}" VerticalAlignment="Center" />
-                                    <CheckBox Grid.Row="0" Grid.Column="2" Content="Mute" IsChecked="{Binding PrimaryMuted}" />
+                        <TextBlock Text="{Binding SelectedServerSummary}" Style="{StaticResource HintStyle}"
+                                   Margin="0,8,0,0" />
+                        <TextBlock Text="{Binding QualitySummary}" Style="{StaticResource HintStyle}"
+                                   Margin="0,3,0,0" />
 
-                                    <local:LevelMeterControl Grid.Row="1" Grid.Column="1" Height="8" Margin="8,3,8,10"
-                                                             ShowScale="False"
-                                                             PeakDbLeft="{Binding PrimaryPeakDb}"
-                                                             PeakDbRight="{Binding PrimaryPeakDb}" />
-
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Second source"
-                                               Width="112" TextTrimming="CharacterEllipsis" />
-                                    <Slider Grid.Row="2" Grid.Column="1" Minimum="-40" Maximum="12" Margin="8,0,8,0"
-                                            Value="{Binding SecondaryGainDb, Delay=40}" VerticalAlignment="Center" />
-                                    <CheckBox Grid.Row="2" Grid.Column="2" Content="Mute" IsChecked="{Binding SecondaryMuted}" />
-
-                                    <local:LevelMeterControl Grid.Row="3" Grid.Column="1" Height="8" Margin="8,3,8,0"
-                                                             ShowScale="False"
-                                                             PeakDbLeft="{Binding SecondaryPeakDb}"
-                                                             PeakDbRight="{Binding SecondaryPeakDb}" />
-                                </Grid>
-
-                                <TextBlock Text="{Binding MixHint}" Style="{StaticResource HintStyle}" Margin="0,12,0,0"
-                                           Visibility="{Binding MixHint, Converter={StaticResource TextToVisibility}}" />
-                            </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                            <Button Content="Add server…" Click="OnAddServer"
+                                    Style="{StaticResource PrimaryButtonStyle}" />
+                            <Button Content="Edit…" Click="OnEditServer" Margin="8,0,0,0" />
+                            <Button Content="Duplicate" Click="OnDuplicateServer" Margin="8,0,0,0" />
+                            <Button Content="Delete" Click="OnDeleteServer" Margin="8,0,0,0" />
                         </StackPanel>
-                    </Border>
 
-                    <!-- Sound check -->
-                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,14">
-                        <StackPanel>
-                            <TextBlock Text="2. SOUND CHECK" Style="{StaticResource SectionHeadingStyle}" />
-                            <TextBlock Text="Hear yourself the way listeners will."
-                                       Style="{StaticResource HintStyle}" Margin="0,0,0,10" />
+                        <WrapPanel Margin="0,10,0,0">
+                            <Button Content="Listen to my stream" Click="OnListen" Margin="0,0,8,0"
+                                    Visibility="{Binding ListenUrl, Converter={StaticResource TextToVisibility}}"
+                                    ToolTip="Opens your stream in your usual player, so you can check it end to end." />
+                            <Button Content="Share settings…" Click="OnExportServers" Margin="0,0,8,0"
+                                    ToolTip="Save your servers to a file another DJ can import." />
+                            <Button Content="Import…" Click="OnImportServers"
+                                    ToolTip="Add servers from a file someone shared with you." />
+                        </WrapPanel>
 
-                            <StackPanel Orientation="Horizontal">
-                                <Button Content="{Binding SoundCheckButtonText}"
-                                        Command="{Binding SoundCheckCommand}"
-                                        Style="{StaticResource PrimaryButtonStyle}" MinWidth="150" />
-                                <Button Content="{Binding SoundCheckPlayText}"
-                                        Command="{Binding PlaySoundCheckCommand}"
-                                        IsEnabled="{Binding CanPlaySoundCheck}"
-                                        Margin="8,0,0,0" MinWidth="120" />
-                            </StackPanel>
+                        <Border Style="{StaticResource RuleStyle}" />
 
-                            <ProgressBar Height="4" Margin="0,10,0,0" Minimum="0" Maximum="1"
-                                         Value="{Binding SoundCheckProgress, Mode=OneWay}"
-                                         Visibility="{Binding IsSoundCheckRecording, Converter={StaticResource BoolToVisibility}}" />
+                        <TextBlock Text="A BACKUP, OR A SECOND BITRATE" Style="{StaticResource GroupHeadingStyle}" />
+                        <CheckBox Content="Also send to another server"
+                                  IsChecked="{Binding SendToMoreThanOneServer}"
+                                  ToolTip="Run a backup relay, or the same show at a second bitrate." />
 
-                            <TextBlock Text="{Binding SoundCheckStatus}" Style="{StaticResource HintStyle}"
-                                       Foreground="{Binding SoundCheckBrush}" Margin="0,10,0,0" />
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Monitoring -->
-                    <Border Style="{StaticResource CardStyle}">
-                        <StackPanel>
-                            <TextBlock Text="HEADPHONES" Style="{StaticResource SectionHeadingStyle}" />
-
-                            <CheckBox Content="Listen while I broadcast" IsChecked="{Binding MonitorEnabled}" />
-
-                            <ComboBox ItemsSource="{Binding MonitorDevices}"
-                                      SelectedItem="{Binding SelectedMonitorDevice}"
-                                      ItemTemplate="{StaticResource DeviceItemTemplate}" Margin="0,10,0,0" />
-
-                            <Grid Margin="0,10,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="Volume" VerticalAlignment="Center" />
-                                <Slider Grid.Column="1" Minimum="0" Maximum="1" Margin="10,0,0,0"
-                                        Value="{Binding MonitorVolume, Delay=40}" VerticalAlignment="Center" />
-                            </Grid>
-
-                            <TextBlock Text="{Binding MonitorWarning}" Style="{StaticResource HintStyle}"
-                                       Foreground="{DynamicResource WarnBrush}" Margin="0,8,0,0"
-                                       Visibility="{Binding MonitorWarning, Converter={StaticResource TextToVisibility}}" />
-                        </StackPanel>
-                    </Border>
-
-                </StackPanel>
-            </ScrollViewer>
-
-            <!-- ============ Right: broadcast ============ -->
-            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
-                <StackPanel>
-
-                    <!-- Server -->
-                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,14">
-                        <StackPanel>
-                            <TextBlock Text="3. WHERE IT GOES" Style="{StaticResource SectionHeadingStyle}" />
-
-                            <ComboBox ItemsSource="{Binding Servers}"
-                                      SelectedItem="{Binding SelectedServer}"
-                                      ItemTemplate="{StaticResource NameItemTemplate}" />
-
-                            <TextBlock Text="{Binding SelectedServerSummary}" Style="{StaticResource HintStyle}"
-                                       Margin="0,8,0,0" />
-                            <TextBlock Text="{Binding QualitySummary}" Style="{StaticResource HintStyle}"
-                                       Margin="0,3,0,0" />
-
-                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                                <Button Content="Add server…" Click="OnAddServer"
-                                        Style="{StaticResource PrimaryButtonStyle}" />
-                                <Button Content="Edit…" Click="OnEditServer" Margin="8,0,0,0" />
-                                <Button Content="Duplicate" Click="OnDuplicateServer" Margin="8,0,0,0" />
-                                <Button Content="Delete" Click="OnDeleteServer" Margin="8,0,0,0" />
-                            </StackPanel>
-
-                            <WrapPanel Margin="0,10,0,0">
-                                <Button Content="Listen to my stream" Click="OnListen" Margin="0,0,8,0"
-                                        Visibility="{Binding ListenUrl, Converter={StaticResource TextToVisibility}}"
-                                        ToolTip="Opens your stream in your usual player, so you can check it end to end." />
-                                <Button Content="Share settings…" Click="OnExportServers" Margin="0,0,8,0"
-                                        ToolTip="Save your servers to a file another DJ can import." />
-                                <Button Content="Import…" Click="OnImportServers"
-                                        ToolTip="Add servers from a file someone shared with you." />
-                            </WrapPanel>
-
-                            <!-- Backup and multi-bitrate streaming. Hidden until asked for. -->
-                            <CheckBox Content="Also send to another server" Margin="0,16,0,0"
-                                      IsChecked="{Binding SendToMoreThanOneServer}"
-                                      ToolTip="Run a backup relay, or the same show at a second bitrate." />
-
-                            <StackPanel Margin="0,8,0,0"
-                                        Visibility="{Binding SendToMoreThanOneServer, Converter={StaticResource BoolToVisibility}}">
-                                <ItemsControl ItemsSource="{Binding ExtraTargets}"
-                                              Visibility="{Binding HasOtherServers, Converter={StaticResource BoolToVisibility}}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <CheckBox IsChecked="{Binding IsSelected}" Margin="0,0,0,5">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding Name}" />
-                                                    <TextBlock Text="{Binding Detail}" Margin="10,0,0,0" FontSize="11"
-                                                               VerticalAlignment="Center"
-                                                               Foreground="{DynamicResource MutedTextBrush}" />
-                                                </StackPanel>
-                                            </CheckBox>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-
-                                <TextBlock Text="{Binding ExtraTargetsHint}" Style="{StaticResource HintStyle}"
-                                           Margin="0,4,0,0" />
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Go live -->
-                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,14">
-                        <StackPanel>
-                            <Button Content="{Binding GoLiveButtonText}" Click="OnToggleBroadcast"
-                                    Style="{StaticResource GoLiveButtonStyle}" />
-
-                            <Border Background="{DynamicResource BadBrush}" CornerRadius="6" Padding="10,7" Margin="0,10,0,0"
-                                    Visibility="{Binding SilenceAlert, Converter={StaticResource TextToVisibility}}">
-                                <TextBlock Text="{Binding SilenceAlert}" Foreground="White" TextWrapping="Wrap" />
-                            </Border>
-
-                            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource HintStyle}" Margin="0,10,0,0"
-                                       Visibility="{Binding StatusMessage, Converter={StaticResource TextToVisibility}}" />
-
-                            <!-- One line per destination, so a failing backup is visible but not alarming. -->
-                            <StackPanel Margin="0,10,0,0"
-                                        Visibility="{Binding ShowTargetStatus, Converter={StaticResource BoolToVisibility}}">
-                                <TextBlock Text="{Binding BroadcastDetail}" Style="{StaticResource HintStyle}"
-                                           Margin="0,0,0,6" />
-
-                                <ItemsControl ItemsSource="{Binding TargetStatus}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid Margin="0,0,0,4">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <Ellipse Width="9" Height="9" VerticalAlignment="Center"
-                                                         Fill="{Binding StateBrush}" />
-                                                <TextBlock Grid.Column="1" Text="{Binding Name}" Margin="8,0,0,0"
-                                                           TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Grid.Column="2" Text="{Binding State}" FontSize="11"
-                                                           VerticalAlignment="Center"
-                                                           Foreground="{DynamicResource MutedTextBrush}" />
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </StackPanel>
-
-                            <TextBlock Text="{Binding ConnectionStats}" Style="{StaticResource HintStyle}"
-                                       Foreground="{Binding ConnectionStatsBrush}" Margin="0,10,0,0"
-                                       FontFamily="Consolas" FontSize="11"
-                                       Visibility="{Binding ConnectionStats, Converter={StaticResource TextToVisibility}}" />
-
-                            <CheckBox Content="Go live automatically when SIRS starts" Margin="0,12,0,0"
-                                      IsChecked="{Binding AutoConnectOnStart}" />
-                            <CheckBox Content="Go live on its own when it hears sound" Margin="0,8,0,0"
-                                      IsChecked="{Binding AutoGoLiveOnSound}"
-                                      ToolTip="For an unattended station. Comes off air again after a long silence." />
-                            <TextBlock Text="{Binding AutoAirStatus}" Style="{StaticResource HintStyle}" Margin="20,4,0,0"
-                                       Visibility="{Binding AutoAirStatus, Converter={StaticResource TextToVisibility}}" />
-                            <CheckBox Content="Keep SIRS in the notification area when minimised" Margin="0,8,0,0"
-                                      IsChecked="{Binding MinimiseToTray}" />
-                            <TextBlock Text="{Binding HotkeyDescription}" Style="{StaticResource HintStyle}" Margin="0,8,0,0" />
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Now playing -->
-                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,14">
-                        <StackPanel>
-                            <TextBlock Text="NOW PLAYING" Style="{StaticResource SectionHeadingStyle}" />
-
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBox Text="{Binding NowPlayingInput, UpdateSourceTrigger=PropertyChanged}"
-                                         IsEnabled="{Binding UsingTextFileMetadata, Converter={StaticResource InverseBoolean}, Mode=OneWay}"
-                                         KeyDown="OnNowPlayingKeyDown" />
-                                <Button Grid.Column="1" Content="Send" Margin="8,0,0,0"
-                                        Command="{Binding UpdateNowPlayingCommand}" />
-                            </Grid>
-
-                            <TextBlock Text="{Binding NowPlayingStatus}" Style="{StaticResource HintStyle}" Margin="0,8,0,0" />
-
-                            <WrapPanel Margin="0,10,0,0">
-                                <Button Content="Follow what Windows plays" Click="OnUseMediaSession"
-                                        Margin="0,0,8,6"
-                                        ToolTip="Picks up titles automatically from Spotify, your browser, or any player." />
-                                <Button Content="Read from a file…" Click="OnChooseMetadataFile" Margin="0,0,8,6"
-                                        ToolTip="Point SIRS at the file your playout software updates on each track." />
-                                <Button Content="Type it myself" Click="OnUseManualMetadata" Margin="0,0,0,6"
-                                        Visibility="{Binding UsingTextFileMetadata, Converter={StaticResource BoolToVisibility}}" />
-                            </WrapPanel>
-
-                            <CheckBox Content="Hold the current title — for adverts and jingles" Margin="0,8,0,0"
-                                      IsChecked="{Binding HoldNowPlaying}"
-                                      ToolTip="Listeners keep seeing the last track until you turn this off again." />
-
-                            <!-- Title format and the automation endpoint. Both are setup, not daily use. -->
-                            <TextBlock Text="Title format" Style="{StaticResource FieldLabelStyle}" Margin="0,14,0,0" />
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBox Text="{Binding TitleTemplateText, UpdateSourceTrigger=PropertyChanged, Delay=250}" />
-                                <ComboBox Grid.Column="1" ItemsSource="{Binding TitleTemplateExamples}"
-                                          SelectedItem="{Binding TitleTemplateText}" Width="130" Margin="8,0,0,0"
-                                          ToolTip="Common formats." />
-                            </Grid>
-                            <TextBlock Text="{Binding TitleTemplatePreview}" Style="{StaticResource HintStyle}"
-                                       Margin="0,6,0,0" />
-
-                            <CheckBox Content="Let my playout software send titles to SIRS" Margin="0,14,0,0"
-                                      IsChecked="{Binding MetadataEndpointEnabled}"
-                                      ToolTip="Opens a small address on this computer that automation systems can post to." />
-
-                            <StackPanel Margin="0,8,0,0"
-                                        Visibility="{Binding ShowMetadataEndpointDetails, Converter={StaticResource BoolToVisibility}}">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="80" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Port" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <TextBox Grid.Column="1" Text="{Binding MetadataPort, Delay=500}" />
-                                    <Button Grid.Column="2" Content="Copy the address" Margin="8,0,0,0"
-                                            HorizontalAlignment="Left"
-                                            Command="{Binding CopyEndpointUrlCommand}" />
-                                </Grid>
-
-                                <CheckBox Content="Allow other computers on my network to send titles"
-                                          IsChecked="{Binding MetadataAllowOtherComputers}" Margin="0,10,0,0" />
-
-                                <TextBlock Text="Password (needed for other computers)"
-                                           Style="{StaticResource FieldLabelStyle}" Margin="0,10,0,0" />
-                                <TextBox Text="{Binding MetadataToken, Delay=500}" />
-
-                                <TextBlock Text="{Binding MetadataEndpointUrl}" Style="{StaticResource HintStyle}"
-                                           Margin="0,8,0,0" TextWrapping="Wrap" />
-                            </StackPanel>
-
-                            <TextBlock Text="{Binding MetadataEndpointStatus}" Style="{StaticResource HintStyle}"
-                                       Margin="0,8,0,0" TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Recording -->
-                    <Border Style="{StaticResource CardStyle}">
-                        <StackPanel>
-                            <TextBlock Text="RECORDING" Style="{StaticResource SectionHeadingStyle}" />
-
-                            <StackPanel Orientation="Horizontal">
-                                <Button Content="{Binding RecordButtonText}" Click="OnToggleRecording" MinWidth="150" />
-                                <Button Content="Choose folder…" Click="OnChooseRecordingFolder" Margin="8,0,0,0" />
-                                <Button Content="Open folder" Click="OnOpenRecordingFolder" Margin="8,0,0,0" />
-                            </StackPanel>
-
-                            <ComboBox ItemsSource="{Binding RecordingFormatLabels}"
-                                      SelectedItem="{Binding SelectedRecordingFormatLabel}"
-                                      Margin="0,10,0,0"
-                                      ToolTip="What the recording is saved as, independently of what goes out to listeners." />
-
-                            <ComboBox ItemsSource="{Binding SplitLabels}" SelectedItem="{Binding SelectedSplitLabel}"
-                                      Margin="0,8,0,0"
-                                      ToolTip="Long shows are easier to handle as several files." />
-
-                            <TextBlock Text="{Binding RecordingStatus}" Style="{StaticResource HintStyle}" Margin="0,10,0,0" />
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Language and updates. Both are set-once, so they live at the bottom. -->
-                    <Border Style="{StaticResource CardStyle}" Margin="0,14,0,0">
-                        <StackPanel>
-                            <TextBlock Text="SIRS ITSELF" Style="{StaticResource SectionHeadingStyle}" />
-
-                            <TextBlock Text="Language" Style="{StaticResource FieldLabelStyle}" />
-                            <ComboBox ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding SelectedLanguage}" />
-                            <TextBlock Text="{Binding LanguageHint}" Style="{StaticResource HintStyle}"
-                                       Margin="0,6,0,0" TextWrapping="Wrap" />
-                            <Button Content="Save the English text for translating…" Click="OnExportLanguage"
-                                    HorizontalAlignment="Left" Margin="0,8,0,0" />
-
-                            <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-                                <TextBlock Text="{Binding VersionText}" VerticalAlignment="Center" FontWeight="SemiBold" />
-                                <Button Content="Check for a newer version" Margin="12,0,0,0"
-                                        Command="{Binding CheckUpdatesCommand}" />
-                                <Button Content="Open the release page" Margin="8,0,0,0"
-                                        Command="{Binding OpenReleasePageCommand}"
-                                        Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVisibility}}" />
-                            </StackPanel>
-
-                            <CheckBox Content="Check for updates automatically" Margin="0,10,0,0"
-                                      IsChecked="{Binding CheckForUpdates}"
-                                      ToolTip="Off by default: checking tells the release server that this computer is running SIRS." />
-                            <TextBlock Text="{Binding UpdateStatus}" Style="{StaticResource HintStyle}"
-                                       Margin="0,8,0,0" TextWrapping="Wrap" />
-                            <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0" TextWrapping="Wrap"
-                                       Text="SIRS never downloads or installs anything by itself. It tells you, and you decide." />
-
-                            <!-- Remote control (I10). Below updates on purpose: it is the one switch
-                                 here that lets something outside SIRS take the station on air. -->
-                            <Separator Margin="0,16,0,12" />
-
-                            <CheckBox Content="Let other programs control SIRS"
-                                      IsChecked="{Binding ControlEndpointEnabled}"
-                                      ToolTip="Lets automation software, and SIRS's own command line, go on air, set titles and start recording." />
-                            <TextBlock Style="{StaticResource HintStyle}" Margin="0,6,0,0" TextWrapping="Wrap"
-                                       Text="This is how SIRS --live works from a script or a scheduled task." />
-
-                            <StackPanel Margin="0,8,0,0"
-                                        Visibility="{Binding ShowControlEndpointDetails, Converter={StaticResource BoolToVisibility}}">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="80" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Port" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <TextBox Grid.Column="1" Text="{Binding ControlPort, Delay=500}" />
-                                    <Button Grid.Column="2" Content="Copy the address" Margin="8,0,0,0"
-                                            HorizontalAlignment="Left"
-                                            Command="{Binding CopyControlUrlCommand}" />
-                                </Grid>
-
-                                <CheckBox Content="Allow other computers on my network to control SIRS"
-                                          IsChecked="{Binding ControlAllowOtherComputers}" Margin="0,10,0,0" />
-
-                                <TextBlock Text="Password (required for other computers)"
-                                           Style="{StaticResource FieldLabelStyle}" Margin="0,10,0,0" />
-                                <TextBox Text="{Binding ControlToken, Delay=500}" />
-
-                                <TextBlock Text="{Binding ControlEndpointUrl}" Style="{StaticResource HintStyle}"
-                                           Margin="0,8,0,0" TextWrapping="Wrap" />
-                            </StackPanel>
-
-                            <TextBlock Text="{Binding ControlEndpointStatus}" Style="{StaticResource HintStyle}"
-                                       Margin="0,8,0,0" TextWrapping="Wrap" />
-
-                            <!-- MIDI control (I11). For anyone running SIRS from a desk rather than
-                                 a keyboard: a real Go Live button beats alt-tabbing to find one. -->
-                            <Separator Margin="0,16,0,12" />
-
-                            <TextBlock Text="MIDI controller" Style="{StaticResource FieldLabelStyle}" />
-                            <ComboBox ItemsSource="{Binding MidiDevices}" SelectedItem="{Binding SelectedMidiDevice}"
-                                      ToolTip="A control surface, keyboard or mixer that sends MIDI." />
-
-                            <ItemsControl ItemsSource="{Binding MidiBindings}" Margin="0,10,0,0">
+                        <StackPanel Margin="0,10,0,0"
+                                    Visibility="{Binding SendToMoreThanOneServer, Converter={StaticResource BoolToVisibility}}">
+                            <ItemsControl ItemsSource="{Binding ExtraTargets}"
+                                          Visibility="{Binding HasOtherServers, Converter={StaticResource BoolToVisibility}}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Grid Margin="0,3">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Label}" />
-                                                <TextBlock Text="{Binding Assignment}" FontSize="11"
+                                        <CheckBox IsChecked="{Binding IsSelected}" Margin="0,0,0,5">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Name}" />
+                                                <TextBlock Text="{Binding Detail}" Margin="10,0,0,0" FontSize="11"
+                                                           VerticalAlignment="Center"
                                                            Foreground="{DynamicResource MutedTextBrush}" />
                                             </StackPanel>
-                                            <Button Grid.Column="1" Content="Learn" MinWidth="64"
-                                                    Command="{Binding LearnCommand}" />
-                                            <Button Grid.Column="2" Content="Clear" Margin="6,0,0,0" MinWidth="64"
-                                                    Command="{Binding ClearCommand}"
-                                                    Visibility="{Binding HasAssignment, Converter={StaticResource BoolToVisibility}}" />
-                                        </Grid>
+                                        </CheckBox>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
 
-                            <Button Content="Stop waiting" HorizontalAlignment="Left" Margin="0,8,0,0"
-                                    Command="{Binding CancelMidiLearnCommand}"
-                                    Visibility="{Binding IsLearningMidi, Converter={StaticResource BoolToVisibility}}" />
+                            <TextBlock Text="{Binding ExtraTargetsHint}" Style="{StaticResource HintStyle}"
+                                       Margin="0,4,0,0" />
+                        </StackPanel>
 
-                            <TextBlock Text="{Binding MidiStatus}" Style="{StaticResource HintStyle}"
+                        <!-- One line per destination, so a failing backup is visible but not alarming. -->
+                        <StackPanel Margin="0,16,0,0"
+                                    Visibility="{Binding ShowTargetStatus, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="{Binding BroadcastDetail}" Style="{StaticResource HintStyle}"
+                                       Margin="0,0,0,6" />
+
+                            <ItemsControl ItemsSource="{Binding TargetStatus}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Ellipse Width="9" Height="9" VerticalAlignment="Center"
+                                                     Fill="{Binding StateBrush}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Name}" Margin="8,0,0,0"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="2" Text="{Binding State}" FontSize="11"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource MutedTextBrush}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <TextBlock Text="{Binding ConnectionStats}" Style="{StaticResource HintStyle}"
+                                   Foreground="{Binding ConnectionStatsBrush}" Margin="0,10,0,0"
+                                   FontFamily="Consolas" FontSize="11"
+                                   Visibility="{Binding ConnectionStats, Converter={StaticResource TextToVisibility}}" />
+
+                        <Border Style="{StaticResource RuleStyle}" />
+
+                        <TextBlock Text="GOING ON AIR" Style="{StaticResource GroupHeadingStyle}" />
+                        <CheckBox Content="Go live automatically when SIRS starts"
+                                  IsChecked="{Binding AutoConnectOnStart}" />
+                        <CheckBox Content="Go live on its own when it hears sound" Margin="0,8,0,0"
+                                  IsChecked="{Binding AutoGoLiveOnSound}"
+                                  ToolTip="For an unattended station. Comes off air again after a long silence." />
+                        <TextBlock Text="{Binding AutoAirStatus}" Style="{StaticResource HintStyle}" Margin="20,4,0,0"
+                                   Visibility="{Binding AutoAirStatus, Converter={StaticResource TextToVisibility}}" />
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ==================================================== 4. TRACK -->
+            <TabItem Header="Track" Tag="♪">
+                <ScrollViewer Style="{StaticResource PaneScrollStyle}">
+                    <StackPanel Style="{StaticResource PaneBodyStyle}">
+
+                        <TextBlock Text="Track" Style="{StaticResource PaneHeadingStyle}" />
+                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
+                                   Text="What listeners see as now playing, and where that text comes from." />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Text="{Binding NowPlayingInput, UpdateSourceTrigger=PropertyChanged}"
+                                     IsEnabled="{Binding UsingTextFileMetadata, Converter={StaticResource InverseBoolean}, Mode=OneWay}"
+                                     KeyDown="OnNowPlayingKeyDown" />
+                            <Button Grid.Column="1" Content="Send" Margin="8,0,0,0"
+                                    Command="{Binding UpdateNowPlayingCommand}" />
+                        </Grid>
+
+                        <TextBlock Text="{Binding NowPlayingStatus}" Style="{StaticResource HintStyle}" Margin="0,8,0,0" />
+
+                        <WrapPanel Margin="0,12,0,0">
+                            <Button Content="Follow what Windows plays" Click="OnUseMediaSession"
+                                    Margin="0,0,8,6"
+                                    ToolTip="Picks up titles automatically from Spotify, your browser, or any player." />
+                            <Button Content="Read from a file…" Click="OnChooseMetadataFile" Margin="0,0,8,6"
+                                    ToolTip="Point SIRS at the file your playout software updates on each track." />
+                            <Button Content="Type it myself" Click="OnUseManualMetadata" Margin="0,0,0,6"
+                                    Visibility="{Binding UsingTextFileMetadata, Converter={StaticResource BoolToVisibility}}" />
+                        </WrapPanel>
+
+                        <CheckBox Content="Hold the current title — for adverts and jingles" Margin="0,8,0,0"
+                                  IsChecked="{Binding HoldNowPlaying}"
+                                  ToolTip="Listeners keep seeing the last track until you turn this off again." />
+
+                        <Border Style="{StaticResource RuleStyle}" />
+
+                        <TextBlock Text="TITLE FORMAT" Style="{StaticResource GroupHeadingStyle}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Text="{Binding TitleTemplateText, UpdateSourceTrigger=PropertyChanged, Delay=250}" />
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding TitleTemplateExamples}"
+                                      SelectedItem="{Binding TitleTemplateText}" Width="130" Margin="8,0,0,0"
+                                      ToolTip="Common formats." />
+                        </Grid>
+                        <TextBlock Text="{Binding TitleTemplatePreview}" Style="{StaticResource HintStyle}"
+                                   Margin="0,6,0,0" />
+
+                        <Border Style="{StaticResource RuleStyle}" />
+
+                        <TextBlock Text="LET PLAYOUT SOFTWARE SEND TITLES" Style="{StaticResource GroupHeadingStyle}" />
+                        <CheckBox Content="Let my playout software send titles to SIRS"
+                                  IsChecked="{Binding MetadataEndpointEnabled}"
+                                  ToolTip="Opens a small address on this computer that automation systems can post to." />
+
+                        <StackPanel Margin="0,10,0,0"
+                                    Visibility="{Binding ShowMetadataEndpointDetails, Converter={StaticResource BoolToVisibility}}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Port" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <TextBox Grid.Column="1" Text="{Binding MetadataPort, Delay=500}" />
+                                <Button Grid.Column="2" Content="Copy the address" Margin="8,0,0,0"
+                                        HorizontalAlignment="Left"
+                                        Command="{Binding CopyEndpointUrlCommand}" />
+                            </Grid>
+
+                            <CheckBox Content="Allow other computers on my network to send titles"
+                                      IsChecked="{Binding MetadataAllowOtherComputers}" Margin="0,10,0,0" />
+
+                            <TextBlock Text="Password (needed for other computers)"
+                                       Style="{StaticResource FieldLabelStyle}" Margin="0,10,0,0" />
+                            <TextBox Text="{Binding MetadataToken, Delay=500}" />
+
+                            <TextBlock Text="{Binding MetadataEndpointUrl}" Style="{StaticResource HintStyle}"
                                        Margin="0,8,0,0" TextWrapping="Wrap" />
                         </StackPanel>
+
+                        <TextBlock Text="{Binding MetadataEndpointStatus}" Style="{StaticResource HintStyle}"
+                                   Margin="0,8,0,0" TextWrapping="Wrap" />
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ==================================================== 5. RECORD -->
+            <TabItem Header="Record" Tag="●">
+                <ScrollViewer Style="{StaticResource PaneScrollStyle}">
+                    <StackPanel Style="{StaticResource PaneBodyStyle}">
+
+                        <TextBlock Text="Record" Style="{StaticResource PaneHeadingStyle}" />
+                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
+                                   Text="Keep a copy while you broadcast, or use SIRS as a plain recorder with no server at all." />
+
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="{Binding RecordButtonText}" Click="OnToggleRecording"
+                                    Style="{StaticResource PrimaryButtonStyle}" MinWidth="160" />
+                            <Button Content="Choose folder…" Click="OnChooseRecordingFolder" Margin="8,0,0,0" />
+                            <Button Content="Open folder" Click="OnOpenRecordingFolder" Margin="8,0,0,0" />
+                        </StackPanel>
+
+                        <TextBlock Text="Saved as" Style="{StaticResource FieldLabelStyle}" Margin="0,18,0,4" />
+                        <ComboBox ItemsSource="{Binding RecordingFormatLabels}"
+                                  SelectedItem="{Binding SelectedRecordingFormatLabel}"
+                                  ToolTip="What the recording is saved as, independently of what goes out to listeners." />
+
+                        <TextBlock Text="Split into files" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,4" />
+                        <ComboBox ItemsSource="{Binding SplitLabels}" SelectedItem="{Binding SelectedSplitLabel}"
+                                  ToolTip="Long shows are easier to handle as several files." />
+
+                        <TextBlock Text="{Binding RecordingStatus}" Style="{StaticResource HintStyle}" Margin="0,14,0,0" />
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ==================================================== 6. CONTROL -->
+            <TabItem Header="Control" Tag="⌘">
+                <ScrollViewer Style="{StaticResource PaneScrollStyle}">
+                    <StackPanel Style="{StaticResource PaneBodyStyle}">
+
+                        <TextBlock Text="Control" Style="{StaticResource PaneHeadingStyle}" />
+                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
+                                   Text="Ways to drive SIRS without clicking: a keyboard shortcut, a physical button, or another program entirely." />
+
+                        <TextBlock Text="KEYBOARD AND TRAY" Style="{StaticResource GroupHeadingStyle}" />
+                        <TextBlock Text="{Binding HotkeyDescription}" Style="{StaticResource HintStyle}" />
+                        <CheckBox Content="Keep SIRS in the notification area when minimised" Margin="0,10,0,0"
+                                  IsChecked="{Binding MinimiseToTray}" />
+
+                        <Border Style="{StaticResource RuleStyle}" />
+
+                        <!-- Remote control (I10). Below the harmless things on purpose: this is the
+                             one switch here that lets something outside SIRS take the station on air. -->
+                        <TextBlock Text="LET OTHER PROGRAMS CONTROL SIRS" Style="{StaticResource GroupHeadingStyle}" />
+                        <CheckBox Content="Let other programs control SIRS"
+                                  IsChecked="{Binding ControlEndpointEnabled}"
+                                  ToolTip="Lets automation software, and SIRS's own command line, go on air, set titles and start recording." />
+                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,6,0,0" TextWrapping="Wrap"
+                                   Text="This is how SIRS --live works from a script or a scheduled task." />
+
+                        <StackPanel Margin="0,10,0,0"
+                                    Visibility="{Binding ShowControlEndpointDetails, Converter={StaticResource BoolToVisibility}}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Port" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <TextBox Grid.Column="1" Text="{Binding ControlPort, Delay=500}" />
+                                <Button Grid.Column="2" Content="Copy the address" Margin="8,0,0,0"
+                                        HorizontalAlignment="Left"
+                                        Command="{Binding CopyControlUrlCommand}" />
+                            </Grid>
+
+                            <CheckBox Content="Allow other computers on my network to control SIRS"
+                                      IsChecked="{Binding ControlAllowOtherComputers}" Margin="0,10,0,0" />
+
+                            <TextBlock Text="Password (required for other computers)"
+                                       Style="{StaticResource FieldLabelStyle}" Margin="0,10,0,0" />
+                            <TextBox Text="{Binding ControlToken, Delay=500}" />
+
+                            <TextBlock Text="{Binding ControlEndpointUrl}" Style="{StaticResource HintStyle}"
+                                       Margin="0,8,0,0" TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <TextBlock Text="{Binding ControlEndpointStatus}" Style="{StaticResource HintStyle}"
+                                   Margin="0,8,0,0" TextWrapping="Wrap" />
+
+                        <Border Style="{StaticResource RuleStyle}" />
+
+                        <TextBlock Text="MIDI CONTROLLER" Style="{StaticResource GroupHeadingStyle}" />
+                        <ComboBox ItemsSource="{Binding MidiDevices}" SelectedItem="{Binding SelectedMidiDevice}"
+                                  ToolTip="A control surface, keyboard or mixer that sends MIDI." />
+
+                        <ItemsControl ItemsSource="{Binding MidiBindings}" Margin="0,12,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Label}" />
+                                            <TextBlock Text="{Binding Assignment}" FontSize="11"
+                                                       Foreground="{DynamicResource MutedTextBrush}" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Content="Learn" MinWidth="64"
+                                                Command="{Binding LearnCommand}" />
+                                        <Button Grid.Column="2" Content="Clear" Margin="6,0,0,0" MinWidth="64"
+                                                Command="{Binding ClearCommand}"
+                                                Visibility="{Binding HasAssignment, Converter={StaticResource BoolToVisibility}}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <Button Content="Stop waiting" HorizontalAlignment="Left" Margin="0,10,0,0"
+                                Command="{Binding CancelMidiLearnCommand}"
+                                Visibility="{Binding IsLearningMidi, Converter={StaticResource BoolToVisibility}}" />
+
+                        <TextBlock Text="{Binding MidiStatus}" Style="{StaticResource HintStyle}"
+                                   Margin="0,10,0,0" TextWrapping="Wrap" />
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ==================================================== 7. SIRS -->
+            <TabItem Header="SIRS" Tag="⚙">
+                <ScrollViewer Style="{StaticResource PaneScrollStyle}">
+                    <StackPanel Style="{StaticResource PaneBodyStyle}">
+
+                        <TextBlock Text="SIRS itself" Style="{StaticResource PaneHeadingStyle}" />
+                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
+                                   Text="Set once and forget. Nothing here affects what goes out." />
+
+                        <TextBlock Text="LANGUAGE" Style="{StaticResource GroupHeadingStyle}" />
+                        <ComboBox ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding SelectedLanguage}" />
+                        <TextBlock Text="{Binding LanguageHint}" Style="{StaticResource HintStyle}"
+                                   Margin="0,6,0,0" TextWrapping="Wrap" />
+                        <Button Content="Save the English text for translating…" Click="OnExportLanguage"
+                                HorizontalAlignment="Left" Margin="0,10,0,0" />
+
+                        <Border Style="{StaticResource RuleStyle}" />
+
+                        <TextBlock Text="VERSION" Style="{StaticResource GroupHeadingStyle}" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding VersionText}" VerticalAlignment="Center" FontWeight="SemiBold" />
+                            <Button Content="Check for a newer version" Margin="12,0,0,0"
+                                    Command="{Binding CheckUpdatesCommand}" />
+                            <Button Content="Open the release page" Margin="8,0,0,0"
+                                    Command="{Binding OpenReleasePageCommand}"
+                                    Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVisibility}}" />
+                        </StackPanel>
+
+                        <CheckBox Content="Check for updates automatically" Margin="0,12,0,0"
+                                  IsChecked="{Binding CheckForUpdates}"
+                                  ToolTip="Off by default: checking tells the release server that this computer is running SIRS." />
+                        <TextBlock Text="{Binding UpdateStatus}" Style="{StaticResource HintStyle}"
+                                   Margin="0,8,0,0" TextWrapping="Wrap" />
+                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0" TextWrapping="Wrap"
+                                   Text="SIRS never downloads or installs anything by itself. It tells you, and you decide." />
+
+                        <Border Style="{StaticResource RuleStyle}" />
+
+                        <TextBlock Text="THIS SESSION" Style="{StaticResource GroupHeadingStyle}" />
+                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,0,0,10"
+                                   Text="Connects, drops, device trouble and track changes. The same entries are appended to a file in the logs folder." />
+                        <Button Content="Open the session log" Click="OnOpenLog" HorizontalAlignment="Left" />
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+        </TabControl>
+
+        <!-- ==================================================== status strip
+
+             Always present, on every pane. This is the whole argument for the layout: you can be
+             deep in the recording settings and still see that you are on air, how long for, and
+             what has gone wrong. -->
+        <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
+                Padding="18,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="{Binding StateBrush}" CornerRadius="4" Padding="11,4">
+                        <TextBlock Text="{Binding StateHeadline}" Foreground="White" FontWeight="Bold"
+                                   FontSize="12" />
                     </Border>
-
+                    <TextBlock Text="{Binding UptimeText}" Style="{StaticResource StatusValueStyle}"
+                               Margin="14,0,18,0" />
+                    <TextBlock Text="{Binding ListenerText}" Style="{StaticResource StatusChipStyle}"
+                               Visibility="{Binding ListenerText, Converter={StaticResource TextToVisibility}}" />
+                    <TextBlock Text="{Binding SentText}" Style="{StaticResource StatusChipStyle}" />
+                    <!-- The quality summary deliberately is not here. The strip carries state, not
+                         settings, and it already sits on the Servers pane - where it appeared twice
+                         on screen at once. -->
                 </StackPanel>
-            </ScrollViewer>
-        </Grid>
 
-        <!-- Footer -->
-        <TextBlock Grid.Row="2" Margin="0,14,0,0" FontSize="11"
-                   Foreground="{DynamicResource MutedTextBrush}"
-                   Text="Everything here is free. No paid tier, no bitrate limits, no locked features." />
+                <!-- The middle column carries whatever is currently wrong. Dead air is the loudest
+                     thing SIRS can say, so it gets the colour and the others do not. -->
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0">
+                    <TextBlock Text="{Binding SilenceAlert}" Foreground="{DynamicResource BadBrush}"
+                               FontWeight="SemiBold" FontSize="12" TextTrimming="CharacterEllipsis"
+                               Visibility="{Binding SilenceAlert, Converter={StaticResource TextToVisibility}}" />
+                    <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource StatusChipStyle}"
+                               Margin="0" TextTrimming="CharacterEllipsis"
+                               Visibility="{Binding StatusMessage, Converter={StaticResource TextToVisibility}}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="Log" Click="OnOpenLog" Margin="0,0,8,0" MinHeight="34"
+                            ToolTip="What SIRS has done this session." />
+                    <Button Content="{Binding GoLiveButtonText}" Click="OnToggleBroadcast"
+                            Style="{StaticResource StripButtonStyle}"
+                            Background="{Binding GoLiveButtonBrush}" Foreground="White"
+                            BorderThickness="0" MinWidth="170" />
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

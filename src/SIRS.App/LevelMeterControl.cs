@@ -19,9 +19,15 @@ internal sealed class LevelMeterAutomationPeer(LevelMeterControl owner) : Framew
 }
 
 /// <summary>
-/// Stereo peak meter (B1). The bar is coloured by zone rather than by the current advice, so the
-/// green "aim here" region is visible even while the level is somewhere else - which is what makes
-/// the meter teach rather than just report.
+/// Stereo peak meter (B1). Coloured by zone rather than by the current advice, so the green "aim
+/// here" region is visible even while the level is somewhere else - which is what makes the meter
+/// teach rather than just report.
+/// <para>
+/// Drawn as discrete segments rather than a continuous bar. A solid bar reads as a progress
+/// indicator, which is the wrong idea entirely: a level is not a thing that fills up. Segments read
+/// as a meter because that is what every piece of broadcast equipment in the world uses, and the
+/// unlit segments keep the whole scale visible so the target zone can be seen from across a room.
+/// </para>
 /// </summary>
 public sealed class LevelMeterControl : FrameworkElement
 {
@@ -31,7 +37,14 @@ public sealed class LevelMeterControl : FrameworkElement
     private static readonly Brush GoodBrush = Frozen("#FF25B268");
     private static readonly Brush LoudBrush = Frozen("#FFE0A32E");
     private static readonly Brush ClipBrush = Frozen("#FFE24545");
-    private static readonly Brush TrackBrush = Frozen("#33808090");
+
+    // Unlit segments: the same hues at low opacity, so the scale is legible without competing with
+    // the part that is actually lit.
+    private static readonly Brush QuietOff = Frozen("#1A8C8C9C");
+    private static readonly Brush GoodOff = Frozen("#2625B268");
+    private static readonly Brush LoudOff = Frozen("#26E0A32E");
+    private static readonly Brush ClipOff = Frozen("#30E24545");
+
     private static readonly Brush TickBrush = Frozen("#55808090");
     private static readonly Typeface LabelTypeface = new("Segoe UI");
 
@@ -118,42 +131,55 @@ public sealed class LevelMeterControl : FrameworkElement
         if (ShowScale) DrawScale(drawingContext, width, barsHeight, height);
     }
 
+    /// <summary>
+    /// Segment count scaled to the width available. The mixer's faders get an 8-pixel-tall meter a
+    /// fraction of the width of the main one, and forcing a fixed count on both would give one of
+    /// them segments too fine to see or too coarse to read.
+    /// </summary>
+    private static int SegmentCount(double width) =>
+        (int)Math.Clamp(Math.Round(width / 9.0), 10, 64);
+
     private static void DrawBar(DrawingContext context, Rect area, double peakDb)
     {
-        var radius = Math.Min(3, area.Height / 2);
-        context.DrawRoundedRectangle(TrackBrush, null, area, radius, radius);
+        if (area.Width <= 0 || area.Height <= 0) return;
 
-        var fraction = AudioMath.DbToMeterScale((float)peakDb, FloorDb);
-        if (fraction <= 0) return;
+        var count = SegmentCount(area.Width);
+        var slot = area.Width / count;
+        var gap = slot > 6 ? 2.0 : 1.0;
+        var segmentWidth = Math.Max(1.0, slot - gap);
 
-        // Each zone is filled only as far as the level reaches, which produces the familiar
-        // green-then-amber-then-red ramp without needing a gradient brush per frame.
-        DrawZone(context, area, fraction, FloorDb, -24f, QuietBrush, radius);
-        DrawZone(context, area, fraction, -24f, -4f, GoodBrush, radius);
-        DrawZone(context, area, fraction, -4f, -1f, LoudBrush, radius);
-        DrawZone(context, area, fraction, -1f, 0f, ClipBrush, radius);
+        var reached = AudioMath.DbToMeterScale((float)peakDb, FloorDb);
+
+        for (var i = 0; i < count; i++)
+        {
+            // The middle of the segment decides both its colour and whether it is lit, so a segment
+            // never lights up in a colour from the zone next door.
+            var position = (float)((i + 0.5) / count);
+            var lit = position <= reached;
+            var db = AudioMath.MeterScaleToDb(position, FloorDb);
+
+            context.DrawRectangle(
+                lit ? LitBrush(db) : UnlitBrush(db),
+                null,
+                new Rect(area.X + (i * slot), area.Y, segmentWidth, area.Height));
+        }
     }
 
-    private static void DrawZone(
-        DrawingContext context,
-        Rect area,
-        float fillFraction,
-        float fromDb,
-        float toDb,
-        Brush brush,
-        double radius)
+    private static Brush LitBrush(float db) => db switch
     {
-        var zoneStart = AudioMath.DbToMeterScale(fromDb, FloorDb);
-        var zoneEnd = AudioMath.DbToMeterScale(toDb, FloorDb);
+        >= -1f => ClipBrush,
+        >= -4f => LoudBrush,
+        >= -24f => GoodBrush,
+        _ => QuietBrush,
+    };
 
-        var start = Math.Max(zoneStart, 0);
-        var end = Math.Min(zoneEnd, fillFraction);
-        if (end <= start) return;
-
-        var x = area.X + (start * area.Width);
-        var w = (end - start) * area.Width;
-        context.DrawRoundedRectangle(brush, null, new Rect(x, area.Y, w, area.Height), radius, radius);
-    }
+    private static Brush UnlitBrush(float db) => db switch
+    {
+        >= -1f => ClipOff,
+        >= -4f => LoudOff,
+        >= -24f => GoodOff,
+        _ => QuietOff,
+    };
 
     private void DrawHold(DrawingContext context, double width, double barsHeight)
     {

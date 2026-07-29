@@ -247,4 +247,117 @@
         <Setter Property="BorderThickness" Value="0" />
     </Style>
 
+    <!-- ============================================================== the rail
+
+         The navigation rail is a TabControl underneath. That is the control that already means
+         "one of these at a time", so it brings keyboard navigation, focus handling and screen
+         reader semantics with it (I6) - all of which would have to be rebuilt by hand if the rail
+         were a stack of buttons driving a visibility flag.
+    -->
+
+    <Color x:Key="RailColor">#FF1D2226</Color>
+    <Color x:Key="RailSelectedColor">#FF272F35</Color>
+    <Color x:Key="RailTextColor">#FF8A949C</Color>
+
+    <SolidColorBrush x:Key="RailBrush" Color="{DynamicResource RailColor}" />
+    <SolidColorBrush x:Key="RailSelectedBrush" Color="{DynamicResource RailSelectedColor}" />
+    <SolidColorBrush x:Key="RailTextBrush" Color="{DynamicResource RailTextColor}" />
+
+    <Style x:Key="RailItemStyle" TargetType="TabItem">
+        <Setter Property="Foreground" Value="{DynamicResource RailTextBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabItem">
+                    <Border x:Name="Chrome" Background="Transparent" BorderThickness="3,0,0,0"
+                            BorderBrush="Transparent" Padding="0,10">
+                        <StackPanel Width="72" HorizontalAlignment="Center">
+                            <TextBlock Text="{TemplateBinding Tag}" FontSize="17"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{TemplateBinding Foreground}" />
+                            <TextBlock Text="{TemplateBinding Header}" FontSize="10.5"
+                                       Margin="0,3,0,0" HorizontalAlignment="Center"
+                                       Foreground="{TemplateBinding Foreground}" />
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource RailSelectedBrush}" />
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            <Setter Property="Foreground" Value="White" />
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True" />
+                                <Condition Property="IsSelected" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Chrome" Property="Background" Value="#22FFFFFF" />
+                            <Setter Property="Foreground" Value="White" />
+                        </MultiTrigger>
+                        <!-- Keyboard focus has to be visible, not just hover (I6). -->
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="RailTabControlStyle" TargetType="TabControl">
+        <Setter Property="TabStripPlacement" Value="Left" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabControl">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Background="{DynamicResource RailBrush}">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="SIRS" Foreground="White"
+                                           FontWeight="Bold" FontSize="13" Margin="0,16,0,14"
+                                           HorizontalAlignment="Center" />
+                                <StackPanel IsItemsHost="True" />
+                            </DockPanel>
+                        </Border>
+
+                        <ContentPresenter Grid.Column="1" ContentSource="SelectedContent" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Heading at the top of a pane. Larger than the old card headings, because there is now one
+         of them per screen rather than six. -->
+    <Style x:Key="PaneHeadingStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="19" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    </Style>
+
+    <Style x:Key="GroupHeadingStyle" TargetType="TextBlock" BasedOn="{StaticResource SectionHeadingStyle}">
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <!-- Status strip along the bottom. Present on every pane, which is the whole point: you can be
+         deep in the recording settings and still see that you are on air. -->
+    <Style x:Key="StatusChipStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,18,0" />
+    </Style>
+
+    <Style x:Key="StatusValueStyle" TargetType="TextBlock" BasedOn="{StaticResource StatusChipStyle}">
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="FontFamily" Value="Consolas" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
 </ResourceDictionary>
