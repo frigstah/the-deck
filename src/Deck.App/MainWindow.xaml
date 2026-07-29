@@ -3,10 +3,21 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Deck.App"
         Title="The Deck"
-        Height="760" Width="1000" MinHeight="600" MinWidth="820"
+        Height="482" Width="1020" MinHeight="460" MinWidth="820"
         Background="{DynamicResource BackgroundBrush}"
         TextOptions.TextFormattingMode="Display"
         UseLayoutRounding="True">
+
+    <!--
+        The default size above is deliberately short. The deck is an instrument panel, not a
+        document: it holds five rows and then it is finished, so a taller window would add nothing
+        but emptiness underneath. At this height it parks along the top or bottom of a screen and
+        leaves the rest to whatever is playing the music, which is how it will actually be used.
+
+        Setup opens over the top of it at the same size and its panes scroll, so the compact default
+        costs a little scrolling in the place you visit rarely rather than a screenful of nothing in
+        the place you look at all night.
+    -->
 
     <!--
         The window draws its own title bar. Windows will not let an application colour the system
@@ -113,10 +124,196 @@
             </StackPanel>
         </Grid>
 
-        <TabControl Grid.Row="1"
-                    Style="{StaticResource RailTabControlStyle}"
-                    ItemContainerStyle="{StaticResource RailItemStyle}"
-                    SelectedIndex="{Binding SelectedSection}">
+        <!-- ==================================================== the content area
+
+             Two things occupy it, one at a time: the deck, and setup over the top of it. -->
+        <Grid Grid.Row="1">
+
+            <!-- ================================================ THE DECK
+
+                 The meter is the interface. Four things, top to bottom: whether you are on air and
+                 for how long; what you sound like; what the signal path is; and what listeners are
+                 seeing. No settings, no tabs, nothing to scroll.
+
+                 Laid out as a grid rather than a stack so the meter block takes the space that is
+                 left after the fixed rows, and therefore grows with the window instead of leaving a
+                 gap under it. -->
+            <Grid Margin="34,26,34,24"
+                  Visibility="{Binding IsSetupOpen, Converter={StaticResource BoolToVisibilityInverted}}">
+                <!--
+                    The slack lives in exactly one place: the row above the footer. An earlier
+                    version gave the meter a star row and capped its height, which put half the
+                    spare height above the meter and half below it — the deck read as three things
+                    adrift in a large dark rectangle rather than as one instrument. Concentrating
+                    the gap below the controls keeps the top block tight and pins the footer to the
+                    bottom edge, which is where a footer belongs.
+                -->
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" MinHeight="12" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- state and elapsed time -->
+                <Grid Grid.Row="0">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                        <Ellipse Style="{StaticResource DeckLampStyle}" Fill="{Binding StateBrush}" />
+                        <TextBlock Text="{Binding StateHeadlineUpper}" Style="{StaticResource DeckStateStyle}" />
+                    </StackPanel>
+
+                    <!-- Only while there is something to time. A clock reading 0:00 off air is a
+                         number pretending to be information. -->
+                    <TextBlock Text="{Binding UptimeText}" Style="{StaticResource DeckClockStyle}"
+                               HorizontalAlignment="Right"
+                               Visibility="{Binding IsLive, Converter={StaticResource BoolToVisibility}}" />
+                </Grid>
+
+                <!-- the meter, and what it means -->
+                <Grid Grid.Row="1" Margin="0,26,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- A fixed height, not a share of the window. Tall enough to read across a
+                         room, and the same size every time so the eye learns where the segments
+                         sit rather than re-reading the scale after every resize. -->
+                    <local:LevelMeterControl Grid.Row="0" Height="104"
+                                             PeakDbLeft="{Binding PeakDbLeft}"
+                                             PeakDbRight="{Binding PeakDbRight}"
+                                             HoldDb="{Binding WindowPeakDb}" />
+
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,16,0,0">
+                        <TextBlock Text="{Binding AdviceHeadline}" Style="{StaticResource DeckVerdictStyle}"
+                                   Foreground="{Binding AdviceBrush}"
+                                   Visibility="{Binding ShowLevelCoaching, Converter={StaticResource BoolToVisibility}}" />
+                        <TextBlock Text="{Binding LevelReadout}" Style="{StaticResource DeckReadoutStyle}" />
+                        <TextBlock Text="{Binding IntegratedLoudnessText}" Style="{StaticResource DeckReadoutStyle}" />
+                        <TextBlock Text="{Binding ListenerText}" Style="{StaticResource DeckReadoutStyle}"
+                                   Visibility="{Binding ListenerText, Converter={StaticResource TextToVisibility}}" />
+                        <TextBlock Text="{Binding CorrelationSummary}" Style="{StaticResource DeckReadoutStyle}"
+                                   Visibility="{Binding CorrelationSummary, Converter={StaticResource TextToVisibility}}" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- the signal path, and the only two controls on the deck -->
+                <Grid Grid.Row="2" Margin="0,26,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Chips wrap rather than clip: a long server name on a narrow window should
+                         drop to a second line, not vanish behind the buttons. -->
+                    <WrapPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
+                        <Border Style="{StaticResource DeckChipStyle}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="IN&#160;&#160;" Style="{StaticResource DeckChipLabelStyle}" />
+                                <TextBlock Text="{Binding InputChip}" Style="{StaticResource DeckChipValueStyle}"
+                                           MaxWidth="200" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource DeckChipStyle}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="OUT&#160;&#160;" Style="{StaticResource DeckChipLabelStyle}" />
+                                <TextBlock Text="{Binding OutputChip}" Style="{StaticResource DeckChipValueStyle}"
+                                           MaxWidth="240" TextTrimming="CharacterEllipsis"
+                                           ToolTip="{Binding OutputChip}" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Hidden rather than empty. Before a server is set up there is no quality
+                             to state, and an empty outlined box reads as something broken. -->
+                        <Border Style="{StaticResource DeckChipStyle}"
+                                Visibility="{Binding QualityShort, Converter={StaticResource TextToVisibility}}">
+                            <TextBlock Text="{Binding QualityShort}" Style="{StaticResource DeckChipValueStyle}"
+                                       ToolTip="{Binding QualitySummary}" />
+                        </Border>
+
+                        <!-- Recording is the one chip that comes and goes, because it is the one
+                             whose absence means something. -->
+                        <Border Style="{StaticResource DeckChipStyle}"
+                                Visibility="{Binding ShowRecordingChip, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="{Binding RecordingChip}" Style="{StaticResource DeckChipValueStyle}"
+                                       Foreground="{DynamicResource BadBrush}" />
+                        </Border>
+                    </WrapPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="Setup" Command="{Binding OpenSetupCommand}"
+                                Style="{StaticResource DeckSetupButtonStyle}" Margin="0,0,12,0"
+                                ToolTip="Everything that is not the show." />
+
+                        <!-- Outlined while live, filled while off air. Going on air should be an
+                             inviting target; taking a station off air should not be something the
+                             hand finds by accident. -->
+                        <Button Content="{Binding GoLiveButtonText}" Click="OnToggleBroadcast"
+                                Style="{StaticResource DeckActionButtonStyle}"
+                                Background="{Binding GoLiveButtonBrush}"
+                                Foreground="{Binding GoLiveButtonTextBrush}"
+                                BorderBrush="{Binding GoLiveButtonBorderBrush}" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- what listeners are seeing, and how the connection is holding -->
+                <Grid Grid.Row="4" Margin="0,20,0,0">
+                    <Border Style="{StaticResource RuleStyle}" Margin="0,0,0,14" VerticalAlignment="Top" />
+
+                    <Grid Margin="0,15,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Orientation="Horizontal" Grid.Column="0">
+                            <TextBlock Text="NOW PLAYING&#160;&#160;" Style="{StaticResource DeckFooterStyle}" />
+                            <TextBlock Text="{Binding NowPlayingLine}" Style="{StaticResource DeckFooterStyle}"
+                                       Foreground="{DynamicResource TextBrush}"
+                                       TextTrimming="CharacterEllipsis" MaxWidth="420" />
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Grid.Column="1">
+                            <!-- Dead air is the loudest thing the deck can say, so it takes the
+                                 colour and sits where the eye already is. -->
+                            <TextBlock Text="{Binding SilenceAlert}" Style="{StaticResource DeckFooterStyle}"
+                                       Foreground="{DynamicResource BadBrush}" FontWeight="Bold"
+                                       Margin="0,0,18,0"
+                                       Visibility="{Binding SilenceAlert, Converter={StaticResource TextToVisibility}}" />
+                            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource DeckFooterStyle}"
+                                       TextTrimming="CharacterEllipsis" MaxWidth="320" Margin="0,0,18,0"
+                                       Visibility="{Binding StatusMessage, Converter={StaticResource TextToVisibility}}" />
+                            <TextBlock Text="{Binding BufferText}" Style="{StaticResource DeckFooterStyle}"
+                                       Margin="0,0,18,0"
+                                       Visibility="{Binding BufferText, Converter={StaticResource TextToVisibility}}" />
+                            <TextBlock Text="{Binding SentText}" Style="{StaticResource DeckFooterStyle}" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Grid>
+
+            <!-- ================================================ SETUP, over the top
+
+                 Opaque and full-height, so it is unmistakably a different mode rather than a panel
+                 that appeared. The status strip below stays visible while it is open, which is what
+                 lets you change a setting mid-show without losing sight of being on air. -->
+            <Border Background="{DynamicResource BackgroundBrush}"
+                    Visibility="{Binding IsSetupOpen, Converter={StaticResource BoolToVisibility}}">
+                <Grid>
+                    <!--
+                        No header row. It held the word SETUP and a close button, and both were
+                        wrong: the rail already says which pane you are on, and the way back belongs
+                        in the strip along the bottom with the other things you press. Removing it
+                        gave the rail the ~50 pixels it needed to show all seven entries in a window
+                        this short, which is the difference between a rail you scroll and one you
+                        just read.
+                    -->
+                    <TabControl
+                                Style="{StaticResource RailTabControlStyle}"
+                                ItemContainerStyle="{StaticResource RailItemStyle}"
+                                SelectedIndex="{Binding SelectedSection}">
 
             <!-- ==================================================== 1. SOUND -->
             <TabItem Header="Sound" Tag="◉">
@@ -894,16 +1091,21 @@
                 </ScrollViewer>
             </TabItem>
 
-        </TabControl>
+                    </TabControl>
+                </Grid>
+            </Border>
+        </Grid>
 
         <!-- ==================================================== status strip
 
-             Always present, on every pane. This is the whole argument for the layout: you can be
-             deep in the recording settings and still see that you are on air, how long for, and
-             what has gone wrong. -->
+             Present only while setup is covering the deck. The deck carries its own state in far
+             larger type, so showing both at once would say the same thing twice on one screen — but
+             the moment the deck is hidden, something has to keep answering "am I still live?", and
+             this is it. Exactly one of the two is always on screen. -->
         <Border Grid.Row="2" Background="{DynamicResource StatusBarBrush}"
                 BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
-                Padding="20,9">
+                Padding="20,9"
+                Visibility="{Binding ShowStatusStrip, Converter={StaticResource BoolToVisibility}}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -953,6 +1155,12 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- The way out of setup. It lives here rather than in a header of its own,
+                         beside the other things on screen that are meant to be pressed. -->
+                    <Button Content="◀ Deck" Command="{Binding CloseSetupCommand}" Margin="0,0,8,0"
+                            Style="{StaticResource StripButtonStyle}"
+                            ToolTip="Back to the deck." />
+
                     <Button Content="Log" Click="OnOpenLog" Margin="0,0,8,0"
                             Style="{StaticResource StripButtonStyle}"
                             ToolTip="What Deck has done this session." />

@@ -194,6 +194,80 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         _suppressPersist = false;
     }
 
+    // ---------------------------------------------------------------- the deck, and getting off it
+
+    private bool _isSetupOpen;
+    private RelayCommand? _openSetupCommand;
+    private RelayCommand? _closeSetupCommand;
+
+    /// <summary>
+    /// Whether the setup panel is over the top of the deck.
+    /// <para>
+    /// The deck is what you look at while the show is going out, and it holds no settings at all —
+    /// so everything that configures anything lives behind this one flag. That is the whole design:
+    /// you cannot reach a setting by accident at 3 a.m., because reaching one is a deliberate act
+    /// that covers the screen and tells you it has.
+    /// </para>
+    /// </summary>
+    public bool IsSetupOpen
+    {
+        get => _isSetupOpen;
+        private set
+        {
+            if (!Set(ref _isSetupOpen, value)) return;
+
+            // The deck carries its own state when it is visible; the strip carries it when setup is
+            // covering the deck. Exactly one of them is on screen at a time, and neither moment
+            // leaves you unable to see that you are live.
+            Raise(nameof(ShowStatusStrip));
+        }
+    }
+
+    /// <summary>The strip only earns its height while the deck is hidden behind setup.</summary>
+    public bool ShowStatusStrip => IsSetupOpen;
+
+    public RelayCommand OpenSetupCommand => _openSetupCommand ??= new RelayCommand(() => IsSetupOpen = true);
+
+    public RelayCommand CloseSetupCommand => _closeSetupCommand ??= new RelayCommand(() => IsSetupOpen = false);
+
+    /// <summary>
+    /// The signal path along the bottom of the deck, as facts rather than controls. Each is something
+    /// you would otherwise have to open setup to check, which is the one thing the deck exists to
+    /// avoid.
+    /// </summary>
+    public string InputChip => _selectedInput?.Name ?? "no input";
+
+    public string OutputChip => string.IsNullOrWhiteSpace(BroadcastTargetText)
+        ? SelectedServerShort
+        : BroadcastTargetText;
+
+    /// <summary>Present only while it is true. A chip reading "not recording" is noise.</summary>
+    public bool ShowRecordingChip => IsRecording;
+
+    public string RecordingChip => IsRecording
+        ? $"REC {_engine.Recorder.Elapsed:mm\\:ss}"
+        : string.Empty;
+
+    /// <summary>
+    /// The line listeners are seeing, or nothing. Read-only here on purpose: the deck reports, and
+    /// the Track pane is where a title gets typed.
+    /// </summary>
+    public string NowPlayingLine => _engine.NowPlaying.Title is { Length: > 0 } title
+        ? title
+        : "nothing set";
+
+    /// <summary>
+    /// How full the send buffer is. Worth a corner of the deck because it is the earliest warning
+    /// that a connection is struggling — it climbs well before a stream actually drops.
+    /// </summary>
+    public string BufferText => _engine.Broadcast.State.IsBroadcasting()
+        ? $"buffer {_engine.Broadcast.BufferFill:P0}"
+        : string.Empty;
+
+    private void RaiseDeck() => RaiseAll(
+        nameof(InputChip), nameof(OutputChip), nameof(ShowRecordingChip), nameof(RecordingChip),
+        nameof(NowPlayingLine), nameof(BufferText));
+
     // ---------------------------------------------------------------- which pane is open
 
     /// <summary>
@@ -2244,6 +2318,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             RaiseAll(nameof(UptimeText), nameof(SentText), nameof(BroadcastDetail),
                 nameof(ConnectionStats), nameof(ConnectionStatsBrush));
         }
+
+        // Only while the deck is the thing on screen. Behind setup these are covered up, and
+        // refreshing six readouts twenty times a second to update nothing is waste.
+        if (!IsSetupOpen) RaiseDeck();
+
         if (IsRecording) Raise(nameof(RecordingStatus));
         if (IsSoundCheckRecording) RaiseAll(nameof(SoundCheckProgress), nameof(SoundCheckStatus));
     }
