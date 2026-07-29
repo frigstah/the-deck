@@ -33,20 +33,17 @@ public sealed class LevelMeterControl : FrameworkElement
 {
     private const float FloorDb = -60f;
 
-    private static readonly Brush QuietBrush = Frozen("#FF8C8C9C");
-    private static readonly Brush GoodBrush = Frozen("#FF25B268");
-    private static readonly Brush LoudBrush = Frozen("#FFE0A32E");
-    private static readonly Brush ClipBrush = Frozen("#FFE24545");
-
-    // Unlit segments: the same hues at low opacity, so the scale is legible without competing with
-    // the part that is actually lit.
-    private static readonly Brush QuietOff = Frozen("#1A8C8C9C");
-    private static readonly Brush GoodOff = Frozen("#2625B268");
-    private static readonly Brush LoudOff = Frozen("#26E0A32E");
-    private static readonly Brush ClipOff = Frozen("#30E24545");
-
     private static readonly Brush TickBrush = Frozen("#55808090");
     private static readonly Typeface LabelTypeface = new("Segoe UI");
+
+    /// <summary>
+    /// Segment colours come from the theme rather than from constants here, so the meter follows the
+    /// Windows light/dark setting like everything else (I5). Looked up per render rather than
+    /// cached: the palette is rewritten at startup, and a brush cached in a static field would keep
+    /// whichever theme happened to be loaded first.
+    /// </summary>
+    private static Brush Themed(string key, string fallback) =>
+        System.Windows.Application.Current?.TryFindResource(key) as Brush ?? Frozen(fallback);
 
     public static readonly DependencyProperty PeakDbLeftProperty = DependencyProperty.Register(
         nameof(PeakDbLeft), typeof(double), typeof(LevelMeterControl),
@@ -167,18 +164,18 @@ public sealed class LevelMeterControl : FrameworkElement
 
     private static Brush LitBrush(float db) => db switch
     {
-        >= -1f => ClipBrush,
-        >= -4f => LoudBrush,
-        >= -24f => GoodBrush,
-        _ => QuietBrush,
+        >= -1f => Themed("MeterClipBrush", "#FFC9564C"),
+        >= -4f => Themed("MeterLoudBrush", "#FFD7A64A"),
+        >= -24f => Themed("MeterGoodBrush", "#FF3F9E76"),
+        _ => Themed("MeterQuietBrush", "#FF9AA5A2"),
     };
 
     private static Brush UnlitBrush(float db) => db switch
     {
-        >= -1f => ClipOff,
-        >= -4f => LoudOff,
-        >= -24f => GoodOff,
-        _ => QuietOff,
+        >= -1f => Themed("MeterClipOffBrush", "#FFF0DEDC"),
+        >= -4f => Themed("MeterLoudOffBrush", "#FFF0E4CE"),
+        >= -24f => Themed("MeterGoodOffBrush", "#FFD6E8DF"),
+        _ => Themed("MeterQuietOffBrush", "#FFE8E8E4"),
     };
 
     private void DrawHold(DrawingContext context, double width, double barsHeight)
@@ -186,17 +183,12 @@ public sealed class LevelMeterControl : FrameworkElement
         var fraction = AudioMath.DbToMeterScale((float)HoldDb, FloorDb);
         if (fraction <= 0) return;
 
-        var brush = HoldDb switch
-        {
-            >= -1f => ClipBrush,
-            >= -4f => LoudBrush,
-            >= -24f => GoodBrush,
-            _ => QuietBrush,
-        };
-
         var x = Math.Round(fraction * width) + 0.5;
-        var pen = new Pen(brush, 2);
-        pen.Freeze();
+
+        // Not frozen. The brush now comes from the theme, and a brush whose colour is a live
+        // DynamicResource reference cannot be frozen - Freeze() throws, every render, the moment
+        // the level rises above the floor and this line is drawn at all.
+        var pen = new Pen(LitBrush((float)HoldDb), 2);
         context.DrawLine(pen, new Point(x, 0), new Point(x, barsHeight));
     }
 

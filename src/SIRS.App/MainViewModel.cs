@@ -219,6 +219,25 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     /// <summary>Sound, Process, Servers, Track, Record, Control, SIRS.</summary>
     private const int SectionCount = 7;
 
+    // ---------------------------------------------------------------- pane heading readouts
+
+    /// <summary>
+    /// The short figure that sits beside a pane's title. Each one answers the question you would
+    /// have to change panes to ask — what target am I aiming at, which server is this going to —
+    /// so the heading row carries information rather than just repeating the rail label.
+    /// </summary>
+    public string LoudnessTargetShort => $"target {_loudnessTarget.Lufs:0} LUFS";
+
+    public string SelectedServerShort => _selectedServer is null
+        ? "no server yet"
+        : _engine.Broadcast.IsMultiTarget
+            ? $"{_selectedServer.Name} + {_engine.Broadcast.Targets.Count - 1} more"
+            : _selectedServer.Name;
+
+    public string RecordingShort => IsRecording
+        ? $"recording · {_engine.Recorder.Elapsed:mm\\:ss}"
+        : "not recording";
+
     // ---------------------------------------------------------------- devices and input level
 
     public ObservableCollection<AudioDevice> InputDevices { get; } = [];
@@ -328,6 +347,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     }
 
     public Brush AdviceBrush => SeverityBrush(_engine.Capture.InputMeter.Advice.Severity());
+
+    /// <summary>Fill behind the level verdict pill; the headline above supplies the text colour.</summary>
+    public Brush AdvicePillBrush => SeveritySoftBrush(_engine.Capture.InputMeter.Advice.Severity());
+
+    /// <summary>The verdict set as a pill reads as a badge, so it is shouted rather than sentenced.</summary>
+    public string AdviceHeadlineUpper => AdviceHeadline.ToUpperInvariant();
 
     /// <summary>The windowed peak the coaching verdict is based on; drawn as the meter's hold marker.</summary>
     public double WindowPeakDb => _engine.Capture.InputMeter.WindowPeakDb;
@@ -559,12 +584,22 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
 
     public string CorrelationVerdict => _engine.Capture.Correlation?.Verdict() ?? "Nothing to measure yet.";
 
+    /// <summary>
+    /// The phase reading in three characters, to sit beside the level verdict. Compact enough to
+    /// live on the Sound pane, where the full explanation would be noise — an out-of-phase input is
+    /// rare, but when it happens nothing else on that screen would show it.
+    /// </summary>
+    public string? CorrelationSummary => _engine.Capture.Correlation is { IsQuiet: false } meter
+        ? $"phase {meter.Correlation:+0.00;-0.00}"
+        : null;
+
     public Brush CorrelationBrush =>
         SeverityBrush(_engine.Capture.Correlation?.Severity() ?? AdviceSeverity.Neutral);
 
     private void RaiseLoudness() => RaiseAll(
         nameof(ShortTermLoudnessText), nameof(IntegratedLoudnessText), nameof(LoudnessVerdict),
-        nameof(LoudnessBrush), nameof(SelectedLoudnessTargetName), nameof(LoudnessTargetDetail));
+        nameof(LoudnessBrush), nameof(SelectedLoudnessTargetName), nameof(LoudnessTargetDetail),
+        nameof(LoudnessTargetShort));
 
     // ---------------------------------------------------------------- second source (A5)
 
@@ -822,7 +857,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             _settings.SelectedServerId = value?.Id;
             Persist();
             RebuildExtraTargets();
-            RaiseAll(nameof(SelectedServerSummary), nameof(CanGoLive), nameof(QualitySummary), nameof(ListenUrl));
+            RaiseAll(nameof(SelectedServerSummary), nameof(CanGoLive), nameof(QualitySummary), nameof(ListenUrl), nameof(SelectedServerShort));
         }
     }
 
@@ -855,7 +890,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
 
         SaveServers();
         RebuildExtraTargets();
-        RaiseAll(nameof(SelectedServerSummary), nameof(QualitySummary), nameof(ListenUrl), nameof(CanGoLive));
+        RaiseAll(nameof(SelectedServerSummary), nameof(QualitySummary), nameof(ListenUrl), nameof(CanGoLive), nameof(SelectedServerShort));
     }
 
     public void RemoveServer(ServerProfile profile)
@@ -888,7 +923,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             SaveServers();
             SelectedServer ??= Servers.FirstOrDefault();
             RebuildExtraTargets();
-            RaiseAll(nameof(SelectedServerSummary), nameof(QualitySummary), nameof(CanGoLive));
+            RaiseAll(nameof(SelectedServerSummary), nameof(QualitySummary), nameof(CanGoLive), nameof(SelectedServerShort));
         }
 
         return added;
@@ -989,7 +1024,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         TargetStatus.Clear();
         foreach (var target in _engine.Broadcast.Targets) TargetStatus.Add(new TargetStatusRow(target));
 
-        RaiseAll(nameof(ShowTargetStatus), nameof(BroadcastDetail));
+        RaiseAll(nameof(ShowTargetStatus), nameof(BroadcastDetail), nameof(SelectedServerShort));
     }
 
     // ---------------------------------------------------------------- broadcast
@@ -1011,14 +1046,28 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     public string GoLiveButtonText => StreamState.IsBroadcasting() ? "Stop broadcasting" : "Go live";
 
     /// <summary>
-    /// Colour for the on-air control in the status strip. Deliberately not <see cref="StateBrush"/>:
-    /// that is grey while off air, which made the one button the whole program exists for look
-    /// disabled. Off air it is the accent, inviting; on air it is the live colour, so stopping a
-    /// broadcast is never a click you make without noticing.
+    /// The on-air control in the status strip is filled while off air and outlined while live.
+    /// <para>
+    /// Deliberately not <see cref="StateBrush"/>, which is grey off air and made the one button the
+    /// whole program exists for look disabled. And deliberately asymmetric: going on air should be
+    /// an inviting target, while taking a station off air should not be something the hand finds by
+    /// accident. The state block to its left already says, loudly, that the show is out.
+    /// </para>
     /// </summary>
     public Brush GoLiveButtonBrush => StreamState.IsBroadcasting()
-        ? (Brush)AppResource("LiveBrush")
+        ? (Brush)AppResource("SurfaceBrush")
         : (Brush)AppResource("AccentBrush");
+
+    public Brush GoLiveButtonTextBrush => StreamState.IsBroadcasting()
+        ? (Brush)AppResource("TextBrush")
+        : (Brush)AppResource("OnAccentBrush");
+
+    public Brush GoLiveButtonBorderBrush => StreamState.IsBroadcasting()
+        ? (Brush)AppResource("BorderBrush")
+        : (Brush)AppResource("AccentBrush");
+
+    /// <summary>The state block is signage, so it shouts.</summary>
+    public string StateHeadlineUpper => StateHeadline.ToUpperInvariant();
 
     public string UptimeText
     {
@@ -1844,7 +1893,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
 
             // Everything that came from the catalogue is already on screen, so the whole view is
             // refreshed rather than trying to work out which labels moved.
-            RaiseAll(nameof(SelectedLanguage), nameof(AdviceHeadline), nameof(AdviceHint),
+            RaiseAll(nameof(SelectedLanguage), nameof(AdviceHeadline), nameof(AdviceHeadlineUpper),
+                nameof(AdviceHint),
                 nameof(StateHeadline), nameof(GoLiveButtonText), nameof(ListenerText),
                 nameof(LanguageHint));
         }
@@ -2004,7 +2054,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
 
         RaiseAll(
             nameof(PeakDbLeft), nameof(PeakDbRight), nameof(WindowPeakDb), nameof(AdviceHeadline),
+            nameof(AdviceHeadlineUpper), nameof(AdvicePillBrush),
             nameof(AdviceHint), nameof(AdviceBrush), nameof(LevelReadout), nameof(SilenceAlert),
+            nameof(CorrelationSummary),
             nameof(PrimaryPeakDb), nameof(SecondaryPeakDb), nameof(WaitingForDevice),
             nameof(ShortTermLoudnessText), nameof(IntegratedLoudnessText), nameof(LoudnessVerdict),
             nameof(LoudnessBrush));
@@ -2048,7 +2100,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
 
         RaiseAll(
             nameof(StreamState), nameof(IsLive), nameof(StateHeadline), nameof(StateBrush),
-            nameof(GoLiveButtonText), nameof(GoLiveButtonBrush), nameof(CanGoLive),
+            nameof(GoLiveButtonText), nameof(GoLiveButtonBrush), nameof(GoLiveButtonTextBrush),
+            nameof(GoLiveButtonBorderBrush), nameof(StateHeadlineUpper), nameof(CanGoLive),
             nameof(UptimeText), nameof(SilenceAlert));
     });
 
@@ -2082,6 +2135,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         AdviceSeverity.Warning => (Brush)AppResource("WarnBrush"),
         AdviceSeverity.Bad => (Brush)AppResource("BadBrush"),
         _ => (Brush)AppResource("MutedTextBrush"),
+    };
+
+    /// <summary>The tinted fill behind a verdict pill, paired with <see cref="SeverityBrush"/>.</summary>
+    private static Brush SeveritySoftBrush(AdviceSeverity severity) => severity switch
+    {
+        AdviceSeverity.Ok => (Brush)AppResource("OkSoftBrush"),
+        AdviceSeverity.Warning => (Brush)AppResource("WarnSoftBrush"),
+        AdviceSeverity.Bad => (Brush)AppResource("BadSoftBrush"),
+        _ => (Brush)AppResource("NeutralSoftBrush"),
     };
 
     private void Persist()

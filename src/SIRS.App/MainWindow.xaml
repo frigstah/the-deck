@@ -40,12 +40,6 @@
             <Setter Property="MaxWidth" Value="620" />
             <Setter Property="HorizontalAlignment" Value="Left" />
         </Style>
-
-        <Style x:Key="StripButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="MinHeight" Value="34" />
-            <Setter Property="Padding" Value="18,6" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-        </Style>
     </Window.Resources>
 
     <Grid>
@@ -64,11 +58,20 @@
                 <ScrollViewer Style="{StaticResource PaneScrollStyle}">
                     <StackPanel Style="{StaticResource PaneBodyStyle}">
 
-                        <TextBlock Text="Sound" Style="{StaticResource PaneHeadingStyle}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Sound" Style="{StaticResource PaneHeadingStyle}" />
+                            <TextBlock Grid.Column="1" Text="{Binding IntegratedLoudnessText}"
+                                       Style="{StaticResource ReadoutStyle}" VerticalAlignment="Bottom"
+                                       Margin="12,0,0,3" />
+                        </Grid>
                         <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
                                    Text="What goes into the stream, and how it sounds before anything else touches it." />
 
-                        <TextBlock Text="Input" Style="{StaticResource FieldLabelStyle}" />
+                        <TextBlock Text="I N P U T" Style="{StaticResource MicroLabelStyle}" />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -99,12 +102,12 @@
                                        Margin="0,6,0,0" />
                         </StackPanel>
 
-                        <Border Background="{DynamicResource WarnBrush}" CornerRadius="6" Padding="10,7" Margin="0,10,0,0"
+                        <Border Background="{DynamicResource WarnBrush}" Padding="10,7" Margin="0,10,0,0"
                                 Visibility="{Binding WaitingForDevice, Converter={StaticResource TextToVisibility}}">
                             <TextBlock Text="{Binding WaitingForDevice}" Foreground="White" TextWrapping="Wrap" />
                         </Border>
 
-                        <TextBlock Text="Input level" Style="{StaticResource FieldLabelStyle}" Margin="0,18,0,4" />
+                        <TextBlock Text="I N P U T   L E V E L" Style="{StaticResource MicroLabelStyle}" Margin="0,18,0,4" />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -122,20 +125,21 @@
                                                  PeakDbRight="{Binding PeakDbRight}"
                                                  HoldDb="{Binding WindowPeakDb}" />
 
-                        <!-- The traffic light. This is the thing users read instead of dBFS. -->
-                        <Grid Margin="0,12,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <Ellipse Width="12" Height="12" Fill="{Binding AdviceBrush}" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="{Binding AdviceHeadline}" Margin="8,0,0,0"
-                                       FontWeight="SemiBold" FontSize="15" Foreground="{Binding AdviceBrush}" />
-                            <TextBlock Grid.Column="2" Text="{Binding LevelReadout}" FontFamily="Consolas"
-                                       FontSize="11" Foreground="{DynamicResource MutedTextBrush}" />
-                        </Grid>
-                        <TextBlock Text="{Binding AdviceHint}" Style="{StaticResource HintStyle}" Margin="20,4,0,0" />
+                        <!-- The traffic light, as a badge. This is the thing users read instead of
+                             dBFS, so it is set apart from the numbers rather than sat among them. -->
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <Border Style="{StaticResource PillStyle}" Background="{Binding AdvicePillBrush}">
+                                <TextBlock Text="{Binding AdviceHeadlineUpper}"
+                                           Style="{StaticResource PillTextStyle}"
+                                           Foreground="{Binding AdviceBrush}" />
+                            </Border>
+                            <TextBlock Text="{Binding LevelReadout}" Style="{StaticResource ReadoutStyle}"
+                                       Margin="12,0,0,0" />
+                            <TextBlock Text="{Binding CorrelationSummary}" Style="{StaticResource ReadoutStyle}"
+                                       Margin="12,0,0,0"
+                                       Visibility="{Binding CorrelationSummary, Converter={StaticResource TextToVisibility}}" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding AdviceHint}" Style="{StaticResource HintStyle}" Margin="0,8,0,0" />
 
                         <CheckBox Content="Voice Enhance — steadier level and less rumble for speech"
                                   IsChecked="{Binding VoiceEnhance}" Margin="0,16,0,0" />
@@ -144,7 +148,7 @@
 
                         <Border Style="{StaticResource RuleStyle}" />
 
-                        <TextBlock Text="SOUND CHECK" Style="{StaticResource GroupHeadingStyle}" />
+                        <TextBlock Text="S O U N D   C H E C K" Style="{StaticResource GroupHeadingStyle}" />
                         <TextBlock Text="Hear yourself the way listeners will."
                                    Style="{StaticResource HintStyle}" Margin="0,0,0,10" />
 
@@ -167,7 +171,7 @@
 
                         <Border Style="{StaticResource RuleStyle}" />
 
-                        <TextBlock Text="HEADPHONES" Style="{StaticResource GroupHeadingStyle}" />
+                        <TextBlock Text="H E A D P H O N E S" Style="{StaticResource GroupHeadingStyle}" />
 
                         <CheckBox Content="Listen while I broadcast" IsChecked="{Binding MonitorEnabled}" />
 
@@ -191,7 +195,7 @@
 
                         <Border Style="{StaticResource RuleStyle}" />
 
-                        <TextBlock Text="MIX IN A SECOND SOURCE" Style="{StaticResource GroupHeadingStyle}" />
+                        <TextBlock Text="S E C O N D   S O U R C E" Style="{StaticResource GroupHeadingStyle}" />
 
                         <CheckBox Content="Add a second sound source" IsChecked="{Binding SecondarySourceEnabled}" />
                         <TextBlock Style="{StaticResource HintStyle}" Margin="0,6,0,0"
@@ -256,18 +260,27 @@
                 <ScrollViewer Style="{StaticResource PaneScrollStyle}">
                     <StackPanel Style="{StaticResource PaneBodyStyle}">
 
-                        <TextBlock Text="Process" Style="{StaticResource PaneHeadingStyle}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Process" Style="{StaticResource PaneHeadingStyle}" />
+                            <TextBlock Grid.Column="1" Text="{Binding LoudnessTargetShort}"
+                                       Style="{StaticResource ReadoutStyle}" VerticalAlignment="Bottom"
+                                       Margin="12,0,0,3" />
+                        </Grid>
                         <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
                                    Text="Shaping and measurement. Everything here is optional — a show sounds fine with all of it left alone." />
 
-                        <TextBlock Text="COMPRESSION" Style="{StaticResource GroupHeadingStyle}" />
+                        <TextBlock Text="C O M P R E S S I O N" Style="{StaticResource GroupHeadingStyle}" />
                         <ComboBox ItemsSource="{Binding ProcessingPresetNames}"
                                   SelectedItem="{Binding SelectedProcessingPresetName}"
                                   ToolTip="Evens out the dynamics across three frequency bands." />
                         <TextBlock Text="{Binding ProcessingDescription}" Style="{StaticResource HintStyle}"
                                    Margin="0,6,0,0" />
 
-                        <TextBlock Text="TONE" Style="{StaticResource GroupHeadingStyle}" Margin="0,20,0,8" />
+                        <TextBlock Text="T O N E" Style="{StaticResource GroupHeadingStyle}" Margin="0,20,0,8" />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
@@ -309,7 +322,7 @@
 
                         <Border Style="{StaticResource RuleStyle}" />
 
-                        <TextBlock Text="HOW LOUD IT FEELS" Style="{StaticResource GroupHeadingStyle}" />
+                        <TextBlock Text="H O W   L O U D   I T   F E E L S" Style="{StaticResource GroupHeadingStyle}" />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -352,7 +365,7 @@
 
                         <!-- Spectrum and phase (B9). Still behind a switch even on its own pane: it
                              costs a lock the audio thread wants, and most shows never need it. -->
-                        <TextBlock Text="FREQUENCIES AND PHASE" Style="{StaticResource GroupHeadingStyle}" />
+                        <TextBlock Text="S P E C T R U M   A N D   P H A S E" Style="{StaticResource GroupHeadingStyle}" />
                         <CheckBox Content="Show frequencies and stereo phase"
                                   IsChecked="{Binding ShowAdvancedMeters}"
                                   ToolTip="For checking a wiring fault or a heavy-handed EQ. Not needed for a normal show." />
@@ -363,7 +376,7 @@
                                                    Bars="{Binding SpectrumBars}"
                                                    EdgesHz="{Binding SpectrumEdgesHz}" />
 
-                            <TextBlock Text="Stereo phase" Style="{StaticResource FieldLabelStyle}"
+                            <TextBlock Text="S T E R E O   P H A S E" Style="{StaticResource MicroLabelStyle}"
                                        Margin="0,14,0,0" />
                             <TextBlock Text="{Binding CorrelationText}" FontFamily="Consolas" FontSize="15"
                                        Foreground="{Binding CorrelationBrush}" />
@@ -381,7 +394,16 @@
                 <ScrollViewer Style="{StaticResource PaneScrollStyle}">
                     <StackPanel Style="{StaticResource PaneBodyStyle}">
 
-                        <TextBlock Text="Servers" Style="{StaticResource PaneHeadingStyle}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Servers" Style="{StaticResource PaneHeadingStyle}" />
+                            <TextBlock Grid.Column="1" Text="{Binding SelectedServerShort}"
+                                       Style="{StaticResource ReadoutStyle}" VerticalAlignment="Bottom"
+                                       Margin="12,0,0,3" />
+                        </Grid>
                         <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
                                    Text="Where the show goes. Paste the address your host gave you and SIRS will work out the rest." />
 
@@ -414,7 +436,7 @@
 
                         <Border Style="{StaticResource RuleStyle}" />
 
-                        <TextBlock Text="A BACKUP, OR A SECOND BITRATE" Style="{StaticResource GroupHeadingStyle}" />
+                        <TextBlock Text="B A C K U P   S E R V E R S" Style="{StaticResource GroupHeadingStyle}" />
                         <CheckBox Content="Also send to another server"
                                   IsChecked="{Binding SendToMoreThanOneServer}"
                                   ToolTip="Run a backup relay, or the same show at a second bitrate." />
@@ -476,7 +498,7 @@
 
                         <Border Style="{StaticResource RuleStyle}" />
 
-                        <TextBlock Text="GOING ON AIR" Style="{StaticResource GroupHeadingStyle}" />
+                        <TextBlock Text="G O I N G   O N   A I R" Style="{StaticResource GroupHeadingStyle}" />
                         <CheckBox Content="Go live automatically when SIRS starts"
                                   IsChecked="{Binding AutoConnectOnStart}" />
                         <CheckBox Content="Go live on its own when it hears sound" Margin="0,8,0,0"
@@ -528,7 +550,7 @@
 
                         <Border Style="{StaticResource RuleStyle}" />
 
-                        <TextBlock Text="TITLE FORMAT" Style="{StaticResource GroupHeadingStyle}" />
+                        <TextBlock Text="T I T L E   F O R M A T" Style="{StaticResource GroupHeadingStyle}" />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -544,7 +566,7 @@
 
                         <Border Style="{StaticResource RuleStyle}" />
 
-                        <TextBlock Text="LET PLAYOUT SOFTWARE SEND TITLES" Style="{StaticResource GroupHeadingStyle}" />
+                        <TextBlock Text="A U T O M A T I O N" Style="{StaticResource GroupHeadingStyle}" />
                         <CheckBox Content="Let my playout software send titles to SIRS"
                                   IsChecked="{Binding MetadataEndpointEnabled}"
                                   ToolTip="Opens a small address on this computer that automation systems can post to." />
@@ -587,7 +609,16 @@
                 <ScrollViewer Style="{StaticResource PaneScrollStyle}">
                     <StackPanel Style="{StaticResource PaneBodyStyle}">
 
-                        <TextBlock Text="Record" Style="{StaticResource PaneHeadingStyle}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Record" Style="{StaticResource PaneHeadingStyle}" />
+                            <TextBlock Grid.Column="1" Text="{Binding RecordingShort}"
+                                       Style="{StaticResource ReadoutStyle}" VerticalAlignment="Bottom"
+                                       Margin="12,0,0,3" />
+                        </Grid>
                         <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
                                    Text="Keep a copy while you broadcast, or use SIRS as a plain recorder with no server at all." />
 
@@ -598,12 +629,12 @@
                             <Button Content="Open folder" Click="OnOpenRecordingFolder" Margin="8,0,0,0" />
                         </StackPanel>
 
-                        <TextBlock Text="Saved as" Style="{StaticResource FieldLabelStyle}" Margin="0,18,0,4" />
+                        <TextBlock Text="S A V E D   A S" Style="{StaticResource MicroLabelStyle}" Margin="0,18,0,4" />
                         <ComboBox ItemsSource="{Binding RecordingFormatLabels}"
                                   SelectedItem="{Binding SelectedRecordingFormatLabel}"
                                   ToolTip="What the recording is saved as, independently of what goes out to listeners." />
 
-                        <TextBlock Text="Split into files" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,4" />
+                        <TextBlock Text="S P L I T   I N T O   F I L E S" Style="{StaticResource MicroLabelStyle}" Margin="0,12,0,4" />
                         <ComboBox ItemsSource="{Binding SplitLabels}" SelectedItem="{Binding SelectedSplitLabel}"
                                   ToolTip="Long shows are easier to handle as several files." />
 
@@ -622,7 +653,7 @@
                         <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
                                    Text="Ways to drive SIRS without clicking: a keyboard shortcut, a physical button, or another program entirely." />
 
-                        <TextBlock Text="KEYBOARD AND TRAY" Style="{StaticResource GroupHeadingStyle}" />
+                        <TextBlock Text="K E Y B O A R D   A N D   T R A Y" Style="{StaticResource GroupHeadingStyle}" />
                         <TextBlock Text="{Binding HotkeyDescription}" Style="{StaticResource HintStyle}" />
                         <CheckBox Content="Keep SIRS in the notification area when minimised" Margin="0,10,0,0"
                                   IsChecked="{Binding MinimiseToTray}" />
@@ -631,7 +662,7 @@
 
                         <!-- Remote control (I10). Below the harmless things on purpose: this is the
                              one switch here that lets something outside SIRS take the station on air. -->
-                        <TextBlock Text="LET OTHER PROGRAMS CONTROL SIRS" Style="{StaticResource GroupHeadingStyle}" />
+                        <TextBlock Text="R E M O T E   C O N T R O L" Style="{StaticResource GroupHeadingStyle}" />
                         <CheckBox Content="Let other programs control SIRS"
                                   IsChecked="{Binding ControlEndpointEnabled}"
                                   ToolTip="Lets automation software, and SIRS's own command line, go on air, set titles and start recording." />
@@ -669,7 +700,7 @@
 
                         <Border Style="{StaticResource RuleStyle}" />
 
-                        <TextBlock Text="MIDI CONTROLLER" Style="{StaticResource GroupHeadingStyle}" />
+                        <TextBlock Text="M I D I   C O N T R O L L E R" Style="{StaticResource GroupHeadingStyle}" />
                         <ComboBox ItemsSource="{Binding MidiDevices}" SelectedItem="{Binding SelectedMidiDevice}"
                                   ToolTip="A control surface, keyboard or mixer that sends MIDI." />
 
@@ -717,7 +748,7 @@
                         <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
                                    Text="Set once and forget. Nothing here affects what goes out." />
 
-                        <TextBlock Text="LANGUAGE" Style="{StaticResource GroupHeadingStyle}" />
+                        <TextBlock Text="L A N G U A G E" Style="{StaticResource GroupHeadingStyle}" />
                         <ComboBox ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding SelectedLanguage}" />
                         <TextBlock Text="{Binding LanguageHint}" Style="{StaticResource HintStyle}"
                                    Margin="0,6,0,0" TextWrapping="Wrap" />
@@ -726,7 +757,7 @@
 
                         <Border Style="{StaticResource RuleStyle}" />
 
-                        <TextBlock Text="VERSION" Style="{StaticResource GroupHeadingStyle}" />
+                        <TextBlock Text="V E R S I O N" Style="{StaticResource GroupHeadingStyle}" />
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding VersionText}" VerticalAlignment="Center" FontWeight="SemiBold" />
                             <Button Content="Check for a newer version" Margin="12,0,0,0"
@@ -746,7 +777,7 @@
 
                         <Border Style="{StaticResource RuleStyle}" />
 
-                        <TextBlock Text="THIS SESSION" Style="{StaticResource GroupHeadingStyle}" />
+                        <TextBlock Text="T H I S   S E S S I O N" Style="{StaticResource GroupHeadingStyle}" />
                         <TextBlock Style="{StaticResource HintStyle}" Margin="0,0,0,10"
                                    Text="Connects, drops, device trouble and track changes. The same entries are appended to a file in the logs folder." />
                         <Button Content="Open the session log" Click="OnOpenLog" HorizontalAlignment="Left" />
@@ -762,9 +793,9 @@
              Always present, on every pane. This is the whole argument for the layout: you can be
              deep in the recording settings and still see that you are on air, how long for, and
              what has gone wrong. -->
-        <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}"
+        <Border Grid.Row="1" Background="{DynamicResource StatusBarBrush}"
                 BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
-                Padding="18,10">
+                Padding="20,9">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -773,9 +804,11 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Background="{Binding StateBrush}" CornerRadius="4" Padding="11,4">
-                        <TextBlock Text="{Binding StateHeadline}" Foreground="White" FontWeight="Bold"
-                                   FontSize="12" />
+                    <!-- Square, not a rounded pill: the state block is signage. The pill shape is
+                         reserved for the level verdict, so the two never read as the same thing. -->
+                    <Border Background="{Binding StateBrush}" Padding="11,4">
+                        <TextBlock Text="{Binding StateHeadlineUpper}" Foreground="White"
+                                   FontFamily="Consolas" FontWeight="Bold" FontSize="11.5" />
                     </Border>
                     <TextBlock Text="{Binding UptimeText}" Style="{StaticResource StatusValueStyle}"
                                Margin="14,0,18,0" />
@@ -791,7 +824,8 @@
                      thing SIRS can say, so it gets the colour and the others do not. -->
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0">
                     <TextBlock Text="{Binding SilenceAlert}" Foreground="{DynamicResource BadBrush}"
-                               FontWeight="SemiBold" FontSize="12" TextTrimming="CharacterEllipsis"
+                               FontFamily="Consolas" FontWeight="Bold" FontSize="11.5"
+                               TextTrimming="CharacterEllipsis"
                                Visibility="{Binding SilenceAlert, Converter={StaticResource TextToVisibility}}" />
                     <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource StatusChipStyle}"
                                Margin="0" TextTrimming="CharacterEllipsis"
@@ -799,12 +833,21 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="Log" Click="OnOpenLog" Margin="0,0,8,0" MinHeight="34"
-                            ToolTip="What SIRS has done this session." />
-                    <Button Content="{Binding GoLiveButtonText}" Click="OnToggleBroadcast"
+                    <Button Content="Log" Click="OnOpenLog" Margin="0,0,8,0"
                             Style="{StaticResource StripButtonStyle}"
-                            Background="{Binding GoLiveButtonBrush}" Foreground="White"
-                            BorderThickness="0" MinWidth="170" />
+                            ToolTip="What SIRS has done this session." />
+
+                    <!--
+                        Outlined while live, filled while off air, and that asymmetry is deliberate
+                        rather than a compromise. Going on air should be an inviting target; taking a
+                        station off air should not be something the hand finds by accident. The
+                        mockup only ever drew the live state, where it is outlined.
+                    -->
+                    <Button Content="{Binding GoLiveButtonText}" Click="OnToggleBroadcast"
+                            Style="{StaticResource StripButtonStyle}" MinWidth="180"
+                            Background="{Binding GoLiveButtonBrush}"
+                            Foreground="{Binding GoLiveButtonTextBrush}"
+                            BorderBrush="{Binding GoLiveButtonBorderBrush}" />
                 </StackPanel>
             </Grid>
         </Border>
