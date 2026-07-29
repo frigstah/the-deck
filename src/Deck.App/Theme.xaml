@@ -14,11 +14,18 @@
 
         Neutrals are warm-biased on light and slate-biased on dark. A pure grey reads as unchosen.
     -->
-    <Color x:Key="BackgroundColor">#FFFBFBFA</Color>
+    <!--
+        The light ground is a cool enamel rather than near-white, and that is the single decision that
+        makes the light theme read as the same product as the dark one. At #FBFBFA the deck looked
+        like a document: the chips are white, so on near-white they had nothing to lift off and
+        dissolved into the page. A faint green-grey cast gives white something to sit on, and reads as
+        painted panel rather than paper - which is what The Deck is meant to be.
+    -->
+    <Color x:Key="BackgroundColor">#FFF4F5F3</Color>
     <Color x:Key="SurfaceColor">#FFFFFFFF</Color>
-    <Color x:Key="BorderColor">#FFE3E3DF</Color>
+    <Color x:Key="BorderColor">#FFDCDED9</Color>
     <Color x:Key="TextColor">#FF1B1F23</Color>
-    <Color x:Key="MutedTextColor">#FF71787E</Color>
+    <Color x:Key="MutedTextColor">#FF666D73</Color>
     <Color x:Key="AccentColor">#FF2A6A70</Color>
     <!-- Text drawn on top of the accent. Flips to near-black on the dark theme, where
          the accent is lightened and white would drop to about 2:1. -->
@@ -30,17 +37,19 @@
 
     <!-- Soft fills behind the verdict pills. Tinted from the semantic colour rather than grey, so
          a verdict reads at a glance without shouting. -->
-    <Color x:Key="OkSoftColor">#FFE4F1EA</Color>
-    <Color x:Key="WarnSoftColor">#FFF6ECD9</Color>
-    <Color x:Key="BadSoftColor">#FFF6E3E1</Color>
-    <Color x:Key="NeutralSoftColor">#FFECECE8</Color>
+    <Color x:Key="OkSoftColor">#FFE1EFE8</Color>
+    <Color x:Key="WarnSoftColor">#FFF5EAD5</Color>
+    <Color x:Key="BadSoftColor">#FFF5E1DE</Color>
+    <!-- Also the off state of a switch. Darkened against the new ground, or an unset toggle would
+         have all but vanished into it. -->
+    <Color x:Key="NeutralSoftColor">#FFE2E4DF</Color>
 
     <!-- The rail and the status strip. Both keep their own colours in either theme, because they
          are chrome rather than content. -->
     <Color x:Key="RailColor">#FF1D2226</Color>
     <Color x:Key="RailSelectedColor">#FF262D33</Color>
     <Color x:Key="RailTextColor">#FF7E8890</Color>
-    <Color x:Key="StatusBarColor">#FFF4F4F1</Color>
+    <Color x:Key="StatusBarColor">#FFEAECE7</Color>
 
     <!-- Hover behind a caption button. A wash of the window's own text colour rather than a fixed
          grey, so it stays a hint on either theme instead of a slab on one of them. -->
@@ -49,14 +58,27 @@
 
     <!-- Meter segments, lit and unlit. Held as resources rather than baked into the control so the
          meter follows the theme like everything else. -->
-    <Color x:Key="MeterQuietColor">#FF9AA5A2</Color>
-    <Color x:Key="MeterGoodColor">#FF3F9E76</Color>
-    <Color x:Key="MeterLoudColor">#FFD7A64A</Color>
-    <Color x:Key="MeterClipColor">#FFC9564C</Color>
-    <Color x:Key="MeterQuietOffColor">#FFDCDCD6</Color>
-    <Color x:Key="MeterGoodOffColor">#FFC3DCD0</Color>
-    <Color x:Key="MeterLoudOffColor">#FFE8D6B4</Color>
-    <Color x:Key="MeterClipOffColor">#FFE9CDC9</Color>
+    <!--
+        The light meter is not the dark one inverted, and the reason is worth writing down. On a dark
+        ground a lit segment is brighter than the ground, so "more light" means "more signal" and a
+        quiet passage recedes on its own. On a pale ground a lit segment is *darker* than the ground,
+        so "more ink" means "more signal" - and the first version, carrying the dark theme's mid-grey
+        for the quiet zone, drew a heavy slab across two thirds of the bar whenever anything was
+        playing at all. A quiet signal looked like a loud one.
+
+        So the quiet zone is deliberately recessive here: pale enough to read as lit without weight,
+        which leaves the green "aim here" band as the first thing on the scale with real colour. The
+        three coloured zones are then a shade deeper than their dark counterparts, because a hue that
+        holds against near-black is washed out against near-white.
+    -->
+    <Color x:Key="MeterQuietColor">#FFB8C1BE</Color>
+    <Color x:Key="MeterGoodColor">#FF2E8B62</Color>
+    <Color x:Key="MeterLoudColor">#FFC08820</Color>
+    <Color x:Key="MeterClipColor">#FFBE3A2E</Color>
+    <Color x:Key="MeterQuietOffColor">#FFF1F2EF</Color>
+    <Color x:Key="MeterGoodOffColor">#FFD6E8DE</Color>
+    <Color x:Key="MeterLoudOffColor">#FFEFE1C2</Color>
+    <Color x:Key="MeterClipOffColor">#FFF0D6D2</Color>
 
     <SolidColorBrush x:Key="BackgroundBrush" Color="{DynamicResource BackgroundColor}" />
     <SolidColorBrush x:Key="SurfaceBrush" Color="{DynamicResource SurfaceColor}" />

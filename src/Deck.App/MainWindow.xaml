@@ -103,8 +103,39 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <Border Background="{DynamicResource RailBrush}" Width="{StaticResource RailWidth}">
-                <TextBlock Style="{StaticResource WordmarkStyle}" />
+            <!--
+                Rail-coloured only while the rail is there to continue it. The block exists so the
+                rail appears to run to the very top of the window with the wordmark at its head - but
+                on the deck there is no rail, and the light theme made that obvious in a way the dark
+                one had hidden: a black rectangle in the top-left corner with nothing underneath it.
+                On the deck it is simply part of the window.
+            -->
+            <Border Width="{StaticResource RailWidth}">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="Transparent" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSetupOpen}" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource RailBrush}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+
+                <TextBlock>
+                    <TextBlock.Style>
+                        <!-- White reads on the rail; on the window it would be invisible on light and
+                             too loud on dark, so off the rail it takes the window's own text colour. -->
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource WordmarkStyle}">
+                            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSetupOpen}" Value="True">
+                                    <Setter Property="Foreground" Value="White" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
             </Border>
 
             <!-- The buttons have to opt out of the caption, or Windows treats a click on them as a

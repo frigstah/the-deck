@@ -177,11 +177,20 @@ public sealed class AppSettings
     public string LanguageCode { get; set; } = "en";
 
     /// <summary>
-    /// Which palette to draw with (I5). Following Windows is the default and is right most of the
-    /// time - but it is a default, not a rule. A studio PC is often left on the system light theme
-    /// by whoever set it up, while the person sitting at it at midnight wants a dark window.
+    /// Which palette to draw with (I5).
+    /// <para>
+    /// Dark by default, and not because dark themes are fashionable. The Deck is an instrument panel
+    /// - the point of it is that a glance tells you whether you are on air - and a lit meter on a
+    /// dark ground is how every piece of broadcast equipment has answered that question for fifty
+    /// years. It is also what most of this will be used in: a room at night.
+    /// </para>
+    /// <para>
+    /// Light is a full second palette rather than an afterthought, because a studio PC is often left
+    /// on the system light theme by whoever set it up. Following Windows stays available for people
+    /// who want everything on their machine to agree; it is just no longer the assumption.
+    /// </para>
     /// </summary>
-    public AppTheme Theme { get; set; } = AppTheme.System;
+    public AppTheme Theme { get; set; } = AppTheme.Dark;
 
     /// <summary>
     /// Whether Deck looks for a newer release (I9). Off by default: a check tells whoever answers
