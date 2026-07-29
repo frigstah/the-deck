@@ -320,212 +320,251 @@
                 <ScrollViewer Style="{StaticResource PaneScrollStyle}">
                     <StackPanel Style="{StaticResource PaneBodyStyle}">
 
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Sound" Style="{StaticResource PaneHeadingStyle}" />
-                            <TextBlock Grid.Column="1" Text="{Binding IntegratedLoudnessText}"
-                                       Style="{StaticResource ReadoutStyle}" VerticalAlignment="Bottom"
-                                       Margin="12,0,0,3" />
-                        </Grid>
-                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
+                        <TextBlock Text="Sound" Style="{StaticResource PaneHeadingStyle}" />
+                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,4"
                                    Text="What goes into the stream, and how it sounds before anything else touches it." />
 
-                        <TextBlock Text="I N P U T" Style="{StaticResource MicroLabelStyle}" />
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <ComboBox ItemsSource="{Binding InputDevicesView}"
-                                      SelectedItem="{Binding SelectedInput}"
-                                      ItemTemplate="{StaticResource DeviceItemTemplate}"
-                                      ToolTip="A microphone or line input, the sound this PC is playing, or a professional interface.">
-                                <ComboBox.GroupStyle>
-                                    <StaticResource ResourceKey="DeviceGroupStyle" />
-                                </ComboBox.GroupStyle>
-                            </ComboBox>
-                            <Button Grid.Column="1" Content="Refresh" Margin="8,0,0,0"
-                                    Click="OnRefreshDevices"
-                                    ToolTip="Look for devices you have just plugged in." />
-                        </Grid>
+                        <!-- I N P U T -->
+                        <StackPanel Style="{StaticResource SettingGroupStyle}" Margin="0,14,0,0">
+                            <TextBlock Text="I N P U T" Style="{StaticResource GroupHeadingStyle}" />
 
-                        <TextBlock Text="{Binding InputSourceHint}" Style="{StaticResource HintStyle}"
-                                   Margin="0,6,0,0"
-                                   Visibility="{Binding InputSourceHint, Converter={StaticResource TextToVisibility}}" />
+                            <local:SettingRow Label="Input" ContentWidth="330"
+                                              Hint="A microphone, the sound this PC is playing, or a professional interface.">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox ItemsSource="{Binding InputDevicesView}"
+                                              SelectedItem="{Binding SelectedInput}"
+                                              ItemTemplate="{StaticResource DeviceItemTemplate}"
+                                              AutomationProperties.Name="Input device">
+                                        <ComboBox.GroupStyle>
+                                            <StaticResource ResourceKey="DeviceGroupStyle" />
+                                        </ComboBox.GroupStyle>
+                                    </ComboBox>
+                                    <Button Grid.Column="1" Content="Refresh" Click="OnRefreshDevices"
+                                            Style="{StaticResource RowButtonStyle}"
+                                            ToolTip="Look for devices you have just plugged in." />
+                                </Grid>
+                            </local:SettingRow>
 
-                        <StackPanel Margin="0,10,0,0"
-                                    Visibility="{Binding ShowInputChannels, Converter={StaticResource BoolToVisibility}}">
-                            <ComboBox ItemsSource="{Binding InputChannelOptions}"
-                                      SelectedItem="{Binding SelectedInputChannelLabel}" />
-                            <TextBlock Text="{Binding InputChannelHint}" Style="{StaticResource HintStyle}"
-                                       Margin="0,6,0,0" />
-                        </StackPanel>
+                            <local:SettingRow Label="Which inputs" ContentWidth="330"
+                                              Hint="{Binding InputChannelHint}"
+                                              Visibility="{Binding ShowInputChannels, Converter={StaticResource BoolToVisibility}}">
+                                <ComboBox ItemsSource="{Binding InputChannelOptions}"
+                                          SelectedItem="{Binding SelectedInputChannelLabel}"
+                                          AutomationProperties.Name="Which inputs feed the stream" />
+                            </local:SettingRow>
 
-                        <Border Background="{DynamicResource WarnBrush}" Padding="10,7" Margin="0,10,0,0"
-                                Visibility="{Binding WaitingForDevice, Converter={StaticResource TextToVisibility}}">
-                            <TextBlock Text="{Binding WaitingForDevice}" Foreground="White" TextWrapping="Wrap" />
-                        </Border>
-
-                        <TextBlock Text="I N P U T   L E V E L" Style="{StaticResource MicroLabelStyle}" Margin="0,18,0,4" />
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <Slider Minimum="-24" Maximum="24" TickFrequency="6"
-                                    Value="{Binding InputGainDb, Delay=40}"
-                                    IsSnapToTickEnabled="False" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1" Text="{Binding InputGainText}" Width="64"
-                                       TextAlignment="Right" FontFamily="Consolas" />
-                        </Grid>
-
-                        <local:LevelMeterControl Height="48" Margin="0,14,0,0"
-                                                 PeakDbLeft="{Binding PeakDbLeft}"
-                                                 PeakDbRight="{Binding PeakDbRight}"
-                                                 HoldDb="{Binding WindowPeakDb}" />
-
-                        <!-- The traffic light, as a badge. This is the thing users read instead of
-                             dBFS, so it is set apart from the numbers rather than sat among them.
-
-                             The badge and its sentence can be switched off; the numbers beside them
-                             cannot. Turning off the coaching should not turn off the measurement. -->
-                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                            <!-- The gap belongs to the pill, not to the readout. Put it on the
-                                 readout instead and hiding the pill leaves the number indented by
-                                 twelve pixels against nothing. -->
-                            <Border Style="{StaticResource PillStyle}" Background="{Binding AdvicePillBrush}"
-                                    Margin="0,0,12,0"
-                                    Visibility="{Binding ShowLevelCoaching, Converter={StaticResource BoolToVisibility}}">
-                                <TextBlock Text="{Binding AdviceHeadlineUpper}"
-                                           Style="{StaticResource PillTextStyle}"
-                                           Foreground="{Binding AdviceBrush}" />
+                            <!-- Full width and loud, because it means audio is not arriving. -->
+                            <Border Background="{DynamicResource WarnBrush}" Padding="12,9" Margin="0,12,0,0"
+                                    Visibility="{Binding WaitingForDevice, Converter={StaticResource TextToVisibility}}">
+                                <TextBlock Text="{Binding WaitingForDevice}" Foreground="White" TextWrapping="Wrap" />
                             </Border>
-                            <TextBlock Text="{Binding LevelReadout}" Style="{StaticResource ReadoutStyle}" />
-                            <TextBlock Text="{Binding CorrelationSummary}" Style="{StaticResource ReadoutStyle}"
-                                       Margin="12,0,0,0"
-                                       Visibility="{Binding CorrelationSummary, Converter={StaticResource TextToVisibility}}" />
-                        </StackPanel>
-                        <TextBlock Text="{Binding AdviceHint}" Style="{StaticResource HintStyle}" Margin="0,8,0,0"
-                                   Visibility="{Binding ShowLevelCoaching, Converter={StaticResource BoolToVisibility}}" />
 
-                        <CheckBox Content="Level coaching — tell me when I am too quiet or too loud"
-                                  Style="{StaticResource ToggleSwitchStyle}"
-                                  IsChecked="{Binding ShowLevelCoaching}" Margin="0,14,0,0"
-                                  ToolTip="Hides the verdict badge and its advice. The meter and the numbers stay." />
-                        <TextBlock Text="{Binding LevelCoachingHint}" Style="{StaticResource HintStyle}"
-                                   Margin="48,6,0,0" />
-
-                        <CheckBox Content="Voice Enhance — steadier level and less rumble for speech"
-                                  IsChecked="{Binding VoiceEnhance}" Margin="0,16,0,0" />
-                        <CheckBox Content="Automatic level — slowly corrects if you drift closer or further away"
-                                  IsChecked="{Binding AutoGain}" Margin="0,8,0,0" />
-
-                        <Border Style="{StaticResource RuleStyle}" />
-
-                        <TextBlock Text="S O U N D   C H E C K" Style="{StaticResource GroupHeadingStyle}" />
-                        <TextBlock Text="Hear yourself the way listeners will."
-                                   Style="{StaticResource HintStyle}" Margin="0,0,0,10" />
-
-                        <StackPanel Orientation="Horizontal">
-                            <Button Content="{Binding SoundCheckButtonText}"
-                                    Command="{Binding SoundCheckCommand}"
-                                    Style="{StaticResource PrimaryButtonStyle}" MinWidth="150" />
-                            <Button Content="{Binding SoundCheckPlayText}"
-                                    Command="{Binding PlaySoundCheckCommand}"
-                                    IsEnabled="{Binding CanPlaySoundCheck}"
-                                    Margin="8,0,0,0" MinWidth="120" />
+                            <TextBlock Text="{Binding InputSourceHint}" Style="{StaticResource HintStyle}"
+                                       Margin="0,12,0,0"
+                                       Visibility="{Binding InputSourceHint, Converter={StaticResource TextToVisibility}}" />
                         </StackPanel>
 
-                        <ProgressBar Height="4" Margin="0,10,0,0" Minimum="0" Maximum="1"
-                                     Value="{Binding SoundCheckProgress, Mode=OneWay}"
-                                     Visibility="{Binding IsSoundCheckRecording, Converter={StaticResource BoolToVisibility}}" />
+                        <!-- L E V E L -->
+                        <StackPanel Style="{StaticResource SettingGroupStyle}">
+                            <TextBlock Text="L E V E L" Style="{StaticResource GroupHeadingStyle}" />
 
-                        <TextBlock Text="{Binding SoundCheckStatus}" Style="{StaticResource HintStyle}"
-                                   Foreground="{Binding SoundCheckBrush}" Margin="0,10,0,0" />
+                            <local:SettingRow Label="Input level" ContentWidth="300" ShowRule="False">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="-24" Maximum="24" TickFrequency="6"
+                                            Value="{Binding InputGainDb, Delay=40}"
+                                            IsSnapToTickEnabled="False" VerticalAlignment="Center"
+                                            AutomationProperties.Name="Input level in decibels" />
+                                    <TextBlock Grid.Column="1" Text="{Binding InputGainText}" Width="62"
+                                               TextAlignment="Right" FontFamily="Consolas" />
+                                </Grid>
+                            </local:SettingRow>
 
-                        <Border Style="{StaticResource RuleStyle}" />
+                            <!--
+                                A slim meter, not the deck's. The deck carries the full-size one, but
+                                setup covers the deck - and setting a gain without seeing what it does
+                                is guesswork. So the control and its feedback stay together, at the
+                                smallest size that still answers "is that too hot?".
+                            -->
+                            <local:LevelMeterControl Height="16" Margin="0,2,0,0" ShowScale="False"
+                                                     PeakDbLeft="{Binding PeakDbLeft}"
+                                                     PeakDbRight="{Binding PeakDbRight}"
+                                                     HoldDb="{Binding WindowPeakDb}" />
 
-                        <TextBlock Text="H E A D P H O N E S" Style="{StaticResource GroupHeadingStyle}" />
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                <!-- The gap belongs to the pill, not to the readout. Put it on the
+                                     readout instead and hiding the pill leaves the number indented
+                                     against nothing. -->
+                                <Border Style="{StaticResource PillStyle}" Background="{Binding AdvicePillBrush}"
+                                        Margin="0,0,12,0"
+                                        Visibility="{Binding ShowLevelCoaching, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="{Binding AdviceHeadlineUpper}"
+                                               Style="{StaticResource PillTextStyle}"
+                                               Foreground="{Binding AdviceBrush}" />
+                                </Border>
+                                <TextBlock Text="{Binding LevelReadout}" Style="{StaticResource ReadoutStyle}" />
+                                <TextBlock Text="{Binding CorrelationSummary}" Style="{StaticResource ReadoutStyle}"
+                                           Margin="12,0,0,0"
+                                           Visibility="{Binding CorrelationSummary, Converter={StaticResource TextToVisibility}}" />
+                            </StackPanel>
 
-                        <CheckBox Content="Listen while I broadcast" IsChecked="{Binding MonitorEnabled}" />
+                            <TextBlock Text="{Binding AdviceHint}" Style="{StaticResource HintStyle}" Margin="0,8,0,4"
+                                       Visibility="{Binding ShowLevelCoaching, Converter={StaticResource BoolToVisibility}}" />
 
-                        <ComboBox ItemsSource="{Binding MonitorDevices}"
-                                  SelectedItem="{Binding SelectedMonitorDevice}"
-                                  ItemTemplate="{StaticResource DeviceItemTemplate}" Margin="0,10,0,0" />
+                            <local:SettingRow Label="Level coaching" ContentWidth="48"
+                                              Hint="{Binding LevelCoachingHint}">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding ShowLevelCoaching}"
+                                          AutomationProperties.Name="Level coaching" />
+                            </local:SettingRow>
 
-                        <Grid Margin="0,10,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Volume" VerticalAlignment="Center" />
-                            <Slider Grid.Column="1" Minimum="0" Maximum="1" Margin="10,0,0,0"
-                                    Value="{Binding MonitorVolume, Delay=40}" VerticalAlignment="Center" />
-                        </Grid>
+                            <local:SettingRow Label="Voice Enhance" ContentWidth="48"
+                                              Hint="Steadier level and less rumble, for speech.">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding VoiceEnhance}"
+                                          AutomationProperties.Name="Voice Enhance" />
+                            </local:SettingRow>
 
-                        <TextBlock Text="{Binding MonitorWarning}" Style="{StaticResource HintStyle}"
-                                   Foreground="{DynamicResource WarnBrush}" Margin="0,8,0,0"
-                                   Visibility="{Binding MonitorWarning, Converter={StaticResource TextToVisibility}}" />
+                            <local:SettingRow Label="Automatic level" ContentWidth="48" ShowRule="False"
+                                              Hint="Slowly corrects if you drift closer to the microphone or further away.">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding AutoGain}"
+                                          AutomationProperties.Name="Automatic level" />
+                            </local:SettingRow>
+                        </StackPanel>
 
-                        <Border Style="{StaticResource RuleStyle}" />
+                        <!-- S O U N D   C H E C K -->
+                        <StackPanel Style="{StaticResource SettingGroupStyle}">
+                            <TextBlock Text="S O U N D   C H E C K" Style="{StaticResource GroupHeadingStyle}" />
 
-                        <TextBlock Text="S E C O N D   S O U R C E" Style="{StaticResource GroupHeadingStyle}" />
+                            <local:SettingRow Label="Hear yourself" ContentWidth="290" ShowRule="False"
+                                              Hint="Records ten seconds and plays it straight back, the way listeners will hear it.">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button Content="{Binding SoundCheckButtonText}"
+                                            Command="{Binding SoundCheckCommand}"
+                                            Style="{StaticResource PrimaryButtonStyle}" MinWidth="140" />
+                                    <Button Content="{Binding SoundCheckPlayText}"
+                                            Command="{Binding PlaySoundCheckCommand}"
+                                            IsEnabled="{Binding CanPlaySoundCheck}"
+                                            Style="{StaticResource RowButtonStyle}" MinWidth="110" />
+                                </StackPanel>
+                            </local:SettingRow>
 
-                        <CheckBox Content="Add a second sound source" IsChecked="{Binding SecondarySourceEnabled}" />
-                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,6,0,0"
-                                   Text="Play music from any app underneath your microphone, or talk over a guest's audio." />
+                            <ProgressBar Height="4" Margin="0,10,0,0" Minimum="0" Maximum="1"
+                                         Value="{Binding SoundCheckProgress, Mode=OneWay}"
+                                         Visibility="{Binding IsSoundCheckRecording, Converter={StaticResource BoolToVisibility}}" />
 
-                        <StackPanel Margin="0,12,0,0"
-                                    Visibility="{Binding SecondarySourceEnabled, Converter={StaticResource BoolToVisibility}}">
-                            <ComboBox ItemsSource="{Binding InputDevicesView}"
-                                      SelectedItem="{Binding SelectedSecondaryInput}"
-                                      ItemTemplate="{StaticResource DeviceItemTemplate}">
-                                <ComboBox.GroupStyle>
-                                    <StaticResource ResourceKey="DeviceGroupStyle" />
-                                </ComboBox.GroupStyle>
-                            </ComboBox>
+                            <TextBlock Text="{Binding SoundCheckStatus}" Style="{StaticResource HintStyle}"
+                                       Foreground="{Binding SoundCheckBrush}" Margin="0,10,0,0"
+                                       Visibility="{Binding SoundCheckStatus, Converter={StaticResource TextToVisibility}}" />
+                        </StackPanel>
 
-                            <Grid Margin="0,14,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
+                        <!-- H E A D P H O N E S -->
+                        <StackPanel Style="{StaticResource SettingGroupStyle}">
+                            <TextBlock Text="H E A D P H O N E S" Style="{StaticResource GroupHeadingStyle}" />
 
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding PrimaryFaderLabel}"
-                                           Width="112" TextTrimming="CharacterEllipsis" />
-                                <Slider Grid.Row="0" Grid.Column="1" Minimum="-40" Maximum="12" Margin="8,0,8,0"
-                                        Value="{Binding PrimaryGainDb, Delay=40}" VerticalAlignment="Center" />
-                                <CheckBox Grid.Row="0" Grid.Column="2" Content="Mute" IsChecked="{Binding PrimaryMuted}" />
+                            <local:SettingRow Label="Listen while I broadcast" ContentWidth="48">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding MonitorEnabled}"
+                                          AutomationProperties.Name="Listen while I broadcast" />
+                            </local:SettingRow>
 
-                                <local:LevelMeterControl Grid.Row="1" Grid.Column="1" Height="10" Margin="8,4,8,10"
-                                                         ShowScale="False"
-                                                         PeakDbLeft="{Binding PrimaryPeakDb}"
-                                                         PeakDbRight="{Binding PrimaryPeakDb}" />
+                            <local:SettingRow Label="Output" ContentWidth="330">
+                                <ComboBox ItemsSource="{Binding MonitorDevices}"
+                                          SelectedItem="{Binding SelectedMonitorDevice}"
+                                          ItemTemplate="{StaticResource DeviceItemTemplate}"
+                                          AutomationProperties.Name="Headphone output device" />
+                            </local:SettingRow>
 
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Second source"
-                                           Width="112" TextTrimming="CharacterEllipsis" />
-                                <Slider Grid.Row="2" Grid.Column="1" Minimum="-40" Maximum="12" Margin="8,0,8,0"
-                                        Value="{Binding SecondaryGainDb, Delay=40}" VerticalAlignment="Center" />
-                                <CheckBox Grid.Row="2" Grid.Column="2" Content="Mute" IsChecked="{Binding SecondaryMuted}" />
+                            <local:SettingRow Label="Volume" ContentWidth="300" ShowRule="False">
+                                <Slider Minimum="0" Maximum="1" Value="{Binding MonitorVolume, Delay=40}"
+                                        VerticalAlignment="Center"
+                                        AutomationProperties.Name="Headphone volume" />
+                            </local:SettingRow>
 
-                                <local:LevelMeterControl Grid.Row="3" Grid.Column="1" Height="10" Margin="8,4,8,0"
-                                                         ShowScale="False"
-                                                         PeakDbLeft="{Binding SecondaryPeakDb}"
-                                                         PeakDbRight="{Binding SecondaryPeakDb}" />
-                            </Grid>
+                            <TextBlock Text="{Binding MonitorWarning}" Style="{StaticResource HintStyle}"
+                                       Foreground="{DynamicResource WarnBrush}" Margin="0,10,0,0"
+                                       Visibility="{Binding MonitorWarning, Converter={StaticResource TextToVisibility}}" />
+                        </StackPanel>
 
-                            <TextBlock Text="{Binding MixHint}" Style="{StaticResource HintStyle}" Margin="0,12,0,0"
-                                       Visibility="{Binding MixHint, Converter={StaticResource TextToVisibility}}" />
+                        <!-- S E C O N D   S O U R C E -->
+                        <StackPanel Style="{StaticResource SettingGroupStyle}" Margin="0,22,0,8">
+                            <TextBlock Text="S E C O N D   S O U R C E" Style="{StaticResource GroupHeadingStyle}" />
+
+                            <local:SettingRow Label="Add a second source" ContentWidth="48"
+                                              ShowRule="{Binding SecondarySourceEnabled}"
+                                              Hint="Play music from any app underneath your microphone, or talk over a guest.">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding SecondarySourceEnabled}"
+                                          AutomationProperties.Name="Add a second sound source" />
+                            </local:SettingRow>
+
+                            <StackPanel Visibility="{Binding SecondarySourceEnabled, Converter={StaticResource BoolToVisibility}}">
+                                <local:SettingRow Label="Second input" ContentWidth="330" ShowRule="False">
+                                    <ComboBox ItemsSource="{Binding InputDevicesView}"
+                                              SelectedItem="{Binding SelectedSecondaryInput}"
+                                              ItemTemplate="{StaticResource DeviceItemTemplate}"
+                                              AutomationProperties.Name="Second sound source">
+                                        <ComboBox.GroupStyle>
+                                            <StaticResource ResourceKey="DeviceGroupStyle" />
+                                        </ComboBox.GroupStyle>
+                                    </ComboBox>
+                                </local:SettingRow>
+
+                                <!--
+                                    Not a row. Two faders with their own meters and mutes is genuinely
+                                    a table - label, control, control, per source - and forcing it into
+                                    the row language would misrepresent it. This is the one place in
+                                    setup that stays a grid, because it is the one place that is a mixer.
+                                -->
+                                <Grid Margin="0,14,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding PrimaryFaderLabel}"
+                                               Width="112" TextTrimming="CharacterEllipsis" />
+                                    <Slider Grid.Row="0" Grid.Column="1" Minimum="-40" Maximum="12" Margin="8,0,8,0"
+                                            Value="{Binding PrimaryGainDb, Delay=40}" VerticalAlignment="Center"
+                                            AutomationProperties.Name="Main source level" />
+                                    <CheckBox Grid.Row="0" Grid.Column="2" Content="Mute" IsChecked="{Binding PrimaryMuted}" />
+
+                                    <local:LevelMeterControl Grid.Row="1" Grid.Column="1" Height="10" Margin="8,4,8,10"
+                                                             ShowScale="False"
+                                                             PeakDbLeft="{Binding PrimaryPeakDb}"
+                                                             PeakDbRight="{Binding PrimaryPeakDb}" />
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Second source"
+                                               Width="112" TextTrimming="CharacterEllipsis" />
+                                    <Slider Grid.Row="2" Grid.Column="1" Minimum="-40" Maximum="12" Margin="8,0,8,0"
+                                            Value="{Binding SecondaryGainDb, Delay=40}" VerticalAlignment="Center"
+                                            AutomationProperties.Name="Second source level" />
+                                    <CheckBox Grid.Row="2" Grid.Column="2" Content="Mute" IsChecked="{Binding SecondaryMuted}" />
+
+                                    <local:LevelMeterControl Grid.Row="3" Grid.Column="1" Height="10" Margin="8,4,8,0"
+                                                             ShowScale="False"
+                                                             PeakDbLeft="{Binding SecondaryPeakDb}"
+                                                             PeakDbRight="{Binding SecondaryPeakDb}" />
+                                </Grid>
+
+                                <TextBlock Text="{Binding MixHint}" Style="{StaticResource HintStyle}" Margin="0,12,0,0"
+                                           Visibility="{Binding MixHint, Converter={StaticResource TextToVisibility}}" />
+                            </StackPanel>
                         </StackPanel>
 
                     </StackPanel>
