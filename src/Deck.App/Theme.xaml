@@ -397,7 +397,21 @@
                              above, which is the same block of rail colour - so it reads as the top
                              of this column rather than as a separate header. -->
                         <Border Background="{DynamicResource RailBrush}">
-                            <StackPanel IsItemsHost="True" />
+                            <!--
+                                Scrollable, because The Deck's window is deliberately short and seven
+                                rail entries do not fit in it. Without this the last pane simply could
+                                not be reached: the rail ran off the bottom edge with no indication
+                                that anything was below it.
+
+                                The scrollbar is hidden rather than automatic. A visible bar down a
+                                40-pixel-wide rail would take a quarter of its width and land on top
+                                of the labels; the wheel and the keyboard both still work, and the
+                                selected item is scrolled into view by the control itself.
+                            -->
+                            <ScrollViewer VerticalScrollBarVisibility="Hidden"
+                                          HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel IsItemsHost="True" />
+                            </ScrollViewer>
                         </Border>
 
                         <!--
@@ -623,6 +637,103 @@
         <Setter Property="Padding" Value="16,5" />
         <Setter Property="FontFamily" Value="Consolas" />
         <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <!-- ==================================================== the deck
+
+         The one screen that is on while a show is going out. Everything here is sized to be read
+         from across a room rather than from a chair at the desk: a presenter halfway through a
+         sentence should be able to glance up from four metres away and know they are still on air.
+
+         Nothing in this group is a control except the two buttons. The deck reports; setup changes. -->
+
+    <!-- The on-air lamp. A filled circle, because that is what the lamp above a studio door is. -->
+    <Style x:Key="DeckLampStyle" TargetType="Ellipse">
+        <Setter Property="Width" Value="13" />
+        <Setter Property="Height" Value="13" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!--
+        ON AIR / OFF AIR. The largest text in the product, and the only place the display face is
+        used at this size - which is what makes it the thing your eye lands on first.
+    -->
+    <Style x:Key="DeckStateStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Segoe UI Variable Display, Segoe UI" />
+        <Setter Property="FontSize" Value="30" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="14,0,0,0" />
+    </Style>
+
+    <!-- Tabular figures, or the clock jitters sideways as the digits change. -->
+    <Style x:Key="DeckClockStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Consolas" />
+        <Setter Property="FontSize" Value="28" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
+    </Style>
+
+    <!-- The verdict, and the numbers that back it up. Set apart from the meter, not sat on it. -->
+    <Style x:Key="DeckVerdictStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Segoe UI Variable Display, Segoe UI" />
+        <Setter Property="FontSize" Value="17" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="VerticalAlignment" Value="Bottom" />
+    </Style>
+
+    <Style x:Key="DeckReadoutStyle" TargetType="TextBlock" BasedOn="{StaticResource ReadoutStyle}">
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+        <Setter Property="VerticalAlignment" Value="Bottom" />
+        <Setter Property="Margin" Value="16,0,0,1" />
+    </Style>
+
+    <!--
+        A chip is a fact about the signal path, not a setting. Square and outlined so it cannot be
+        mistaken for a button, and mono so the values line up down the row.
+    -->
+    <Style x:Key="DeckChipStyle" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="12,7" />
+        <Setter Property="Margin" Value="0,0,10,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="DeckChipLabelStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Consolas" />
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+    </Style>
+
+    <Style x:Key="DeckChipValueStyle" TargetType="TextBlock" BasedOn="{StaticResource DeckChipLabelStyle}">
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+    </Style>
+
+    <!-- Bigger than the strip's, because on the deck it is the only thing you are meant to press. -->
+    <Style x:Key="DeckActionButtonStyle" TargetType="Button" BasedOn="{StaticResource StripButtonStyle}">
+        <Setter Property="MinHeight" Value="46" />
+        <Setter Property="MinWidth" Value="150" />
+        <Setter Property="Padding" Value="30,10" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="Bold" />
+    </Style>
+
+    <Style x:Key="DeckSetupButtonStyle" TargetType="Button" BasedOn="{StaticResource StripButtonStyle}">
+        <Setter Property="MinHeight" Value="46" />
+        <Setter Property="Padding" Value="22,10" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <!-- The footer: now playing on the left, how the connection is holding up on the right. -->
+    <Style x:Key="DeckFooterStyle" TargetType="TextBlock" BasedOn="{StaticResource ReadoutStyle}">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
 </ResourceDictionary>
