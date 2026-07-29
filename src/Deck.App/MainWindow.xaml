@@ -576,129 +576,145 @@
                 <ScrollViewer Style="{StaticResource PaneScrollStyle}">
                     <StackPanel Style="{StaticResource PaneBodyStyle}">
 
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Process" Style="{StaticResource PaneHeadingStyle}" />
-                            <TextBlock Grid.Column="1" Text="{Binding LoudnessTargetShort}"
-                                       Style="{StaticResource ReadoutStyle}" VerticalAlignment="Bottom"
-                                       Margin="12,0,0,3" />
-                        </Grid>
-                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
+                        <TextBlock Text="Process" Style="{StaticResource PaneHeadingStyle}" />
+                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,4"
                                    Text="Shaping and measurement. Everything here is optional — a show sounds fine with all of it left alone." />
 
-                        <TextBlock Text="C O M P R E S S I O N" Style="{StaticResource GroupHeadingStyle}" />
-                        <ComboBox ItemsSource="{Binding ProcessingPresetNames}"
-                                  SelectedItem="{Binding SelectedProcessingPresetName}"
-                                  ToolTip="Evens out the dynamics across three frequency bands." />
-                        <TextBlock Text="{Binding ProcessingDescription}" Style="{StaticResource HintStyle}"
-                                   Margin="0,6,0,0" />
+                        <StackPanel Style="{StaticResource SettingGroupStyle}" Margin="0,14,0,0">
+                            <TextBlock Text="C O M P R E S S I O N" Style="{StaticResource GroupHeadingStyle}" />
 
-                        <TextBlock Text="T O N E" Style="{StaticResource GroupHeadingStyle}" Margin="0,20,0,8" />
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
+                            <local:SettingRow Label="Evening out the dynamics" ContentWidth="330" ShowRule="False"
+                                              Hint="{Binding ProcessingDescription}">
+                                <ComboBox ItemsSource="{Binding ProcessingPresetNames}"
+                                          SelectedItem="{Binding SelectedProcessingPresetName}"
+                                          AutomationProperties.Name="Compression preset" />
+                            </local:SettingRow>
+                        </StackPanel>
 
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Bass" Width="56" VerticalAlignment="Center" />
-                            <Slider Grid.Row="0" Grid.Column="1" Minimum="-12" Maximum="12" Margin="8,0,8,0"
-                                    Value="{Binding ToneLowDb, Delay=40}" VerticalAlignment="Center" />
-                            <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding ToneLowText}" Width="56"
-                                       TextAlignment="Right" FontFamily="Consolas" FontSize="11"
-                                       VerticalAlignment="Center" />
+                        <StackPanel Style="{StaticResource SettingGroupStyle}">
+                            <TextBlock Text="T O N E" Style="{StaticResource GroupHeadingStyle}" />
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Middle" Width="56"
-                                       VerticalAlignment="Center" Margin="0,6,0,0" />
-                            <Slider Grid.Row="1" Grid.Column="1" Minimum="-12" Maximum="12" Margin="8,6,8,0"
-                                    Value="{Binding ToneMidDb, Delay=40}" VerticalAlignment="Center" />
-                            <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding ToneMidText}" Width="56"
-                                       TextAlignment="Right" FontFamily="Consolas" FontSize="11"
-                                       VerticalAlignment="Center" Margin="0,6,0,0" />
+                            <!--
+                                Three rows rather than a grid, unlike the mixer's faders. Bass, middle
+                                and treble are three independent settings that happen to look alike -
+                                there is no second axis - so they belong in the same list as everything
+                                else. The mixer is a table because a source has a level *and* a mute.
+                            -->
+                            <local:SettingRow Label="Bass" ContentWidth="300">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="-12" Maximum="12" Value="{Binding ToneLowDb, Delay=40}"
+                                            VerticalAlignment="Center" AutomationProperties.Name="Bass" />
+                                    <TextBlock Grid.Column="1" Text="{Binding ToneLowText}" Width="56"
+                                               TextAlignment="Right" FontFamily="Consolas" FontSize="11" />
+                                </Grid>
+                            </local:SettingRow>
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Treble" Width="56"
-                                       VerticalAlignment="Center" Margin="0,6,0,0" />
-                            <Slider Grid.Row="2" Grid.Column="1" Minimum="-12" Maximum="12" Margin="8,6,8,0"
-                                    Value="{Binding ToneHighDb, Delay=40}" VerticalAlignment="Center" />
-                            <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding ToneHighText}" Width="56"
-                                       TextAlignment="Right" FontFamily="Consolas" FontSize="11"
-                                       VerticalAlignment="Center" Margin="0,6,0,0" />
-                        </Grid>
+                            <local:SettingRow Label="Middle" ContentWidth="300">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="-12" Maximum="12" Value="{Binding ToneMidDb, Delay=40}"
+                                            VerticalAlignment="Center" AutomationProperties.Name="Middle" />
+                                    <TextBlock Grid.Column="1" Text="{Binding ToneMidText}" Width="56"
+                                               TextAlignment="Right" FontFamily="Consolas" FontSize="11" />
+                                </Grid>
+                            </local:SettingRow>
 
-                        <Button Content="Back to flat" Command="{Binding ResetToneCommand}"
-                                HorizontalAlignment="Left" Margin="0,12,0,0" />
+                            <local:SettingRow Label="Treble" ContentWidth="300">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Minimum="-12" Maximum="12" Value="{Binding ToneHighDb, Delay=40}"
+                                            VerticalAlignment="Center" AutomationProperties.Name="Treble" />
+                                    <TextBlock Grid.Column="1" Text="{Binding ToneHighText}" Width="56"
+                                               TextAlignment="Right" FontFamily="Consolas" FontSize="11" />
+                                </Grid>
+                            </local:SettingRow>
 
-                        <Border Style="{StaticResource RuleStyle}" />
+                            <local:SettingRow Label="Start over" ContentWidth="200" ShowRule="False"
+                                              Hint="Puts bass, middle and treble back to flat.">
+                                <Button Content="Back to flat" Command="{Binding ResetToneCommand}"
+                                        Style="{StaticResource RowButtonStyle}" MinWidth="130"
+                                        HorizontalAlignment="Right" />
+                            </local:SettingRow>
+                        </StackPanel>
 
-                        <TextBlock Text="H O W   L O U D   I T   F E E L S" Style="{StaticResource GroupHeadingStyle}" />
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <ComboBox ItemsSource="{Binding LoudnessTargetNames}"
-                                      SelectedItem="{Binding SelectedLoudnessTargetName}"
-                                      ToolTip="Where this show is going. Each platform normalises to its own number." />
-                            <Button Grid.Column="1" Content="Start again" Margin="8,0,0,0"
-                                    Command="{Binding ResetLoudnessCommand}"
-                                    ToolTip="Measures the whole-show figure again from now." />
-                        </Grid>
+                        <StackPanel Style="{StaticResource SettingGroupStyle}">
+                            <TextBlock Text="H O W   L O U D   I T   F E E L S" Style="{StaticResource GroupHeadingStyle}" />
 
-                        <TextBlock Text="{Binding LoudnessTargetDetail}" Style="{StaticResource HintStyle}"
-                                   Margin="0,6,0,0" />
+                            <local:SettingRow Label="Target" ContentWidth="330"
+                                              Hint="{Binding LoudnessTargetDetail}">
+                                <ComboBox ItemsSource="{Binding LoudnessTargetNames}"
+                                          SelectedItem="{Binding SelectedLoudnessTargetName}"
+                                          AutomationProperties.Name="Loudness target" />
+                            </local:SettingRow>
 
-                        <Grid Margin="0,14,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel>
-                                <TextBlock Text="Right now" FontSize="11"
-                                           Foreground="{DynamicResource MutedTextBrush}" />
-                                <TextBlock Text="{Binding ShortTermLoudnessText}" FontFamily="Consolas"
-                                           FontSize="20" />
+                            <local:SettingRow Label="Measuring" ContentWidth="330" ShowRule="False"
+                                              Hint="{Binding LoudnessVerdict}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel>
+                                        <TextBlock Text="Right now" FontSize="10.5"
+                                                   Foreground="{DynamicResource MutedTextBrush}" />
+                                        <TextBlock Text="{Binding ShortTermLoudnessText}" FontFamily="Consolas"
+                                                   FontSize="16" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="Whole show" FontSize="10.5"
+                                                   Foreground="{DynamicResource MutedTextBrush}" />
+                                        <TextBlock Text="{Binding IntegratedLoudnessText}" FontFamily="Consolas"
+                                                   FontSize="16" Foreground="{Binding LoudnessBrush}" />
+                                    </StackPanel>
+
+                                    <Button Grid.Column="2" Content="Start again"
+                                            Command="{Binding ResetLoudnessCommand}"
+                                            Style="{StaticResource RowButtonStyle}"
+                                            VerticalAlignment="Bottom"
+                                            ToolTip="Measures the whole-show figure again from now." />
+                                </Grid>
+                            </local:SettingRow>
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource SettingGroupStyle}" Margin="0,22,0,8">
+                            <TextBlock Text="S P E C T R U M   A N D   P H A S E" Style="{StaticResource GroupHeadingStyle}" />
+
+                            <!-- Still behind a switch even on its own pane: reading it takes a lock
+                                 the audio thread wants, and most shows never need it. -->
+                            <local:SettingRow Label="Show frequencies and stereo phase" ContentWidth="38"
+                                              ShowRule="{Binding ShowAdvancedMeters}"
+                                              Hint="For checking a wiring fault or a heavy-handed EQ. Not needed for a normal show.">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding ShowAdvancedMeters}"
+                                          AutomationProperties.Name="Show frequencies and stereo phase" />
+                            </local:SettingRow>
+
+                            <StackPanel Margin="0,14,0,0"
+                                        Visibility="{Binding ShowAdvancedMeters, Converter={StaticResource BoolToVisibility}}">
+                                <local:SpectrumControl Height="110"
+                                                       Bars="{Binding SpectrumBars}"
+                                                       EdgesHz="{Binding SpectrumEdgesHz}" />
+
+                                <TextBlock Text="S T E R E O   P H A S E" Style="{StaticResource MicroLabelStyle}"
+                                           Margin="0,16,0,0" />
+                                <TextBlock Text="{Binding CorrelationText}" FontFamily="Consolas" FontSize="15"
+                                           Foreground="{Binding CorrelationBrush}" />
+                                <TextBlock Text="{Binding CorrelationVerdict}" Style="{StaticResource HintStyle}"
+                                           Foreground="{Binding CorrelationBrush}" Margin="0,4,0,0"
+                                           TextWrapping="Wrap" />
                             </StackPanel>
-                            <StackPanel Grid.Column="1">
-                                <TextBlock Text="Whole show" FontSize="11"
-                                           Foreground="{DynamicResource MutedTextBrush}" />
-                                <TextBlock Text="{Binding IntegratedLoudnessText}" FontFamily="Consolas"
-                                           FontSize="20" Foreground="{Binding LoudnessBrush}" />
-                            </StackPanel>
-                        </Grid>
-
-                        <TextBlock Text="{Binding LoudnessVerdict}" Style="{StaticResource HintStyle}"
-                                   Foreground="{Binding LoudnessBrush}" Margin="0,10,0,0" />
-
-                        <Border Style="{StaticResource RuleStyle}" />
-
-                        <!-- Spectrum and phase (B9). Still behind a switch even on its own pane: it
-                             costs a lock the audio thread wants, and most shows never need it. -->
-                        <TextBlock Text="S P E C T R U M   A N D   P H A S E" Style="{StaticResource GroupHeadingStyle}" />
-                        <CheckBox Content="Show frequencies and stereo phase"
-                                  IsChecked="{Binding ShowAdvancedMeters}"
-                                  ToolTip="For checking a wiring fault or a heavy-handed EQ. Not needed for a normal show." />
-
-                        <StackPanel Margin="0,12,0,0"
-                                    Visibility="{Binding ShowAdvancedMeters, Converter={StaticResource BoolToVisibility}}">
-                            <local:SpectrumControl Height="110"
-                                                   Bars="{Binding SpectrumBars}"
-                                                   EdgesHz="{Binding SpectrumEdgesHz}" />
-
-                            <TextBlock Text="S T E R E O   P H A S E" Style="{StaticResource MicroLabelStyle}"
-                                       Margin="0,14,0,0" />
-                            <TextBlock Text="{Binding CorrelationText}" FontFamily="Consolas" FontSize="15"
-                                       Foreground="{Binding CorrelationBrush}" />
-                            <TextBlock Text="{Binding CorrelationVerdict}" Style="{StaticResource HintStyle}"
-                                       Foreground="{Binding CorrelationBrush}" Margin="0,4,0,0"
-                                       TextWrapping="Wrap" />
                         </StackPanel>
 
                     </StackPanel>
@@ -1045,90 +1061,116 @@
                     <StackPanel Style="{StaticResource PaneBodyStyle}">
 
                         <TextBlock Text="Control" Style="{StaticResource PaneHeadingStyle}" />
-                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
+                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,4"
                                    Text="Ways to drive Deck without clicking: a keyboard shortcut, a physical button, or another program entirely." />
 
-                        <TextBlock Text="K E Y B O A R D   A N D   T R A Y" Style="{StaticResource GroupHeadingStyle}" />
-                        <TextBlock Text="{Binding HotkeyDescription}" Style="{StaticResource HintStyle}" />
-                        <CheckBox Content="Keep Deck in the notification area when minimised" Margin="0,10,0,0"
-                                  IsChecked="{Binding MinimiseToTray}" />
+                        <StackPanel Style="{StaticResource SettingGroupStyle}" Margin="0,14,0,0">
+                            <TextBlock Text="K E Y B O A R D   A N D   T R A Y" Style="{StaticResource GroupHeadingStyle}" />
 
-                        <Border Style="{StaticResource RuleStyle}" />
+                            <local:SettingRow Label="Shortcuts" ContentWidth="330">
+                                <TextBlock Text="{Binding HotkeyDescription}" Style="{StaticResource ReadoutStyle}"
+                                           TextAlignment="Right" TextWrapping="Wrap" />
+                            </local:SettingRow>
 
-                        <!-- Remote control (I10). Below the harmless things on purpose: this is the
-                             one switch here that lets something outside Deck take the station on air. -->
-                        <TextBlock Text="R E M O T E   C O N T R O L" Style="{StaticResource GroupHeadingStyle}" />
-                        <CheckBox Content="Let other programs control Deck"
-                                  IsChecked="{Binding ControlEndpointEnabled}"
-                                  ToolTip="Lets automation software, and Deck's own command line, go on air, set titles and start recording." />
-                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,6,0,0" TextWrapping="Wrap"
-                                   Text="This is how Deck --live works from a script or a scheduled task." />
-
-                        <StackPanel Margin="0,10,0,0"
-                                    Visibility="{Binding ShowControlEndpointDetails, Converter={StaticResource BoolToVisibility}}">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="80" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="Port" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                <TextBox Grid.Column="1" Text="{Binding ControlPort, Delay=500}" />
-                                <Button Grid.Column="2" Content="Copy the address" Margin="8,0,0,0"
-                                        HorizontalAlignment="Left"
-                                        Command="{Binding CopyControlUrlCommand}" />
-                            </Grid>
-
-                            <CheckBox Content="Allow other computers on my network to control Deck"
-                                      IsChecked="{Binding ControlAllowOtherComputers}" Margin="0,10,0,0" />
-
-                            <TextBlock Text="Password (required for other computers)"
-                                       Style="{StaticResource FieldLabelStyle}" Margin="0,10,0,0" />
-                            <TextBox Text="{Binding ControlToken, Delay=500}" />
-
-                            <TextBlock Text="{Binding ControlEndpointUrl}" Style="{StaticResource HintStyle}"
-                                       Margin="0,8,0,0" TextWrapping="Wrap" />
+                            <local:SettingRow Label="Keep Deck in the notification area" ContentWidth="38"
+                                              ShowRule="False"
+                                              Hint="When minimised, Deck sits by the clock instead of on the taskbar.">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding MinimiseToTray}"
+                                          AutomationProperties.Name="Keep Deck in the notification area" />
+                            </local:SettingRow>
                         </StackPanel>
 
-                        <TextBlock Text="{Binding ControlEndpointStatus}" Style="{StaticResource HintStyle}"
-                                   Margin="0,8,0,0" TextWrapping="Wrap" />
+                        <!-- Below the harmless things on purpose: this is the one switch here that
+                             lets something outside Deck take the station on air. -->
+                        <StackPanel Style="{StaticResource SettingGroupStyle}">
+                            <TextBlock Text="R E M O T E   C O N T R O L" Style="{StaticResource GroupHeadingStyle}" />
 
-                        <Border Style="{StaticResource RuleStyle}" />
+                            <local:SettingRow Label="Let other programs control Deck" ContentWidth="38"
+                                              ShowRule="{Binding ShowControlEndpointDetails}"
+                                              Hint="{Binding ControlEndpointStatus}">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding ControlEndpointEnabled}"
+                                          AutomationProperties.Name="Let other programs control Deck" />
+                            </local:SettingRow>
 
-                        <TextBlock Text="M I D I   C O N T R O L L E R" Style="{StaticResource GroupHeadingStyle}" />
-                        <ComboBox ItemsSource="{Binding MidiDevices}" SelectedItem="{Binding SelectedMidiDevice}"
-                                  ToolTip="A control surface, keyboard or mixer that sends MIDI." />
+                            <TextBlock Style="{StaticResource HintStyle}" Margin="0,10,0,0" TextWrapping="Wrap"
+                                       Text="This is how Deck --live works from a script or a scheduled task." />
 
-                        <ItemsControl ItemsSource="{Binding MidiBindings}" Margin="0,12,0,0">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid Margin="0,3">
+                            <StackPanel Visibility="{Binding ShowControlEndpointDetails, Converter={StaticResource BoolToVisibility}}">
+                                <local:SettingRow Label="Port" ContentWidth="330">
+                                    <Grid>
                                         <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="86" />
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Label}" />
-                                            <TextBlock Text="{Binding Assignment}" FontSize="11"
-                                                       Foreground="{DynamicResource MutedTextBrush}" />
-                                        </StackPanel>
-                                        <Button Grid.Column="1" Content="Learn" MinWidth="64"
-                                                Command="{Binding LearnCommand}" />
-                                        <Button Grid.Column="2" Content="Clear" Margin="6,0,0,0" MinWidth="64"
-                                                Command="{Binding ClearCommand}"
-                                                Visibility="{Binding HasAssignment, Converter={StaticResource BoolToVisibility}}" />
+                                        <TextBox Text="{Binding ControlPort, Delay=500}"
+                                                 AutomationProperties.Name="Control port" />
+                                        <Button Grid.Column="1" Content="Copy the address"
+                                                Command="{Binding CopyControlUrlCommand}"
+                                                Style="{StaticResource RowButtonStyle}"
+                                                HorizontalAlignment="Right" />
                                     </Grid>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                                </local:SettingRow>
 
-                        <Button Content="Stop waiting" HorizontalAlignment="Left" Margin="0,10,0,0"
-                                Command="{Binding CancelMidiLearnCommand}"
-                                Visibility="{Binding IsLearningMidi, Converter={StaticResource BoolToVisibility}}" />
+                                <local:SettingRow Label="Allow other computers" ContentWidth="38"
+                                                  Hint="Off means this computer only. Anything on your network could otherwise put your station on air.">
+                                    <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                              IsChecked="{Binding ControlAllowOtherComputers}"
+                                              AutomationProperties.Name="Allow other computers to control Deck" />
+                                </local:SettingRow>
 
-                        <TextBlock Text="{Binding MidiStatus}" Style="{StaticResource HintStyle}"
-                                   Margin="0,10,0,0" TextWrapping="Wrap" />
+                                <local:SettingRow Label="Password" ContentWidth="330" ShowRule="False"
+                                                  Hint="Required before Deck will take a command from another computer.">
+                                    <TextBox Text="{Binding ControlToken, Delay=500}"
+                                             AutomationProperties.Name="Control password" />
+                                </local:SettingRow>
+
+                                <TextBlock Text="{Binding ControlEndpointUrl}" Style="{StaticResource HintStyle}"
+                                           Margin="0,12,0,0" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource SettingGroupStyle}" Margin="0,22,0,8">
+                            <TextBlock Text="M I D I   C O N T R O L L E R" Style="{StaticResource GroupHeadingStyle}" />
+
+                            <local:SettingRow Label="Controller" ContentWidth="330"
+                                              Hint="{Binding MidiStatus}">
+                                <ComboBox ItemsSource="{Binding MidiDevices}"
+                                          SelectedItem="{Binding SelectedMidiDevice}"
+                                          AutomationProperties.Name="MIDI controller"
+                                          ToolTip="A control surface, keyboard or mixer that sends MIDI." />
+                            </local:SettingRow>
+
+                            <!--
+                                The bindings were already row-shaped - a name, what it is wired to,
+                                and two buttons - so they become actual rows rather than a lookalike
+                                grid. One template, so a binding row and a setting row cannot drift
+                                apart in spacing or rule weight.
+                            -->
+                            <ItemsControl ItemsSource="{Binding MidiBindings}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <local:SettingRow Label="{Binding Label}" Hint="{Binding Assignment}"
+                                                          ContentWidth="150">
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                <Button Content="Learn" MinWidth="64"
+                                                        Command="{Binding LearnCommand}"
+                                                        Style="{StaticResource RowButtonStyle}" />
+                                                <Button Content="Clear" MinWidth="64"
+                                                        Command="{Binding ClearCommand}"
+                                                        Style="{StaticResource RowButtonStyle}"
+                                                        Visibility="{Binding HasAssignment, Converter={StaticResource BoolToVisibility}}" />
+                                            </StackPanel>
+                                        </local:SettingRow>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <Button Content="Stop waiting" HorizontalAlignment="Left" Margin="0,12,0,0"
+                                    Command="{Binding CancelMidiLearnCommand}"
+                                    Visibility="{Binding IsLearningMidi, Converter={StaticResource BoolToVisibility}}" />
+                        </StackPanel>
 
                     </StackPanel>
                 </ScrollViewer>
@@ -1140,70 +1182,90 @@
                     <StackPanel Style="{StaticResource PaneBodyStyle}">
 
                         <TextBlock Text="Deck itself" Style="{StaticResource PaneHeadingStyle}" />
-                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
+                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,4"
                                    Text="Set once and forget. Nothing here affects what goes out." />
 
-                        <TextBlock Text="A P P E A R A N C E" Style="{StaticResource GroupHeadingStyle}" />
-                        <ComboBox ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding SelectedTheme}"
-                                  ToolTip="Whether Deck follows the Windows light and dark setting, or stays on one." />
-                        <TextBlock Text="{Binding ThemeHint}" Style="{StaticResource HintStyle}"
-                                   Margin="0,6,0,0" TextWrapping="Wrap" />
+                        <StackPanel Style="{StaticResource SettingGroupStyle}" Margin="0,14,0,0">
+                            <TextBlock Text="A P P E A R A N C E" Style="{StaticResource GroupHeadingStyle}" />
 
-                        <Border Style="{StaticResource RuleStyle}" />
-
-                        <TextBlock Text="L A N G U A G E" Style="{StaticResource GroupHeadingStyle}" />
-                        <ComboBox ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding SelectedLanguage}" />
-                        <TextBlock Text="{Binding LanguageHint}" Style="{StaticResource HintStyle}"
-                                   Margin="0,6,0,0" TextWrapping="Wrap" />
-                        <Button Content="Save the English text for translating…" Click="OnExportLanguage"
-                                HorizontalAlignment="Left" Margin="0,10,0,0" />
-
-                        <Border Style="{StaticResource RuleStyle}" />
-
-                        <TextBlock Text="V E R S I O N" Style="{StaticResource GroupHeadingStyle}" />
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding VersionText}" VerticalAlignment="Center"
-                                       FontFamily="Consolas" FontWeight="SemiBold" />
-                            <Button Content="Check for a newer version" Margin="12,0,0,0"
-                                    Command="{Binding CheckUpdatesCommand}" />
-                            <Button Content="Open the release page" Margin="8,0,0,0"
-                                    Command="{Binding OpenReleasePageCommand}" />
+                            <local:SettingRow Label="Palette" ContentWidth="330" ShowRule="False"
+                                              Hint="{Binding ThemeHint}">
+                                <ComboBox ItemsSource="{Binding ThemeOptions}"
+                                          SelectedItem="{Binding SelectedTheme}"
+                                          AutomationProperties.Name="Palette" />
+                            </local:SettingRow>
                         </StackPanel>
 
-                        <CheckBox Content="Check for updates automatically" Margin="0,12,0,0"
-                                  IsChecked="{Binding CheckForUpdates}"
-                                  ToolTip="Off by default: checking tells GitHub that this computer is running Deck." />
+                        <StackPanel Style="{StaticResource SettingGroupStyle}">
+                            <TextBlock Text="L A N G U A G E" Style="{StaticResource GroupHeadingStyle}" />
 
-                        <TextBlock Text="{Binding UpdateStatus}" Style="{StaticResource HintStyle}"
-                                   Margin="0,8,0,0" TextWrapping="Wrap" />
+                            <local:SettingRow Label="Language" ContentWidth="330"
+                                              Hint="{Binding LanguageHint}">
+                                <ComboBox ItemsSource="{Binding LanguageOptions}"
+                                          SelectedItem="{Binding SelectedLanguage}"
+                                          AutomationProperties.Name="Language" />
+                            </local:SettingRow>
 
-                        <!-- Installing is a separate, deliberate click. It appears only once there
-                             is something to install and Deck can write to its own folder. -->
-                        <StackPanel Margin="0,12,0,0"
-                                    Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVisibility}}">
-                            <Button Content="{Binding InstallUpdateButtonText}"
-                                    Command="{Binding InstallUpdateCommand}"
-                                    Style="{StaticResource PrimaryButtonStyle}"
-                                    HorizontalAlignment="Left"
-                                    IsEnabled="{Binding CanInstallUpdate}" />
-
-                            <ProgressBar Height="4" Margin="0,10,0,0" Minimum="0" Maximum="1"
-                                         Value="{Binding UpdateProgressFraction, Mode=OneWay}"
-                                         Visibility="{Binding IsInstallingUpdate, Converter={StaticResource BoolToVisibility}}" />
-
-                            <TextBlock Style="{StaticResource HintStyle}" Margin="0,8,0,0" TextWrapping="Wrap"
-                                       Text="Deck will download the new version, check it against the checksum published beside it, close itself and start the new one. Your settings and servers are left alone." />
+                            <local:SettingRow Label="Translating Deck" ContentWidth="240" ShowRule="False"
+                                              Hint="Saves the English text as a file you can translate and drop back in.">
+                                <Button Content="Save the English…" Click="OnExportLanguage"
+                                        Style="{StaticResource RowButtonStyle}" MinWidth="160"
+                                        HorizontalAlignment="Right" />
+                            </local:SettingRow>
                         </StackPanel>
 
-                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,10,0,0" TextWrapping="Wrap"
-                                   Text="Updates come only from the Deck releases on GitHub, over https, and are refused if the download does not match its published checksum." />
+                        <StackPanel Style="{StaticResource SettingGroupStyle}">
+                            <TextBlock Text="V E R S I O N" Style="{StaticResource GroupHeadingStyle}" />
 
-                        <Border Style="{StaticResource RuleStyle}" />
+                            <local:SettingRow Label="{Binding VersionText}" ContentWidth="330"
+                                              Hint="{Binding UpdateStatus}">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button Content="Check now" Command="{Binding CheckUpdatesCommand}"
+                                            Style="{StaticResource RowButtonStyle}" MinWidth="110" />
+                                    <Button Content="Release page" Command="{Binding OpenReleasePageCommand}"
+                                            Style="{StaticResource RowButtonStyle}" MinWidth="120" />
+                                </StackPanel>
+                            </local:SettingRow>
 
-                        <TextBlock Text="T H I S   S E S S I O N" Style="{StaticResource GroupHeadingStyle}" />
-                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,0,0,10"
-                                   Text="Connects, drops, device trouble and track changes. The same entries are appended to a file in the logs folder." />
-                        <Button Content="Open the session log" Click="OnOpenLog" HorizontalAlignment="Left" />
+                            <local:SettingRow Label="Check for updates automatically" ContentWidth="38"
+                                              ShowRule="{Binding UpdateAvailable}"
+                                              Hint="Off by default: a check tells GitHub that this computer is running Deck.">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding CheckForUpdates}"
+                                          AutomationProperties.Name="Check for updates automatically" />
+                            </local:SettingRow>
+
+                            <!-- Installing is a separate, deliberate click. It appears only once there
+                                 is something to install and Deck can write to its own folder. -->
+                            <StackPanel Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVisibility}}">
+                                <local:SettingRow Label="Install it" ContentWidth="240" ShowRule="False"
+                                                  Hint="Deck downloads the new version, checks it against the checksum published beside it, closes itself and starts the new one. Your settings and servers are left alone.">
+                                    <Button Content="{Binding InstallUpdateButtonText}"
+                                            Command="{Binding InstallUpdateCommand}"
+                                            Style="{StaticResource PrimaryButtonStyle}"
+                                            IsEnabled="{Binding CanInstallUpdate}"
+                                            HorizontalAlignment="Right" MinWidth="180" />
+                                </local:SettingRow>
+
+                                <ProgressBar Height="4" Margin="0,4,0,0" Minimum="0" Maximum="1"
+                                             Value="{Binding UpdateProgressFraction, Mode=OneWay}"
+                                             Visibility="{Binding IsInstallingUpdate, Converter={StaticResource BoolToVisibility}}" />
+                            </StackPanel>
+
+                            <TextBlock Style="{StaticResource HintStyle}" Margin="0,12,0,0" TextWrapping="Wrap"
+                                       Text="Updates come only from the Deck releases on GitHub, over https, and are refused if the download does not match its published checksum." />
+                        </StackPanel>
+
+                        <StackPanel Style="{StaticResource SettingGroupStyle}" Margin="0,22,0,8">
+                            <TextBlock Text="T H I S   S E S S I O N" Style="{StaticResource GroupHeadingStyle}" />
+
+                            <local:SettingRow Label="Session log" ContentWidth="200" ShowRule="False"
+                                              Hint="Connects, drops, device trouble and track changes. The same entries are appended to a file in the logs folder.">
+                                <Button Content="Open the log" Click="OnOpenLog"
+                                        Style="{StaticResource RowButtonStyle}" MinWidth="130"
+                                        HorizontalAlignment="Right" />
+                            </local:SettingRow>
+                        </StackPanel>
 
                     </StackPanel>
                 </ScrollViewer>
