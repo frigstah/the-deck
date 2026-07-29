@@ -710,118 +710,158 @@
                 <ScrollViewer Style="{StaticResource PaneScrollStyle}">
                     <StackPanel Style="{StaticResource PaneBodyStyle}">
 
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Servers" Style="{StaticResource PaneHeadingStyle}" />
-                            <TextBlock Grid.Column="1" Text="{Binding SelectedServerShort}"
-                                       Style="{StaticResource ReadoutStyle}" VerticalAlignment="Bottom"
-                                       Margin="12,0,0,3" />
-                        </Grid>
-                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,18"
+                        <TextBlock Text="Servers" Style="{StaticResource PaneHeadingStyle}" />
+                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,4"
                                    Text="Where the show goes. Paste the address your host gave you and Deck will work out the rest." />
 
-                        <ComboBox ItemsSource="{Binding Servers}"
-                                  SelectedItem="{Binding SelectedServer}"
-                                  ItemTemplate="{StaticResource NameItemTemplate}" />
+                        <StackPanel Style="{StaticResource SettingGroupStyle}" Margin="0,14,0,0">
+                            <TextBlock Text="T H I S   S H O W" Style="{StaticResource GroupHeadingStyle}" />
 
-                        <TextBlock Text="{Binding SelectedServerSummary}" Style="{StaticResource HintStyle}"
-                                   Margin="0,8,0,0" />
-                        <TextBlock Text="{Binding QualitySummary}" Style="{StaticResource HintStyle}"
-                                   Margin="0,3,0,0" />
+                            <local:SettingRow Label="Server" ContentWidth="330"
+                                              Hint="{Binding SelectedServerSummary}">
+                                <ComboBox ItemsSource="{Binding Servers}"
+                                          SelectedItem="{Binding SelectedServer}"
+                                          ItemTemplate="{StaticResource NameItemTemplate}"
+                                          AutomationProperties.Name="Server" />
+                            </local:SettingRow>
 
-                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                            <Button Content="Add server…" Click="OnAddServer"
-                                    Style="{StaticResource PrimaryButtonStyle}" />
-                            <Button Content="Edit…" Click="OnEditServer" Margin="8,0,0,0" />
-                            <Button Content="Duplicate" Click="OnDuplicateServer" Margin="8,0,0,0" />
-                            <Button Content="Delete" Click="OnDeleteServer" Margin="8,0,0,0" />
+                            <!--
+                                A row with a readout instead of a control. The quality is not set
+                                here - it belongs to the server and is changed behind Edit - but it is
+                                the first thing anyone wants to confirm before going on air, and
+                                making them open a dialog to read it would be worse than a row that
+                                cannot be clicked.
+                            -->
+                            <local:SettingRow Label="Quality" ContentWidth="330">
+                                <TextBlock Text="{Binding QualitySummary}" Style="{StaticResource ReadoutStyle}"
+                                           TextAlignment="Right" TextWrapping="Wrap" />
+                            </local:SettingRow>
+
+                            <local:SettingRow Label="This server" ContentWidth="400" ShowRule="False"
+                                              Hint="Duplicate is the quickest way to add a backup.">
+                                <WrapPanel HorizontalAlignment="Right">
+                                    <Button Content="Add…" Click="OnAddServer"
+                                            Style="{StaticResource PrimaryButtonStyle}" MinWidth="80" />
+                                    <Button Content="Edit…" Click="OnEditServer"
+                                            Style="{StaticResource RowButtonStyle}" />
+                                    <Button Content="Duplicate" Click="OnDuplicateServer"
+                                            Style="{StaticResource RowButtonStyle}" />
+                                    <Button Content="Delete" Click="OnDeleteServer"
+                                            Style="{StaticResource RowButtonStyle}" />
+                                </WrapPanel>
+                            </local:SettingRow>
                         </StackPanel>
 
-                        <WrapPanel Margin="0,10,0,0">
-                            <Button Content="Listen to my stream" Click="OnListen" Margin="0,0,8,0"
-                                    Visibility="{Binding ListenUrl, Converter={StaticResource TextToVisibility}}"
-                                    ToolTip="Opens your stream in your usual player, so you can check it end to end." />
-                            <Button Content="Share settings…" Click="OnExportServers" Margin="0,0,8,0"
-                                    ToolTip="Save your servers to a file another DJ can import." />
-                            <Button Content="Import…" Click="OnImportServers"
-                                    ToolTip="Add servers from a file someone shared with you." />
-                        </WrapPanel>
+                        <StackPanel Style="{StaticResource SettingGroupStyle}">
+                            <TextBlock Text="C H E C K I N G   A N D   S H A R I N G" Style="{StaticResource GroupHeadingStyle}" />
 
-                        <Border Style="{StaticResource RuleStyle}" />
+                            <local:SettingRow Label="Listen to my stream" ContentWidth="200"
+                                              Hint="Opens your stream in your usual player, so you can hear it end to end."
+                                              Visibility="{Binding ListenUrl, Converter={StaticResource TextToVisibility}}">
+                                <Button Content="Listen" Click="OnListen"
+                                        Style="{StaticResource RowButtonStyle}" MinWidth="110"
+                                        HorizontalAlignment="Right" />
+                            </local:SettingRow>
 
-                        <TextBlock Text="B A C K U P   S E R V E R S" Style="{StaticResource GroupHeadingStyle}" />
-                        <CheckBox Content="Also send to another server"
-                                  IsChecked="{Binding SendToMoreThanOneServer}"
-                                  ToolTip="Run a backup relay, or the same show at a second bitrate." />
+                            <local:SettingRow Label="These settings" ContentWidth="240" ShowRule="False"
+                                              Hint="Passwords are deliberately left out of a shared file.">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button Content="Share…" Click="OnExportServers"
+                                            Style="{StaticResource RowButtonStyle}" MinWidth="100" />
+                                    <Button Content="Import…" Click="OnImportServers"
+                                            Style="{StaticResource RowButtonStyle}" MinWidth="100" />
+                                </StackPanel>
+                            </local:SettingRow>
+                        </StackPanel>
 
-                        <StackPanel Margin="0,10,0,0"
-                                    Visibility="{Binding SendToMoreThanOneServer, Converter={StaticResource BoolToVisibility}}">
-                            <ItemsControl ItemsSource="{Binding ExtraTargets}"
-                                          Visibility="{Binding HasOtherServers, Converter={StaticResource BoolToVisibility}}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <CheckBox IsChecked="{Binding IsSelected}" Margin="0,0,0,5">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding Name}" />
-                                                <TextBlock Text="{Binding Detail}" Margin="10,0,0,0" FontSize="11"
+                        <StackPanel Style="{StaticResource SettingGroupStyle}">
+                            <TextBlock Text="B A C K U P   S E R V E R S" Style="{StaticResource GroupHeadingStyle}" />
+
+                            <local:SettingRow Label="Also send to another server" ContentWidth="38"
+                                              ShowRule="{Binding SendToMoreThanOneServer}"
+                                              Hint="Run a backup relay, or the same show at a second bitrate. One dropping does not take the others off air.">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding SendToMoreThanOneServer}"
+                                          AutomationProperties.Name="Also send to another server" />
+                            </local:SettingRow>
+
+                            <StackPanel Margin="0,12,0,0"
+                                        Visibility="{Binding SendToMoreThanOneServer, Converter={StaticResource BoolToVisibility}}">
+                                <!--
+                                    Not rows. This is a list of things ticked, where the number of
+                                    entries depends on how many servers exist - so it is one item per
+                                    saved server rather than one setting per line.
+                                -->
+                                <ItemsControl ItemsSource="{Binding ExtraTargets}"
+                                              Visibility="{Binding HasOtherServers, Converter={StaticResource BoolToVisibility}}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding IsSelected}" Margin="0,0,0,7">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Name}" />
+                                                    <TextBlock Text="{Binding Detail}" Margin="10,0,0,0" FontSize="11"
+                                                               VerticalAlignment="Center"
+                                                               Foreground="{DynamicResource MutedTextBrush}" />
+                                                </StackPanel>
+                                            </CheckBox>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <TextBlock Text="{Binding ExtraTargetsHint}" Style="{StaticResource HintStyle}"
+                                           Margin="0,4,0,0" />
+                            </StackPanel>
+
+                            <!-- One line per destination, so a failing backup is visible but not alarming. -->
+                            <StackPanel Margin="0,16,0,0"
+                                        Visibility="{Binding ShowTargetStatus, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="{Binding BroadcastDetail}" Style="{StaticResource HintStyle}"
+                                           Margin="0,0,0,8" />
+
+                                <ItemsControl ItemsSource="{Binding TargetStatus}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,0,0,5">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Ellipse Width="9" Height="9" VerticalAlignment="Center"
+                                                         Fill="{Binding StateBrush}" />
+                                                <TextBlock Grid.Column="1" Text="{Binding Name}" Margin="8,0,0,0"
+                                                           TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Column="2" Text="{Binding State}" FontSize="11"
                                                            VerticalAlignment="Center"
                                                            Foreground="{DynamicResource MutedTextBrush}" />
-                                            </StackPanel>
-                                        </CheckBox>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
 
-                            <TextBlock Text="{Binding ExtraTargetsHint}" Style="{StaticResource HintStyle}"
-                                       Margin="0,4,0,0" />
+                                <TextBlock Text="{Binding ConnectionStats}" Style="{StaticResource HintStyle}"
+                                           Foreground="{Binding ConnectionStatsBrush}" Margin="0,10,0,0"
+                                           FontFamily="Consolas" FontSize="11"
+                                           Visibility="{Binding ConnectionStats, Converter={StaticResource TextToVisibility}}" />
+                            </StackPanel>
                         </StackPanel>
 
-                        <!-- One line per destination, so a failing backup is visible but not alarming. -->
-                        <StackPanel Margin="0,16,0,0"
-                                    Visibility="{Binding ShowTargetStatus, Converter={StaticResource BoolToVisibility}}">
-                            <TextBlock Text="{Binding BroadcastDetail}" Style="{StaticResource HintStyle}"
-                                       Margin="0,0,0,6" />
+                        <StackPanel Style="{StaticResource SettingGroupStyle}" Margin="0,22,0,8">
+                            <TextBlock Text="G O I N G   O N   A I R" Style="{StaticResource GroupHeadingStyle}" />
 
-                            <ItemsControl ItemsSource="{Binding TargetStatus}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid Margin="0,0,0,4">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <Ellipse Width="9" Height="9" VerticalAlignment="Center"
-                                                     Fill="{Binding StateBrush}" />
-                                            <TextBlock Grid.Column="1" Text="{Binding Name}" Margin="8,0,0,0"
-                                                       TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Grid.Column="2" Text="{Binding State}" FontSize="11"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{DynamicResource MutedTextBrush}" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                            <local:SettingRow Label="Go live when Deck starts" ContentWidth="38">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding AutoConnectOnStart}"
+                                          AutomationProperties.Name="Go live when Deck starts" />
+                            </local:SettingRow>
+
+                            <local:SettingRow Label="Go live when it hears sound" ContentWidth="38" ShowRule="False"
+                                              Hint="{Binding AutoAirStatus}">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding AutoGoLiveOnSound}"
+                                          AutomationProperties.Name="Go live when it hears sound" />
+                            </local:SettingRow>
                         </StackPanel>
-
-                        <TextBlock Text="{Binding ConnectionStats}" Style="{StaticResource HintStyle}"
-                                   Foreground="{Binding ConnectionStatsBrush}" Margin="0,10,0,0"
-                                   FontFamily="Consolas" FontSize="11"
-                                   Visibility="{Binding ConnectionStats, Converter={StaticResource TextToVisibility}}" />
-
-                        <Border Style="{StaticResource RuleStyle}" />
-
-                        <TextBlock Text="G O I N G   O N   A I R" Style="{StaticResource GroupHeadingStyle}" />
-                        <CheckBox Content="Go live automatically when Deck starts"
-                                  IsChecked="{Binding AutoConnectOnStart}" />
-                        <CheckBox Content="Go live on its own when it hears sound" Margin="0,8,0,0"
-                                  IsChecked="{Binding AutoGoLiveOnSound}"
-                                  ToolTip="For an unattended station. Comes off air again after a long silence." />
-                        <TextBlock Text="{Binding AutoAirStatus}" Style="{StaticResource HintStyle}" Margin="20,4,0,0"
-                                   Visibility="{Binding AutoAirStatus, Converter={StaticResource TextToVisibility}}" />
 
                     </StackPanel>
                 </ScrollViewer>
