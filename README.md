@@ -82,6 +82,12 @@ That produces three things in `publish/`: a per-user installer, a portable zip c
 `deck-portable.txt` marker, and the update package the built-in updater downloads. `SHA256SUMS.txt`
 holds the digests, which the updater checks rather than trusts.
 
+**Every push to `main` publishes an alpha.** `.github/workflows/alpha.yml` runs the check suite, and
+if it passes, builds and publishes a pre-release tagged `v1.0.0.<run number>` — so the built-in
+updater always has something newer to find. Worth knowing before pushing: a commit becomes a
+download within a few minutes, and the tag pins it permanently. It is also why anything you would not
+want published needs to be out of the source *before* the push rather than in a follow-up commit.
+
 ---
 
 ## Layout
