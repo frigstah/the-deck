@@ -3,7 +3,7 @@
     installer.
 
     The app is published once and used for both. The only difference between the portable and
-    installed layouts is the sirs-portable.txt marker, which is added to the zip and never to the
+    installed layouts is the deck-portable.txt marker, which is added to the zip and never to the
     installer - see AppPaths, where that file is what moves settings next to the executable.
 
     Usage:
@@ -27,8 +27,8 @@ $publish = Join-Path $root "publish"
 $appDir = Join-Path $publish "app"
 
 if (-not $Version) {
-    $csproj = Get-Content (Join-Path $root "src\SIRS.App\SIRS.App.csproj") -Raw
-    if ($csproj -notmatch '<Version>([^<]+)</Version>') { throw "No <Version> in SIRS.App.csproj" }
+    $csproj = Get-Content (Join-Path $root "src\Deck.App\Deck.App.csproj") -Raw
+    if ($csproj -notmatch '<Version>([^<]+)</Version>') { throw "No <Version> in Deck.App.csproj" }
     $Version = $Matches[1]
 }
 
@@ -38,7 +38,7 @@ $parts = $Version.Split('.')
 while ($parts.Count -lt 4) { $parts += "0" }
 $Version = ($parts[0..3]) -join '.'
 
-Write-Host "SIRS $Version  ($Configuration / $Runtime)" -ForegroundColor Cyan
+Write-Host "Deck $Version  ($Configuration / $Runtime)" -ForegroundColor Cyan
 
 if (Test-Path $publish) { Remove-Item $publish -Recurse -Force }
 New-Item -ItemType Directory -Path $publish | Out-Null
@@ -46,7 +46,7 @@ New-Item -ItemType Directory -Path $publish | Out-Null
 # ---------------------------------------------------------------- publish
 
 Write-Host "publishing..." -ForegroundColor DarkGray
-& dotnet publish (Join-Path $root "src\SIRS.App\SIRS.App.csproj") `
+& dotnet publish (Join-Path $root "src\Deck.App\Deck.App.csproj") `
     -c $Configuration -r $Runtime --self-contained true `
     -p:Version=$Version -p:AssemblyVersion=$Version -p:FileVersion=$Version `
     -p:DebugType=none -p:DebugSymbols=false `
@@ -62,19 +62,19 @@ Write-Host "  app folder: $size MB, $((Get-ChildItem $appDir -Recurse -File).Cou
 # ---------------------------------------------------------------- portable zip
 
 Write-Host "packing portable zip..." -ForegroundColor DarkGray
-$portableDir = Join-Path $publish "portable\SIRS-$Version"
+$portableDir = Join-Path $publish "portable\Deck-$Version"
 New-Item -ItemType Directory -Path $portableDir -Force | Out-Null
 Copy-Item "$appDir\*" $portableDir -Recurse -Force
 
 # The marker that moves settings into a data folder beside the executable (I7). Present only here.
 @"
-This file makes SIRS portable.
+This file makes Deck portable.
 
-While it exists next to SIRS.exe, settings, servers and logs are kept in the "data" folder
-beside it instead of in %APPDATA%\SIRS. Delete it to go back to the normal location.
-"@ | Set-Content (Join-Path $portableDir "sirs-portable.txt") -Encoding UTF8
+While it exists next to Deck.exe, settings, servers and logs are kept in the "data" folder
+beside it instead of in %APPDATA%\Deck. Delete it to go back to the normal location.
+"@ | Set-Content (Join-Path $portableDir "deck-portable.txt") -Encoding UTF8
 
-$portableZip = Join-Path $publish "SIRS-$Version-portable-$Runtime.zip"
+$portableZip = Join-Path $publish "Deck-$Version-portable-$Runtime.zip"
 Compress-Archive -Path $portableDir -DestinationPath $portableZip -CompressionLevel Optimal
 Remove-Item (Join-Path $publish "portable") -Recurse -Force
 
@@ -84,7 +84,7 @@ Remove-Item (Join-Path $publish "portable") -Recurse -Force
 # updater can copy its contents straight over an install of either kind without changing which
 # mode that install is in.
 Write-Host "packing update payload..." -ForegroundColor DarkGray
-$updateZip = Join-Path $publish "SIRS-$Version-update-$Runtime.zip"
+$updateZip = Join-Path $publish "Deck-$Version-update-$Runtime.zip"
 Compress-Archive -Path "$appDir\*" -DestinationPath $updateZip -CompressionLevel Optimal
 
 # ---------------------------------------------------------------- installer
@@ -104,9 +104,9 @@ if (-not $SkipInstaller) {
     if ($iscc) {
         Write-Host "building installer..." -ForegroundColor DarkGray
         & $iscc /Q "/DAppVersion=$Version" "/DSourceDir=$appDir" "/DOutputDir=$publish" `
-            (Join-Path $root "installer\SIRS.iss")
+            (Join-Path $root "installer\Deck.iss")
         if ($LASTEXITCODE -ne 0) { throw "ISCC failed" }
-        $setup = Join-Path $publish "SIRS-$Version-setup.exe"
+        $setup = Join-Path $publish "Deck-$Version-setup.exe"
     }
     else {
         Write-Warning "Inno Setup not found - skipping the installer."

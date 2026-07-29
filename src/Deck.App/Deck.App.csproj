@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <UseWPF>true</UseWPF>
+    <!-- For the tray icon (I4): WPF has no equivalent of NotifyIcon. -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>Deck.App</RootNamespace>
+    <AssemblyName>Deck</AssemblyName>
+    <!-- Phase 4 of the roadmap. The update check compares against this. -->
+    <Version>1.3.0</Version>
+    <Product>The Deck — live radio broadcaster</Product>
+    <Description>A Windows live audio encoder for Icecast and SHOUTcast.</Description>
+    <Copyright>Copyright (C) 2026 Deck contributors. Licensed under GPL-3.0-or-later.</Copyright>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!--
+      WFAC010 asks for DPI to be set through the WinForms project property. This is a WPF app that
+      only borrows WinForms for the tray icon, so the manifest stays the source of truth.
+    -->
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Deck.Core\Deck.Core.csproj" />
+  </ItemGroup>
+
+</Project>
