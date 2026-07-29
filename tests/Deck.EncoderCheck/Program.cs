@@ -123,6 +123,11 @@ internal static class Program
         Console.WriteLine(controlFailures == 0 ? "PASS\n" : $"{controlFailures} case(s) FAILED\n");
         failures += controlFailures;
 
+        Console.WriteLine("--- Palettes and contrast ---");
+        var themeFailures = ThemeChecks.Run();
+        Console.WriteLine(themeFailures == 0 ? "PASS\n" : $"{themeFailures} case(s) FAILED\n");
+        failures += themeFailures;
+
         Console.WriteLine(failures == 0 ? "\nAll encoder checks passed." : $"\n{failures} check(s) FAILED.");
         return failures == 0 ? 0 : 1;
     }
