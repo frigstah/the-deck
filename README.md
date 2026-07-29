@@ -1,15 +1,15 @@
-# SIRS — Simple Internet Radio Streamer
+# Deck — Simple Internet Radio Streamer
 
 A Windows live audio encoder for Icecast and SHOUTcast. Everything a small station needs, nothing
 it doesn't, and it explains itself.
 
 Free and unrestricted: no paid tier, no bitrate cap, no locked features. [GPL-3.0](LICENSE).
 
-> **Beta.** SIRS has streamed live to a real Icecast server and its encoders are verified in
+> **Beta.** Deck has streamed live to a real Icecast server and its encoders are verified in
 > detail, but it has never been run by anyone other than its author. Expect rough edges, and read
 > [Not yet verified](#not-yet-verified) before trusting it with a show that matters.
 
-See [SIRS-Feature-Spec.md](SIRS-Feature-Spec.md) for the full feature set, priorities and roadmap.
+See [Deck-Feature-Spec.md](Deck-Feature-Spec.md) for the full feature set, priorities and roadmap.
 
 ---
 
@@ -17,15 +17,15 @@ See [SIRS-Feature-Spec.md](SIRS-Feature-Spec.md) for the full feature set, prior
 
 Requires the .NET 8 SDK.
 
-Commands below are relative to this folder (the one holding `SIRS.sln`). If your terminal opens a
-level up, prefix the paths with `SIRS/` or `cd SIRS` first.
+Commands below are relative to this folder (the one holding `Deck.sln`). If your terminal opens a
+level up, prefix the paths with `Deck/` or `cd Deck` first.
 
 ```bash
-dotnet build SIRS.sln
+dotnet build Deck.sln
 ```
 
 ```bash
-dotnet run --project src/SIRS.App/SIRS.App.csproj
+dotnet run --project src/Deck.App/Deck.App.csproj
 ```
 
 Verification harness — encodes a known tone and checks every codec's output is real, measures the
@@ -34,14 +34,14 @@ DFT, drives both local endpoints over real sockets, opens every ASIO and MIDI de
 and runs the parser and recording checks:
 
 ```bash
-dotnet run --project tests/SIRS.EncoderCheck/SIRS.EncoderCheck.csproj
+dotnet run --project tests/Deck.EncoderCheck/Deck.EncoderCheck.csproj
 ```
 
-SIRS also answers a command line, which it sends to the copy already running rather than opening a
-second window. The remote control has to be switched on first, under "SIRS itself":
+Deck also answers a command line, which it sends to the copy already running rather than opening a
+second window. The remote control has to be switched on first, under "Deck itself":
 
 ```bash
-SIRS.exe --status
+Deck.exe --status
 ```
 
 To build an installer and a portable zip (needs [Inno Setup](https://jrsoftware.org/isdl.php) for
@@ -52,7 +52,7 @@ pwsh ./build/package.ps1
 ```
 
 That produces three things in `publish/`: a per-user installer, a portable zip carrying the
-`sirs-portable.txt` marker, and the update package the built-in updater downloads. `SHA256SUMS.txt`
+`deck-portable.txt` marker, and the update package the built-in updater downloads. `SHA256SUMS.txt`
 holds the digests, which the updater checks rather than trusts.
 
 ---
@@ -60,7 +60,7 @@ holds the digests, which the updater checks rather than trusts.
 ## Layout
 
 ```
-src/SIRS.Core/          No UI. Everything below is usable headless.
+src/Deck.Core/          No UI. Everything below is usable headless.
   Audio/                WASAPI and ASIO capture, metering + level coaching, channel selection,
                         resampling, format conversion, monitoring, sound check, automatic on-air
   Audio/Dsp/            Voice Enhance, AGC, 3-band EQ, multiband compressor, safety limiter,
@@ -78,13 +78,13 @@ src/SIRS.Core/          No UI. Everything below is usable headless.
   Updates/              Opt-in release check. Never downloads or installs anything.
   BroadcastEngine.cs    Ties it together; owns the single audio callback
 
-src/SIRS.App/           WPF single-window UI, server editor, first-run wizard, tray, hotkeys
-tests/SIRS.EncoderCheck/ Encoder, DSP, parser, recording, endpoint, MIDI, ASIO and translation checks
+src/Deck.App/           WPF single-window UI, server editor, first-run wizard, tray, hotkeys
+tests/Deck.EncoderCheck/ Encoder, DSP, parser, recording, endpoint, MIDI, ASIO and translation checks
 ```
 
-Config lives in `%APPDATA%\SIRS`. Dropping a file named `sirs-portable.txt` next to the executable
+Config lives in `%APPDATA%\Deck`. Dropping a file named `deck-portable.txt` next to the executable
 switches to portable mode, with config in a `data` folder alongside it. Translations go in
-`%APPDATA%\SIRS\languages`.
+`%APPDATA%\Deck\languages`.
 
 ---
 
@@ -129,14 +129,14 @@ These decided every argument during the build. They are worth keeping.
 | Title format | `{artist} - {title}` templates with a live preview, and a hold switch for adverts and jingles |
 | Recording | While broadcasting or standalone, in the stream's format, lossless FLAC or WAV; filename templates, auto-split by duration, stops itself before the disk fills |
 | Shell | Notification-area icon coloured by on-air state, global hotkeys, auto-connect on start, automatic on-air when sound appears |
-| Remote control | An opt-in local endpoint other programs can drive SIRS from, and the same commands on the command line — `SIRS --live`, `--status`, `--title "…"` — which reach the copy already running |
+| Remote control | An opt-in local endpoint other programs can drive Deck from, and the same commands on the command line — `Deck --live`, `--status`, `--title "…"` — which reach the copy already running |
 | MIDI | Physical buttons and faders from a control surface, mixer or keyboard, assigned by pressing Learn and moving the control |
 | Accessibility | Standard controls throughout; the drawn meters publish their level as text for screen readers |
 | Reliability | Send buffer, 1 s reconnect backoff, clear connection state machine, live throughput and buffer statistics |
 | Session log | Connects, drops, device trouble and track changes, shown in-app and appended to a daily file |
 | Listeners | Live count from Icecast, SHOUTcast v1 and v2 where the server reports it, summed across destinations |
 | Language | English built in, community translations as JSON files with coverage shown and English as the fallback |
-| Updates | Opt-in check against the GitHub releases, and a one-click install: SIRS downloads the new build, checks it against the digest published beside it, closes, replaces itself and starts again. Refused while on air |
+| Updates | Opt-in check against the GitHub releases, and a one-click install: Deck downloads the new build, checks it against the digest published beside it, closes, replaces itself and starts again. Refused while on air |
 | Installing | A per-user installer that needs no administrator rights, and a portable zip that keeps its settings beside the executable. Every push to `main` publishes both as an alpha pre-release |
 | UI | Single window laid out as a navigation rail — one subject in the pane at a time, and an on-air strip along the bottom that is present on every pane. First-run wizard, High-DPI, follows Windows light/dark or stays on the one you pick |
 
@@ -200,7 +200,7 @@ These decided every argument during the build. They are worth keeping.
   everywhere else; coverage is reported honestly; a corrupt language file is skipped rather than
   fatal.
 - **The update check.** It refuses to open anything that is not an ordinary http(s) page, so a
-  release feed cannot point SIRS at a local executable.
+  release feed cannot point Deck at a local executable.
 - **The spectrum.** Checked against a brute-force DFT written separately in the test — a different
   algorithm, not a rearrangement of the same one — agreeing to within 1e-9 on a signal built from
   three unrelated tones and a DC offset. Plus: a tone lands in the bar whose label covers it, a
@@ -219,9 +219,9 @@ These decided every argument during the build. They are worth keeping.
   clicked (WPF's UI thread is STA) and would have failed every time the device watchdog tried to
   recover an interface, because a timer callback is not.
 - **Remote control and the command line.** Twelve cases over a real socket, plus a live end-to-end
-  run: with SIRS running, `SIRS.exe --status` from a separate process reported the real meter and
+  run: with Deck running, `Deck.exe --status` from a separate process reported the real meter and
   loudness readings, `--title` set a title with accents and an em dash intact, `--mute` and `--gain`
-  took effect, and a command SIRS could not honour returned a non-zero exit code. Killing SIRS
+  took effect, and a command Deck could not honour returned a non-zero exit code. Killing Deck
   outright leaves the handshake file behind, and the next command correctly reports "not running"
   rather than hanging on a dead port.
 - **The installer and the updater, for real.** The installer was built, installed silently, and the
@@ -229,11 +229,11 @@ These decided every argument during the build. They are worth keeping.
   marker. Then a genuinely newer build was staged and handed the running copy's process id, and the
   install went from 1.3.0.9001 to 1.3.0.9002 with the new version left running — the actual
   download-close-replace-restart sequence, minus the download. Repeated against a portable layout,
-  where the marker and the `data` folder both survived untouched. Uninstalling left `%APPDATA%\SIRS`
+  where the marker and the `data` folder both survived untouched. Uninstalling left `%APPDATA%\Deck`
   alone, as intended.
 - **Every way the updater says no.** Nine checks covering the host allow-list (lookalike domains,
   plain http, `file://`, an unlisted GitHub host), a release with no checksum, a release pointing
-  off GitHub, a payload with no `SIRS.exe`, and the command line that triggers a file copy over an
+  off GitHub, a payload with no `Deck.exe`, and the command line that triggers a file copy over an
   install directory — which must never be reachable by accident.
 - **Both themes, on real hardware.** The window was captured from the running app in the Windows
   light and dark settings, across several panes, with a live signal on the meter. This is how the
@@ -255,7 +255,7 @@ These decided every argument during the build. They are worth keeping.
   took the window from five reachable buttons to every one of them.
 - **The app itself.** Runs, captures live audio from a real interface, the level coaching responds
   correctly, and selecting a loopback source switches the on-screen guidance to match.
-- **A live broadcast.** SIRS has connected to a real Icecast server and streamed MP3 at 256 kbps,
+- **A live broadcast.** Deck has connected to a real Icecast server and streamed MP3 at 256 kbps,
   48 kHz stereo over a plain connection, and it sounded right on the listening end. The source
   handshake, encoder and send path are proven end to end.
 
@@ -289,7 +289,7 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
 - **Two servers at once against two real servers.** The fan-out, the format conversion and the
   aggregate state are all covered offline, but no second server has been connected in anger, and the
   behaviour that matters — staying on air while one destination fails — needs a real failure.
-- **No external player has opened a SIRS FLAC file.** The bit-exact round trip is proven against an
+- **No external player has opened a Deck FLAC file.** The bit-exact round trip is proven against an
   independently written decoder, which is a strong result, but VLC and foobar2000 have not been
   asked for a second opinion. Neither is installed here.
 - **The processing presets have not been listened to.** Talk, Music and Loud are measured to behave
@@ -304,7 +304,7 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   translator today would get a partly translated app, which is why coverage is shown rather than
   claimed.
 - **The update check cannot see anything while this repository is private.** GitHub answers 404 to
-  an unauthenticated caller, exactly as it would for a repository that does not exist, so SIRS
+  an unauthenticated caller, exactly as it would for a repository that does not exist, so Deck
   reports that it cannot see the release list and stops there. The whole feature — checking,
   downloading, verifying — only begins working when the repository is public. Nothing has yet been
   downloaded from a real release; the swap was tested with a locally staged build instead.
@@ -327,14 +327,14 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   the rail is reachable by keyboard and reported correctly to screen readers — but nobody has yet
   spent two hours broadcasting with it and found out which pane they wish they were on.
 - **The remote control has not been driven by real automation software.** The endpoint is proven
-  from a socket and from SIRS's own command line, but no playout system has been pointed at it.
+  from a socket and from Deck's own command line, but no playout system has been pointed at it.
 - **The title bar does not offer Windows 11's Snap Layouts.** Hovering the maximise button on a
   system title bar shows the layout flyout; reproducing that means answering hit-test messages with
   `HTMAXBUTTON` and driving the hover and click states by hand. Dragging to a screen edge and the
   <kbd>Win</kbd>+arrow shortcuts are unaffected — only the hover flyout is missing.
 - **Message boxes are still the system's.** The "you are still on air" confirmation and the update
   and crash notices use `MessageBox`, which cannot be themed. They will look like Windows, not like
-  SIRS.
+  Deck.
 
 ---
 
@@ -348,7 +348,7 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
 - **Authentication failures stop retrying.** A wrong password never comes right on its own, and
   hammering the server buries the real reason under reconnect messages. Everything else retries.
 - **SHOUTcast port fallback.** SHOUTcast takes broadcasts on the port after the listener port, and
-  hosts are split on which they quote. SIRS tries both and says which worked.
+  hosts are split on which they quote. Deck tries both and says which worked.
 - **Ogg pages never split a packet.** Opus packets are far below the 65025 bytes that would force a
   continuation, so the muxer skips that bookkeeping entirely and stays spec-compliant.
 - **FLAC is implemented here rather than bound to libFLAC**, for the same reason Opus uses Concentus:
@@ -358,7 +358,7 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
 - **A live broadcast can be Live while a destination is failing.** A backup exists precisely so one
   server going down does not take the show off air; reporting "Reconnecting" over a perfectly good
   main stream would be a lie. What went wrong is named in the status line instead.
-- **The updater installs, but the repository is pinned and the download is verified.** SIRS spent
+- **The updater installs, but the repository is pinned and the download is verified.** Deck spent
   four phases deliberately *not* installing its own updates, on the grounds that an encoder able to
   replace its own binary can be made to run someone else's code by whoever controls the URL. That
   changed on request, so the argument had to be answered rather than dropped: there is no setting
@@ -369,7 +369,7 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   all. Anyone who finds that unacceptable can leave the check off and install by hand, which still
   works and is still what the button did before.
 - **Updates are refused while on air.** Taking a station off the air to install an update is not
-  something SIRS should decide to do, and an update that waits ten minutes costs nothing.
+  something Deck should decide to do, and an update that waits ten minutes costs nothing.
 - **The installer is per-user, not Program Files.** That is what lets the updater replace the files
   without a UAC prompt. An updater that needs elevation is one that gets cancelled.
 - **An update never carries the portable marker across.** That one file decides whether settings
@@ -382,21 +382,21 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
 - **Recording lossless follows the captured audio, not the broadcast's settings.** Recording a mono
   64 kbps show as a mono FLAC would preserve nothing worth preserving.
 - **No VST hosting.** The VST3 SDK is GPLv3 or a commercial agreement, but the licence is the
-  smaller half. Hosting means scanning plugins, opening someone else's editor window inside SIRS,
+  smaller half. Hosting means scanning plugins, opening someone else's editor window inside Deck,
   and surviving a plugin that crashes — a whole out-of-process subsystem whose failure mode is "the
   show went off air", built to serve users who by definition already own a DAW.
 - **Remote control is separate from the now-playing endpoint, and off by default.** One of them
   changes what listeners read; the other can put a station on air. Someone who wants the first
   should not silently get the second. Both refuse outright to open to the network without a
   password rather than warning about it.
-- **The command line talks to the running copy, and only ever over loopback.** Letting `SIRS.exe`
+- **The command line talks to the running copy, and only ever over loopback.** Letting `Deck.exe`
   aim at a host given on the command line would turn it into a small tool for putting other
   people's stations off air.
 - **MIDI buttons act on the press and not again until released.** Plenty of desks repeat their value
   while a button is held, which would otherwise toggle a station on and off many times a second.
-- **The spectrum is closed by default.** It is the most encoder-shaped thing in SIRS, and the whole
+- **The spectrum is closed by default.** It is the most encoder-shaped thing in Deck, and the whole
   argument for the program is that the first screen does not look like one. The phase reading beside
-  it is the half that earns its place: nothing else in SIRS can see a miswired cable.
+  it is the half that earns its place: nothing else in Deck can see a miswired cable.
 - **ASIO drivers get a thread of their own.** They are COM objects requiring a single-threaded
   apartment, and the device watchdog runs on a timer, which is not one. Without a dedicated STA
   thread an ASIO input would open when chosen and then never recover from a glitch.
@@ -408,7 +408,7 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   it brings keyboard navigation, focus handling and screen-reader semantics with it. A stack of
   buttons driving a visibility flag would have looked identical and quietly lost all three.
 - **The window draws its own title bar.** Windows will not let an application colour the system one,
-  so a dark SIRS sat under a light caption — a seam across the top of the product, whichever theme
+  so a dark Deck sat under a light caption — a seam across the top of the product, whichever theme
   you were in. The caption is now two halves: a block of rail colour exactly the width of the rail,
   so the rail appears to run to the top of the window with the wordmark at its head, and beyond it
   the window's own background, so the rest of the caption simply *is* the pane. All that is left of
@@ -417,12 +417,12 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   server editor and the log window, which works out from the window it is in which buttons make
   sense — the same rules the system caption follows — and applies the maximised-bounds correction so
   a window only has to place it to get the whole treatment.
-- **Following Windows is a default, not a rule.** Appearance on the SIRS pane offers Follow Windows,
+- **Following Windows is a default, not a rule.** Appearance on the Deck pane offers Follow Windows,
   Light and Dark. Following the system is right for most people most of the time, which is why it is
   the default — but a studio PC is often left on the system light theme by whoever set it up, and
-  the person sitting at it at midnight is not that person. Choosing outright makes SIRS ignore the
+  the person sitting at it at midnight is not that person. Choosing outright makes Deck ignore the
   system entirely, including while it is running.
-- **Switching the Windows theme repaints SIRS immediately.** It used to need a restart, and the
+- **Switching the Windows theme repaints Deck immediately.** It used to need a restart, and the
   reason is worth recording because it looked like it worked. The palette is applied by overwriting
   colour keys, and Theme.xaml declares its brushes as `Color="{DynamicResource BackgroundColor}"` —
   but a brush living inside a resource dictionary resolves that reference *once*, when the
@@ -476,19 +476,19 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
 | OggVorbisEncoder | BSD-3-Clause |
 
 MP3, Opus, Vorbis and FLAC are all free of patent-licensing obligations for distribution. FLAC is
-implemented directly in SIRS, so there is no third-party component for it.
+implemented directly in Deck, so there is no third-party component for it.
 
 ---
 
 ## Licence
 
-SIRS is free software under the **GNU General Public License, version 3 or later**. The full text is
+Deck is free software under the **GNU General Public License, version 3 or later**. The full text is
 in [LICENSE](LICENSE).
 
-Copyleft rather than a permissive licence, and deliberately so. Design rule #6 is that SIRS is free
+Copyleft rather than a permissive licence, and deliberately so. Design rule #6 is that Deck is free
 and unhobbled, with no feature gating ever — and the competitor this exists to answer paywalls
 multi-stream, SSL, AAC and fast reconnect. A permissive licence would let anyone take this work,
-close it, and sell exactly the tiers SIRS was built to make unnecessary. The GPL is the only part of
+close it, and sell exactly the tiers Deck was built to make unnecessary. The GPL is the only part of
 that promise that survives contact with someone who disagrees with it.
 
 All four dependencies above are compatible: MIT and BSD-3-Clause are permissive, and LGPL code that

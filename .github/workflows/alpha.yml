@@ -37,7 +37,7 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          $base = ([xml](Get-Content src/SIRS.App/SIRS.App.csproj)).Project.PropertyGroup.Version |
+          $base = ([xml](Get-Content src/Deck.App/Deck.App.csproj)).Project.PropertyGroup.Version |
                   Where-Object { $_ } | Select-Object -First 1
           $parts = "$base".Trim().Split('.')
           $version = "$($parts[0]).$($parts[1]).$($parts[2]).${{ github.run_number }}"
@@ -46,10 +46,10 @@ jobs:
           Write-Host "building $version"
 
       - name: Build
-        run: dotnet build SIRS.sln -c Release --nologo -p:Version=${{ steps.version.outputs.version }}
+        run: dotnet build Deck.sln -c Release --nologo -p:Version=${{ steps.version.outputs.version }}
 
       - name: Run the check suite
-        run: dotnet run --project tests/SIRS.EncoderCheck -c Release --nologo
+        run: dotnet run --project tests/Deck.EncoderCheck -c Release --nologo
 
       - name: Package installer and portable
         shell: pwsh
@@ -71,9 +71,9 @@ jobs:
 
           | | |
           |---|---|
-          | ``SIRS-*-setup.exe`` | Installer. Per-user, no administrator rights needed. Updates in place. |
-          | ``SIRS-*-portable-win-x64.zip`` | Unzip and run. Keeps its settings beside itself. |
-          | ``SIRS-*-update-win-x64.zip`` | What the built-in updater downloads. Not meant to be unzipped by hand. |
+          | ``Deck-*-setup.exe`` | Installer. Per-user, no administrator rights needed. Updates in place. |
+          | ``Deck-*-portable-win-x64.zip`` | Unzip and run. Keeps its settings beside itself. |
+          | ``Deck-*-update-win-x64.zip`` | What the built-in updater downloads. Not meant to be unzipped by hand. |
 
           Nothing needs .NET installed. Windows will warn that it does not recognise the program,
           because these builds are not code-signed.
@@ -95,14 +95,14 @@ jobs:
         run: |
           gh release create ${{ steps.version.outputs.tag }} `
             --prerelease `
-            --title "SIRS ${{ steps.version.outputs.version }} (alpha)" `
+            --title "Deck ${{ steps.version.outputs.version }} (alpha)" `
             --notes-file publish/NOTES.md `
             --target ${{ github.sha }} `
             (Get-Item publish/*.exe, publish/*.zip, publish/SHA256SUMS.txt | ForEach-Object { $_.FullName })
 
       - uses: actions/upload-artifact@v4
         with:
-          name: SIRS-${{ steps.version.outputs.version }}
+          name: Deck-${{ steps.version.outputs.version }}
           path: |
             publish/*.exe
             publish/*.zip

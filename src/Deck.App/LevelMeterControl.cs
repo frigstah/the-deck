@@ -1,0 +1,225 @@
+using System.Globalization;
+using System.Windows;
+using System.Windows.Automation.Peers;
+using System.Windows.Media;
+using Deck.Core.Audio;
+
+namespace Deck.App;
+
+/// <summary>Exposes the drawn meter to assistive technology as a read-only text value.</summary>
+internal sealed class LevelMeterAutomationPeer(LevelMeterControl owner) : FrameworkElementAutomationPeer(owner)
+{
+    protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Text;
+
+    protected override string GetClassNameCore() => "LevelMeter";
+
+    protected override string GetNameCore() => ((LevelMeterControl)Owner).AutomationDescription;
+
+    protected override bool IsControlElementCore() => true;
+}
+
+/// <summary>
+/// Stereo peak meter (B1). Coloured by zone rather than by the current advice, so the green "aim
+/// here" region is visible even while the level is somewhere else - which is what makes the meter
+/// teach rather than just report.
+/// <para>
+/// Drawn as discrete segments rather than a continuous bar. A solid bar reads as a progress
+/// indicator, which is the wrong idea entirely: a level is not a thing that fills up. Segments read
+/// as a meter because that is what every piece of broadcast equipment in the world uses, and the
+/// unlit segments keep the whole scale visible so the target zone can be seen from across a room.
+/// </para>
+/// </summary>
+public sealed class LevelMeterControl : FrameworkElement
+{
+    private const float FloorDb = -60f;
+
+    private static readonly Brush TickBrush = Frozen("#55808090");
+    private static readonly Typeface LabelTypeface = new("Segoe UI");
+
+    /// <summary>
+    /// Segment colours come from the theme rather than from constants here, so the meter follows the
+    /// Windows light/dark setting like everything else (I5). Looked up per render rather than
+    /// cached: the palette is rewritten at startup, and a brush cached in a static field would keep
+    /// whichever theme happened to be loaded first.
+    /// </summary>
+    private static Brush Themed(string key, string fallback) =>
+        System.Windows.Application.Current?.TryFindResource(key) as Brush ?? Frozen(fallback);
+
+    public static readonly DependencyProperty PeakDbLeftProperty = DependencyProperty.Register(
+        nameof(PeakDbLeft), typeof(double), typeof(LevelMeterControl),
+        new FrameworkPropertyMetadata(-90.0, FrameworkPropertyMetadataOptions.AffectsRender));
+
+    public static readonly DependencyProperty PeakDbRightProperty = DependencyProperty.Register(
+        nameof(PeakDbRight), typeof(double), typeof(LevelMeterControl),
+        new FrameworkPropertyMetadata(-90.0, FrameworkPropertyMetadataOptions.AffectsRender));
+
+    public static readonly DependencyProperty HoldDbProperty = DependencyProperty.Register(
+        nameof(HoldDb), typeof(double), typeof(LevelMeterControl),
+        new FrameworkPropertyMetadata(-90.0, FrameworkPropertyMetadataOptions.AffectsRender, OnHoldDbChanged));
+
+    private static void OnHoldDbChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        // Tell assistive technology the level moved, so it can announce on request.
+        if (d is LevelMeterControl meter)
+        {
+            UIElementAutomationPeer.FromElement(meter)?.RaiseAutomationEvent(AutomationEvents.PropertyChanged);
+        }
+    }
+
+    public static readonly DependencyProperty ShowScaleProperty = DependencyProperty.Register(
+        nameof(ShowScale), typeof(bool), typeof(LevelMeterControl),
+        new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsRender));
+
+    public double PeakDbLeft
+    {
+        get => (double)GetValue(PeakDbLeftProperty);
+        set => SetValue(PeakDbLeftProperty, value);
+    }
+
+    public double PeakDbRight
+    {
+        get => (double)GetValue(PeakDbRightProperty);
+        set => SetValue(PeakDbRightProperty, value);
+    }
+
+    /// <summary>
+    /// The loudest level over the last couple of seconds. Drawn as a hold marker so the bar and the
+    /// number beside it tell the same story - the marker is what the coaching verdict is based on.
+    /// </summary>
+    public double HoldDb
+    {
+        get => (double)GetValue(HoldDbProperty);
+        set => SetValue(HoldDbProperty, value);
+    }
+
+    public bool ShowScale
+    {
+        get => (bool)GetValue(ShowScaleProperty);
+        set => SetValue(ShowScaleProperty, value);
+    }
+
+    /// <summary>
+    /// A drawn meter is invisible to a screen reader, so the level is published as automation text
+    /// and kept current as it changes (I6). Blind broadcasters are a real and underserved group.
+    /// </summary>
+    protected override AutomationPeer OnCreateAutomationPeer() => new LevelMeterAutomationPeer(this);
+
+    internal string AutomationDescription =>
+        HoldDb <= AudioMath.MinDb
+            ? "No sound"
+            : $"Loudest {HoldDb:0} decibels";
+
+    protected override void OnRender(DrawingContext drawingContext)
+    {
+        var width = ActualWidth;
+        var height = ActualHeight;
+        if (width <= 0 || height <= 0) return;
+
+        var scaleHeight = ShowScale ? 14.0 : 0.0;
+        var barsHeight = Math.Max(0, height - scaleHeight);
+        var gap = 3.0;
+        var barHeight = Math.Max(4, (barsHeight - gap) / 2);
+
+        DrawBar(drawingContext, new Rect(0, 0, width, barHeight), PeakDbLeft);
+        DrawBar(drawingContext, new Rect(0, barHeight + gap, width, barHeight), PeakDbRight);
+
+        DrawHold(drawingContext, width, barsHeight);
+
+        if (ShowScale) DrawScale(drawingContext, width, barsHeight, height);
+    }
+
+    /// <summary>
+    /// Segment count scaled to the width available. The mixer's faders get an 8-pixel-tall meter a
+    /// fraction of the width of the main one, and forcing a fixed count on both would give one of
+    /// them segments too fine to see or too coarse to read.
+    /// </summary>
+    private static int SegmentCount(double width) =>
+        (int)Math.Clamp(Math.Round(width / 9.0), 10, 64);
+
+    private static void DrawBar(DrawingContext context, Rect area, double peakDb)
+    {
+        if (area.Width <= 0 || area.Height <= 0) return;
+
+        var count = SegmentCount(area.Width);
+        var slot = area.Width / count;
+        var gap = slot > 6 ? 2.0 : 1.0;
+        var segmentWidth = Math.Max(1.0, slot - gap);
+
+        var reached = AudioMath.DbToMeterScale((float)peakDb, FloorDb);
+
+        for (var i = 0; i < count; i++)
+        {
+            // The middle of the segment decides both its colour and whether it is lit, so a segment
+            // never lights up in a colour from the zone next door.
+            var position = (float)((i + 0.5) / count);
+            var lit = position <= reached;
+            var db = AudioMath.MeterScaleToDb(position, FloorDb);
+
+            context.DrawRectangle(
+                lit ? LitBrush(db) : UnlitBrush(db),
+                null,
+                new Rect(area.X + (i * slot), area.Y, segmentWidth, area.Height));
+        }
+    }
+
+    private static Brush LitBrush(float db) => db switch
+    {
+        >= -1f => Themed("MeterClipBrush", "#FFC9564C"),
+        >= -4f => Themed("MeterLoudBrush", "#FFD7A64A"),
+        >= -24f => Themed("MeterGoodBrush", "#FF3F9E76"),
+        _ => Themed("MeterQuietBrush", "#FF9AA5A2"),
+    };
+
+    private static Brush UnlitBrush(float db) => db switch
+    {
+        >= -1f => Themed("MeterClipOffBrush", "#FFF0DEDC"),
+        >= -4f => Themed("MeterLoudOffBrush", "#FFF0E4CE"),
+        >= -24f => Themed("MeterGoodOffBrush", "#FFD6E8DF"),
+        _ => Themed("MeterQuietOffBrush", "#FFE8E8E4"),
+    };
+
+    private void DrawHold(DrawingContext context, double width, double barsHeight)
+    {
+        var fraction = AudioMath.DbToMeterScale((float)HoldDb, FloorDb);
+        if (fraction <= 0) return;
+
+        var x = Math.Round(fraction * width) + 0.5;
+
+        // Not frozen. The brush now comes from the theme, and a brush whose colour is a live
+        // DynamicResource reference cannot be frozen - Freeze() throws, every render, the moment
+        // the level rises above the floor and this line is drawn at all.
+        var pen = new Pen(LitBrush((float)HoldDb), 2);
+        context.DrawLine(pen, new Point(x, 0), new Point(x, barsHeight));
+    }
+
+    private void DrawScale(DrawingContext context, double width, double top, double height)
+    {
+        var pen = new Pen(TickBrush, 1);
+
+        foreach (var db in new[] { -60f, -40f, -24f, -12f, -6f, 0f })
+        {
+            var x = Math.Round(AudioMath.DbToMeterScale(db, FloorDb) * width) + 0.5;
+            context.DrawLine(pen, new Point(x, top), new Point(x, top + 3));
+
+            var text = new FormattedText(
+                db == 0 ? "0" : ((int)db).ToString(CultureInfo.InvariantCulture),
+                CultureInfo.InvariantCulture,
+                // Qualified: FrameworkElement has an instance property of the same name.
+                System.Windows.FlowDirection.LeftToRight,
+                LabelTypeface,
+                9,
+                TickBrush,
+                VisualTreeHelper.GetDpi(this).PixelsPerDip);
+
+            var textX = Math.Clamp(x - (text.Width / 2), 0, Math.Max(0, width - text.Width));
+            context.DrawText(text, new Point(textX, top + 3));
+        }
+    }
+
+    private static Brush Frozen(string hex)
+    {
+        var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)!);
+        brush.Freeze();
+        return brush;
+    }
+}
