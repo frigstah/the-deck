@@ -44,6 +44,23 @@ internal static class ParserChecks
             p => Expect(p, host: "stream.myhost.net", port: 8020, mount: "/radio",
                 username: "source", password: "abc123xyz"));
 
+        // The same block with Windows line endings, spelled out rather than left to whatever the
+        // repository happened to check out. This is not hypothetical tidiness: the multiline
+        // pattern used to fail outright on CRLF, so a block copied out of a control panel on
+        // Windows - the exact input this feature exists for - parsed as nothing at all. It passed
+        // locally and failed in CI purely because the two checkouts had different line endings.
+        failures += Case("the same block with Windows line endings",
+            "Server: stream.myhost.net\r\nPort: 8020\r\nMount point: /radio\r\n" +
+            "Username: source\r\nPassword: abc123xyz\r\n",
+            p => Expect(p, host: "stream.myhost.net", port: 8020, mount: "/radio",
+                username: "source", password: "abc123xyz"));
+
+        // And with old Mac endings, since normalising handles all three and a lone \r is the one
+        // that would otherwise leave every field glued into a single line.
+        failures += Case("a block with bare carriage returns",
+            "Server: stream.myhost.net\rPort: 8020\rMount point: /radio\r",
+            p => Expect(p, host: "stream.myhost.net", port: 8020, mount: "/radio"));
+
         failures += Case("SHOUTcast block with a stream id",
             """
             Server IP: 198.51.100.20

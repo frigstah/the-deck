@@ -146,8 +146,10 @@ These decided every argument during the build. They are worth keeping.
   by an independent demuxer whose CRC is checked against the catalogued Ogg test vector
   (`0x89A1897F`), confirming page framing, BOS/EOS flags, sequence numbers, `OpusHead`/`OpusTags`,
   and a decode returning exactly 3 s of 440 Hz audio at the input amplitude.
-- **Paste-a-URL parser.** Ten cases covering listen URLs, embedded credentials, bare host:port,
-  control-panel emails, SHOUTcast stream ids, implied TLS, and inputs that must be rejected.
+- **Paste-a-URL parser.** Twelve cases covering listen URLs, embedded credentials, bare host:port,
+  control-panel emails, SHOUTcast stream ids, implied TLS, and inputs that must be rejected —
+  including the same block spelled out with Windows and with bare-carriage-return line endings,
+  after CI caught the parser failing on CRLF while passing locally.
 - **Loopback capture.** A tone played through a render device is captured back off that same device
   and arrives at the expected level. Run it with `-- --loopback`; it is opt-in because it needs
   audio hardware and briefly makes real sound.
