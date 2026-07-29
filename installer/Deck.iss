@@ -5,10 +5,10 @@
 ; and - the reason that matters here - the built-in updater can replace the files without asking
 ; for administrator rights. An updater that needs elevation is one that gets cancelled.
 ;
-; Build with:  ISCC /DAppVersion=1.3.0.42 /DSourceDir=..\publish\app installer\Deck.iss
+; Build with:  ISCC /DAppVersion=1.0.0.42 /DSourceDir=..\publish\app installer\Deck.iss
 
 #ifndef AppVersion
-  #define AppVersion "1.3.0.0"
+  #define AppVersion "1.0.0.0"
 #endif
 
 #ifndef SourceDir

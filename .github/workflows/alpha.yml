@@ -1,6 +1,6 @@
 # Builds an alpha pre-release from every push to main.
 #
-# The version is 1.3.0.<run number>: a four-part number so the built-in updater can compare it
+# The version is 1.0.0.<run number>: a four-part number so the built-in updater can compare it
 # against the running build with System.Version and get an unambiguous answer. The run number only
 # ever goes up, so a later push is always a later version.
 #
