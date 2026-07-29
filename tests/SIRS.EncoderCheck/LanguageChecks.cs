@@ -147,17 +147,22 @@ internal static class LanguageChecks
                     "an ordinary https page was refused");
             });
 
-            failures += Check("a feed that does not answer is reported, not swallowed", () =>
+            failures += Check("the release source cannot be pointed somewhere else", () =>
             {
-                // The default feed points at an .invalid host, which cannot resolve by definition -
-                // so this exercises the failure path without reaching anything real.
-                var checker = new UpdateChecker { FeedUrl = UpdateChecker.DefaultFeedUrl };
-                var result = checker.CheckAsync().GetAwaiter().GetResult();
+                // Once SIRS can install what it downloads, the address it downloads from stops
+                // being a preference. There is deliberately no property to set here, so this
+                // checks the type rather than the behaviour - if someone adds one, this fails.
+                var settable = typeof(UpdateChecker)
+                    .GetProperties()
+                    .Where(p => p.CanWrite && p.PropertyType == typeof(string))
+                    .Select(p => p.Name)
+                    .ToList();
 
-                Expect(!result.Available, "an unreachable feed reported an update");
-                Expect(result.Summary.Contains("could not check", StringComparison.OrdinalIgnoreCase),
-                    $"the failure was reported as \"{result.Summary}\"");
-                Expect(checker.LastChecked is not null, "the attempt was not recorded");
+                Expect(settable.Count == 0,
+                    $"UpdateChecker now has a writable string property: {string.Join(", ", settable)}");
+
+                Expect(UpdateChecker.Repository == "frigstah/SIRS",
+                    $"the repository is pinned to \"{UpdateChecker.Repository}\"");
             });
 
             failures += Check("the running version is readable", () =>

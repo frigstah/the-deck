@@ -44,6 +44,17 @@ second window. The remote control has to be switched on first, under "SIRS itsel
 SIRS.exe --status
 ```
 
+To build an installer and a portable zip (needs [Inno Setup](https://jrsoftware.org/isdl.php) for
+the installer; the zip is built either way):
+
+```bash
+pwsh ./build/package.ps1
+```
+
+That produces three things in `publish/`: a per-user installer, a portable zip carrying the
+`sirs-portable.txt` marker, and the update package the built-in updater downloads. `SHA256SUMS.txt`
+holds the digests, which the updater checks rather than trusts.
+
 ---
 
 ## Layout
@@ -125,7 +136,8 @@ These decided every argument during the build. They are worth keeping.
 | Session log | Connects, drops, device trouble and track changes, shown in-app and appended to a daily file |
 | Listeners | Live count from Icecast, SHOUTcast v1 and v2 where the server reports it, summed across destinations |
 | Language | English built in, community translations as JSON files with coverage shown and English as the fallback |
-| Updates | Opt-in check for a newer release. It tells you; it never downloads or installs anything |
+| Updates | Opt-in check against the GitHub releases, and a one-click install: SIRS downloads the new build, checks it against the digest published beside it, closes, replaces itself and starts again. Refused while on air |
+| Installing | A per-user installer that needs no administrator rights, and a portable zip that keeps its settings beside the executable. Every push to `main` publishes both as an alpha pre-release |
 | UI | Single window laid out as a navigation rail — one subject in the pane at a time, and an on-air strip along the bottom that is present on every pane. First-run wizard, High-DPI, follows Windows light/dark |
 
 ### Verified
@@ -210,6 +222,17 @@ These decided every argument during the build. They are worth keeping.
   took effect, and a command SIRS could not honour returned a non-zero exit code. Killing SIRS
   outright leaves the handshake file behind, and the next command correctly reports "not running"
   rather than hanging on a dead port.
+- **The installer and the updater, for real.** The installer was built, installed silently, and the
+  result checked: per-user location, correct version stamp, uninstall entry present, no portable
+  marker. Then a genuinely newer build was staged and handed the running copy's process id, and the
+  install went from 1.3.0.9001 to 1.3.0.9002 with the new version left running — the actual
+  download-close-replace-restart sequence, minus the download. Repeated against a portable layout,
+  where the marker and the `data` folder both survived untouched. Uninstalling left `%APPDATA%\SIRS`
+  alone, as intended.
+- **Every way the updater says no.** Nine checks covering the host allow-list (lookalike domains,
+  plain http, `file://`, an unlisted GitHub host), a release with no checksum, a release pointing
+  off GitHub, a payload with no `SIRS.exe`, and the command line that triggers a file copy over an
+  install directory — which must never be reachable by accident.
 - **Both themes, on real hardware.** The window was captured from the running app in the Windows
   light and dark settings, across several panes, with a live signal on the meter. This is how the
   meter's peak-hold crash was found: it only fired once the level rose above the floor, so it looked
@@ -272,8 +295,14 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   listener count. Everything else, including all the XAML labels, is still literal English. A
   translator today would get a partly translated app, which is why coverage is shown rather than
   claimed.
-- **The update feed does not exist.** `sirs.invalid` is a placeholder that cannot resolve by
-  design. The failure path is verified; the success path has never seen a real feed.
+- **The update check cannot see anything while this repository is private.** GitHub answers 404 to
+  an unauthenticated caller, exactly as it would for a repository that does not exist, so SIRS
+  reports that it cannot see the release list and stops there. The whole feature — checking,
+  downloading, verifying — only begins working when the repository is public. Nothing has yet been
+  downloaded from a real release; the swap was tested with a locally staged build instead.
+- **Nothing is code-signed.** Windows SmartScreen will warn about the installer and the executable,
+  and there is no signature for anyone to verify an update against. This is the single biggest gap
+  in the update story and no amount of checksumming closes it.
 - **Automatic on-air has not run a real unattended show.** The decision logic is well covered, but
   nothing here has left it running overnight against a live server.
 - **A broadcast from an ASIO input, end to end.** The capture layer is proven against real hardware,
@@ -314,10 +343,24 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
 - **A live broadcast can be Live while a destination is failing.** A backup exists precisely so one
   server going down does not take the show off air; reporting "Reconnecting" over a perfectly good
   main stream would be a lie. What went wrong is named in the status line instead.
-- **The update check never downloads or installs.** An encoder that can replace its own binary is
-  one that can be made to run someone else's code by whoever controls that URL, and that is not a
-  key worth handing over on a machine that goes on air. SIRS reports the version and opens the
-  release page if asked.
+- **The updater installs, but the repository is pinned and the download is verified.** SIRS spent
+  four phases deliberately *not* installing its own updates, on the grounds that an encoder able to
+  replace its own binary can be made to run someone else's code by whoever controls the URL. That
+  changed on request, so the argument had to be answered rather than dropped: there is no setting
+  for where updates come from, only `github.com` over https is fetched, and a download whose
+  SHA-256 does not match the digest published beside it is deleted unread. What that does **not**
+  do is protect against a compromised GitHub account — the file and its digest come from the same
+  place. Closing that needs a signing key that never touches CI, and these builds are not signed at
+  all. Anyone who finds that unacceptable can leave the check off and install by hand, which still
+  works and is still what the button did before.
+- **Updates are refused while on air.** Taking a station off the air to install an update is not
+  something SIRS should decide to do, and an update that waits ten minutes costs nothing.
+- **The installer is per-user, not Program Files.** That is what lets the updater replace the files
+  without a UAC prompt. An updater that needs elevation is one that gets cancelled.
+- **An update never carries the portable marker across.** That one file decides whether settings
+  live beside the executable or in `%APPDATA%`, so copying it — or copying its absence — would
+  silently move somebody's servers and settings somewhere they never put them. The install keeps
+  whichever it already had.
 - **The now-playing endpoint is loopback-only unless you say otherwise, and opening it up requires a
   password.** It is a listening socket on someone's machine; it should be as small a target as it
   can be, and off entirely until asked for.

@@ -5,6 +5,7 @@ using System.Windows.Threading;
 using System.Windows.Media;
 using Microsoft.Win32;
 using Sirs.Core.Control;
+using Sirs.Core.Updates;
 
 namespace Sirs.App;
 
@@ -21,6 +22,14 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // First of all: this copy may have been started by the previous one purely to replace it.
+        // Nothing else must happen on that path - no window, no audio device, no settings written.
+        if (UpdateApplier.Parse(e.Args) is { } update)
+        {
+            ApplyUpdateAndExit(update);
+            return;
+        }
+
         // Before anything is created. A command line is a message for the copy already running, so
         // this one sends it and leaves without ever touching an audio device or opening a window.
         if (CommandLine.Parse(e.Args) is { } request)
@@ -31,6 +40,9 @@ public partial class App : Application
 
         ApplySystemTheme();
 
+        // Whatever the last update left in the staging folder — several hundred megabytes of it.
+        UpdateInstaller.Cleanup();
+
         DispatcherUnhandledException += OnUnhandledException;
 
         // Explicit rather than StartupUri, so the command-line path above can exit before a window
@@ -38,6 +50,25 @@ public partial class App : Application
         var window = new MainWindow();
         MainWindow = window;
         window.Show();
+    }
+
+    /// <summary>
+    /// Replaces the previous install with this one and starts it, then quits (I9).
+    /// <para>
+    /// Only reports failure. On success the copy in the install folder is already starting, and two
+    /// SIRS windows appearing at once would be worse than none.
+    /// </para>
+    /// </summary>
+    private void ApplyUpdateAndExit(UpdateApplier.Request request)
+    {
+        var problem = UpdateApplier.Apply(request);
+
+        if (problem is not null)
+        {
+            MessageBox.Show(problem, "SIRS — update", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        Shutdown(problem is null ? 0 : 1);
     }
 
     private bool _reportingCrash;

@@ -43,6 +43,10 @@ public partial class MainWindow : Window
             if (args.PropertyName == nameof(MainViewModel.StreamState)) _tray?.Update();
         };
 
+        // An update has been downloaded, checked and staged, and the replacement is already waiting
+        // for this process to exit. Close normally so settings and servers are saved on the way out.
+        _viewModel.UpdateRequested += (_, _) => Close();
+
         // First run: walk the user through input, sound check and a server before they see the
         // full window (I2).
         if (_viewModel.NeedsSetup)

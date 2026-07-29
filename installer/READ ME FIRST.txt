@@ -1,0 +1,51 @@
+SIRS - Simple Internet Radio Streamer
+
+A Windows live audio encoder for Icecast and SHOUTcast. Free and unrestricted:
+no paid tier, no bitrate cap, no locked features.
+
+
+THIS IS AN ALPHA BUILD
+----------------------
+Built automatically from the latest commit. It has not been through a release
+check of any kind. Expect rough edges, and please do not use it for a show that
+matters until you have run it once yourself and heard the result.
+
+
+RUNNING IT
+----------
+Run SIRS.exe. There is no .NET download to do first - everything needed is in
+this folder, which is why it is so large.
+
+Windows may warn that it does not recognise the program, because these builds
+are not code-signed. Click "More info" then "Run anyway" if you are happy to.
+
+Settings live in:
+    %APPDATA%\SIRS
+unless the file sirs-portable.txt sits next to SIRS.exe, in which case they go
+in a "data" folder here instead. The portable download has that file already;
+the installer does not.
+
+
+THE FIRST THREE MINUTES
+-----------------------
+This is the part worth your attention, because it is the whole point of SIRS:
+
+  1. Sound      - pick your input, watch the level bar say "Sounds good",
+                  press Sound Check to hear yourself as listeners will.
+  2. Servers    - paste the stream URL your host gave you. SIRS fills in the
+                  rest. Press Test.
+  3. Go live    - bottom right, on every screen.
+
+If any of that took longer than three minutes, or you had to guess at
+something, that is a bug worth reporting.
+
+
+LICENCE
+-------
+GPL-3.0-or-later. Full text in LICENSE. Source, and an honest list of what is
+and is not verified, at:
+
+    https://github.com/frigstah/SIRS
+
+Uses NAudio (MIT), LAME via NAudio.Lame (LGPL), Concentus (BSD-3-Clause) and
+OggVorbisEncoder (BSD-3-Clause).
