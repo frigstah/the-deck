@@ -138,7 +138,7 @@ These decided every argument during the build. They are worth keeping.
 | Language | English built in, community translations as JSON files with coverage shown and English as the fallback |
 | Updates | Opt-in check against the GitHub releases, and a one-click install: SIRS downloads the new build, checks it against the digest published beside it, closes, replaces itself and starts again. Refused while on air |
 | Installing | A per-user installer that needs no administrator rights, and a portable zip that keeps its settings beside the executable. Every push to `main` publishes both as an alpha pre-release |
-| UI | Single window laid out as a navigation rail — one subject in the pane at a time, and an on-air strip along the bottom that is present on every pane. First-run wizard, High-DPI, follows Windows light/dark |
+| UI | Single window laid out as a navigation rail — one subject in the pane at a time, and an on-air strip along the bottom that is present on every pane. First-run wizard, High-DPI, follows Windows light/dark or stays on the one you pick |
 
 ### Verified
 
@@ -247,6 +247,12 @@ These decided every argument during the build. They are worth keeping.
   summary appeared twice on screen at once on the Servers pane.
 - **Screen-reader output.** The drawn meters report live values through UI Automation — confirmed
   against the running app, which read back "Loudest -27 decibels".
+- **Every control on a pane is reachable by a screen reader.** Walking the automation tree of the
+  running app found that it was not: the rail reported seven tabs and *nothing inside any of them*,
+  so every picker, slider, checkbox and button on all seven panes was invisible to assistive
+  technology. `TabControl` publishes the selected pane's contents only through the content host it
+  finds by the name `PART_SelectedContentHost`, and the rail template had left it unnamed. Naming it
+  took the window from five reachable buttons to every one of them.
 - **The app itself.** Runs, captures live audio from a real interface, the level coaching responds
   correctly, and selecting a loopback source switches the on-screen guidance to match.
 - **A live broadcast.** SIRS has connected to a real Icecast server and streamed MP3 at 256 kbps,
@@ -326,8 +332,9 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   system title bar shows the layout flyout; reproducing that means answering hit-test messages with
   `HTMAXBUTTON` and driving the hover and click states by hand. Dragging to a screen edge and the
   <kbd>Win</kbd>+arrow shortcuts are unaffected — only the hover flyout is missing.
-- **The dialogs still use the system title bar.** The wizard, the server editor and the log window
-  were not part of the rail design and have not been changed, so they do not match the main window.
+- **Message boxes are still the system's.** The "you are still on air" confirmation and the update
+  and crash notices use `MessageBox`, which cannot be themed. They will look like Windows, not like
+  SIRS.
 
 ---
 
@@ -406,6 +413,24 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   so the rail appears to run to the top of the window with the wordmark at its head, and beyond it
   the window's own background, so the rest of the caption simply *is* the pane. All that is left of
   a title bar is three buttons.
+- **The dialogs draw their own title bar too.** One control, placed at the top of the wizard, the
+  server editor and the log window, which works out from the window it is in which buttons make
+  sense — the same rules the system caption follows — and applies the maximised-bounds correction so
+  a window only has to place it to get the whole treatment.
+- **Following Windows is a default, not a rule.** Appearance on the SIRS pane offers Follow Windows,
+  Light and Dark. Following the system is right for most people most of the time, which is why it is
+  the default — but a studio PC is often left on the system light theme by whoever set it up, and
+  the person sitting at it at midnight is not that person. Choosing outright makes SIRS ignore the
+  system entirely, including while it is running.
+- **Switching the Windows theme repaints SIRS immediately.** It used to need a restart, and the
+  reason is worth recording because it looked like it worked. The palette is applied by overwriting
+  colour keys, and Theme.xaml declares its brushes as `Color="{DynamicResource BackgroundColor}"` —
+  but a brush living inside a resource dictionary resolves that reference *once*, when the
+  dictionary realises it. Overwriting the colour afterwards leaves every realised brush on the old
+  value. It only ever appeared to work because at startup nothing had realised the brushes yet. The
+  palette is now applied by loading Theme.xaml afresh, writing the dark colours into that copy while
+  nothing is using it, and swapping it in — which also means the light theme needs no code of its
+  own and the two cannot drift apart.
 - **A maximised window needs its edges giving back.** Windows positions a maximised window so its
   resize border falls outside the screen — invisible on an ordinary window, whose outer pixels are
   frame nobody draws in. With a custom caption those pixels are content, so the right of the close

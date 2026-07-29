@@ -62,9 +62,15 @@ internal sealed class MaximiseBounds
         _content = content;
     }
 
-    /// <summary>Call once the window has a handle - from OnSourceInitialized, not the constructor.</summary>
-    public static void Keep(Window window, FrameworkElement content)
+    /// <summary>
+    /// Call once the window has a handle and its content is built. The window's own content is what
+    /// gets the margin, so a window only has to say that it wants this - it does not have to name a
+    /// particular element, and cannot name the wrong one.
+    /// </summary>
+    public static void Keep(Window window)
     {
+        if (window.Content is not FrameworkElement content) return;
+
         var fit = new MaximiseBounds(window, content);
         window.StateChanged += (_, _) => fit.Apply();
         fit.Apply();

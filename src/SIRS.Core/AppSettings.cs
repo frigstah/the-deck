@@ -9,6 +9,17 @@ using Sirs.Core.Servers;
 
 namespace Sirs.Core;
 
+/// <summary>
+/// Which palette SIRS draws with (I5). Stored by name, so the settings file stays readable and a
+/// value that is no longer recognised falls back to following Windows rather than to nothing.
+/// </summary>
+public enum AppTheme
+{
+    System,
+    Light,
+    Dark,
+}
+
 /// <summary>Everything SIRS remembers between runs that is not a server profile.</summary>
 public sealed class AppSettings
 {
@@ -155,6 +166,13 @@ public sealed class AppSettings
 
     /// <summary>Language code, or "en" (I8). Unknown codes fall back to English.</summary>
     public string LanguageCode { get; set; } = "en";
+
+    /// <summary>
+    /// Which palette to draw with (I5). Following Windows is the default and is right most of the
+    /// time - but it is a default, not a rule. A studio PC is often left on the system light theme
+    /// by whoever set it up, while the person sitting at it at midnight wants a dark window.
+    /// </summary>
+    public AppTheme Theme { get; set; } = AppTheme.System;
 
     /// <summary>
     /// Whether SIRS looks for a newer release (I9). Off by default: a check tells whoever answers

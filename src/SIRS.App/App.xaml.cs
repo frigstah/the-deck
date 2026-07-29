@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Threading;
 using System.Windows.Media;
 using Microsoft.Win32;
+using Sirs.Core;
 using Sirs.Core.Control;
 using Sirs.Core.Updates;
 
@@ -38,7 +39,19 @@ public partial class App : Application
             return;
         }
 
+        // The stored choice has to be known before the first window is built, so the settings are
+        // read here rather than waiting for the view model to load them. Reading the file twice
+        // costs nothing; showing the wrong palette for a moment and then correcting it is a flash
+        // the user would see.
+        _preference = new SettingsStore().Load().Theme;
         ApplySystemTheme();
+
+        // Windows can be switched between light and dark while SIRS is running, and a broadcaster
+        // who does it at dusk should not have to restart the encoder to see it. The palette is all
+        // DynamicResource, so re-applying it repaints the windows that are already open. Ignored
+        // while the user has chosen light or dark outright.
+        SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
+        Exit += (_, _) => SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
 
         // Whatever the last update left in the staging folder — several hundred megabytes of it.
         UpdateInstaller.Cleanup();
@@ -179,9 +192,37 @@ public partial class App : Application
         Shutdown(reply.Ok ? 0 : 1);
     }
 
+    /// <summary>Where Theme.xaml came from, taken from the dictionary App.xaml already merged.</summary>
+    private Uri? _paletteSource;
+
+    private bool? _appliedDark;
+
+    private static AppTheme _preference = AppTheme.System;
+
     /// <summary>
-    /// Follows the Windows light/dark setting (I5). The palette keys are declared in Theme.xaml and
-    /// referenced with DynamicResource, so overwriting them here re-styles everything already built.
+    /// Changes the palette and keeps it changed. Called from the SIRS pane; the caller is
+    /// responsible for storing the choice, since this class has no business writing settings.
+    /// </summary>
+    public static void UseTheme(AppTheme theme)
+    {
+        _preference = theme;
+        (Current as App)?.ApplySystemTheme();
+    }
+
+    /// <summary>
+    /// Follows the Windows light/dark setting (I5), at any time rather than only at startup.
+    /// <para>
+    /// The palette is applied by loading Theme.xaml afresh, writing the dark colours into that copy
+    /// while nothing is using it yet, and swapping it in for the one already merged. The obvious
+    /// alternative - writing colours into <c>Application.Resources</c> so the DynamicResource
+    /// references pick them up - does not work, and the way it fails is worth recording. Theme.xaml
+    /// declares its brushes as <c>SolidColorBrush Color="{DynamicResource BackgroundColor}"</c>, and
+    /// a brush living inside a resource dictionary resolves that reference once, when the dictionary
+    /// realises it. Overwriting the colour afterwards leaves every already-realised brush pointing
+    /// at the old value. It appeared to work for years only because at startup nothing had realised
+    /// the brushes yet, so they were built against whatever had just been written - which is exactly
+    /// why the theme used to need a restart to change.
+    /// </para>
     /// <para>
     /// Designed rather than inverted. A naive inversion of the light palette gives a muddy accent
     /// and unreadable soft fills: the petrol teal has to come up in lightness to hold against a dark
@@ -192,8 +233,33 @@ public partial class App : Application
     /// </summary>
     private void ApplySystemTheme()
     {
-        if (!IsSystemDark()) return;
+        var dark = _preference switch
+        {
+            AppTheme.Light => false,
+            AppTheme.Dark => true,
+            _ => IsSystemDark(),
+        };
 
+        // Windows raises its preference-changed event for a great many things that are not the
+        // theme, and rebuilding the palette on each of them would be wasteful and visible. This also
+        // makes the system's changes free to ignore while the user has chosen a palette outright.
+        if (_appliedDark == dark) return;
+
+        _paletteSource ??= Resources.MergedDictionaries.FirstOrDefault()?.Source;
+        if (_paletteSource is null) return;
+
+        _appliedDark = dark;
+
+        // A fresh copy is the light palette by definition, so light needs no code of its own and the
+        // two themes cannot drift apart.
+        var palette = new ResourceDictionary { Source = _paletteSource };
+        if (dark) ApplyDarkPalette(palette);
+
+        Resources.MergedDictionaries[0] = palette;
+    }
+
+    private static void ApplyDarkPalette(ResourceDictionary palette)
+    {
         Set("BackgroundColor", "#FF15181B");
         Set("SurfaceColor", "#FF1C2024");
         Set("BorderColor", "#FF2C3238");
@@ -233,10 +299,19 @@ public partial class App : Application
         Set("MeterGoodOffColor", "#FF1E332B");
         Set("MeterLoudOffColor", "#FF332C1C");
         Set("MeterClipOffColor", "#FF351F1D");
+
+        void Set(string key, string hex) =>
+            palette[key] = (Color)ColorConverter.ConvertFromString(hex)!;
     }
 
-    private void Set(string key, string hex) =>
-        Resources[key] = (Color)ColorConverter.ConvertFromString(hex)!;
+    /// <summary>
+    /// Raised on a background thread, and for every kind of preference rather than just this one -
+    /// so it hops to the UI thread and lets <see cref="ApplySystemTheme"/> decide whether anything
+    /// actually changed. Which category carries a theme change has moved between Windows versions;
+    /// re-reading the setting is cheap and does not have to be kept up to date with that.
+    /// </summary>
+    private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e) =>
+        Dispatcher.BeginInvoke(ApplySystemTheme);
 
     private static bool IsSystemDark()
     {

@@ -1906,6 +1906,42 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     public string LanguageHint =>
         $"Translations are JSON files in {Strings.Directory}. Anything a translation has not covered stays in English.";
 
+    // ---------------------------------------------------------------- appearance (I5)
+
+    /// <summary>
+    /// The palettes offered, paired with the setting each one stores. Following Windows is first
+    /// because it is the default and the right answer for most people; the other two are for the
+    /// ones it is wrong for, which is why they exist at all.
+    /// </summary>
+    private static readonly (string Label, AppTheme Theme)[] Themes =
+    [
+        ("Follow Windows", AppTheme.System),
+        ("Light", AppTheme.Light),
+        ("Dark", AppTheme.Dark),
+    ];
+
+    public IReadOnlyList<string> ThemeOptions => Themes.Select(t => t.Label).ToList();
+
+    public string SelectedTheme
+    {
+        get => Themes.First(t => t.Theme == _settings.Theme).Label;
+        set
+        {
+            var match = Themes.FirstOrDefault(t => t.Label == value);
+            if (match.Label is null || match.Theme == _settings.Theme) return;
+
+            _settings.Theme = match.Theme;
+            Persist();
+            App.UseTheme(match.Theme);
+
+            RaiseAll(nameof(SelectedTheme), nameof(ThemeHint));
+        }
+    }
+
+    public string ThemeHint => _settings.Theme == AppTheme.System
+        ? "SIRS changes with the Windows light and dark setting, as soon as you change it."
+        : "SIRS stays on this palette whatever Windows is set to.";
+
     /// <summary>Writes a starting file for someone who wants to translate SIRS.</summary>
     public string ExportLanguageTemplate(string code, string name) => Strings.ExportTemplate(code, name);
 
