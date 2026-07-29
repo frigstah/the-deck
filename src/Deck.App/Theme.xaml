@@ -595,10 +595,20 @@
                                     Margin="2,0,0,0"
                                     Background="{DynamicResource MutedTextBrush}" />
                         </Border>
-                        <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center"
+                        <ContentPresenter x:Name="Caption" Margin="10,0,0,0" VerticalAlignment="Center"
                                           RecognizesAccessKey="True" />
                     </StackPanel>
                     <ControlTemplate.Triggers>
+                        <!--
+                            In a setting row the label lives in the row, so the switch carries no
+                            caption of its own - and the presenter's 10px gap then held empty space
+                            to the right of the track. Every switch sat ten pixels short of the right
+                            edge that every picker and text box lined up on. Collapsed when there is
+                            nothing in it, so the two align.
+                        -->
+                        <Trigger Property="Content" Value="{x:Null}">
+                            <Setter TargetName="Caption" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentBrush}" />
                             <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
