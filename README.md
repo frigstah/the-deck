@@ -1,0 +1,361 @@
+# SIRS — Simple Internet Radio Streamer
+
+A Windows live audio encoder for Icecast and SHOUTcast. Everything a small station needs, nothing
+it doesn't, and it explains itself.
+
+Free and unrestricted: no paid tier, no bitrate cap, no locked features. [GPL-3.0](LICENSE).
+
+> **Beta.** SIRS has streamed live to a real Icecast server and its encoders are verified in
+> detail, but it has never been run by anyone other than its author. Expect rough edges, and read
+> [Not yet verified](#not-yet-verified) before trusting it with a show that matters.
+
+See [SIRS-Feature-Spec.md](SIRS-Feature-Spec.md) for the full feature set, priorities and roadmap.
+
+---
+
+## Build and run
+
+Requires the .NET 8 SDK.
+
+Commands below are relative to this folder (the one holding `SIRS.sln`). If your terminal opens a
+level up, prefix the paths with `SIRS/` or `cd SIRS` first.
+
+```bash
+dotnet build SIRS.sln
+```
+
+```bash
+dotnet run --project src/SIRS.App/SIRS.App.csproj
+```
+
+Verification harness — encodes a known tone and checks every codec's output is real, measures the
+loudness meter against the published EBU compliance cases, checks the spectrum against a brute-force
+DFT, drives both local endpoints over real sockets, opens every ASIO and MIDI device on the machine,
+and runs the parser and recording checks:
+
+```bash
+dotnet run --project tests/SIRS.EncoderCheck/SIRS.EncoderCheck.csproj
+```
+
+SIRS also answers a command line, which it sends to the copy already running rather than opening a
+second window. The remote control has to be switched on first, under "SIRS itself":
+
+```bash
+SIRS.exe --status
+```
+
+---
+
+## Layout
+
+```
+src/SIRS.Core/          No UI. Everything below is usable headless.
+  Audio/                WASAPI and ASIO capture, metering + level coaching, channel selection,
+                        resampling, format conversion, monitoring, sound check, automatic on-air
+  Audio/Dsp/            Voice Enhance, AGC, 3-band EQ, multiband compressor, safety limiter,
+                        BS.1770 loudness meter, spectrum analyser, stereo phase meter
+  Codecs/               MP3 (LAME), Ogg Opus (Concentus), Ogg Vorbis, Ogg FLAC, Ogg muxer, presets
+  Control/              Remote control endpoint, command-line parsing, MIDI mapping and input
+  Net/                  The small HTTP server both local endpoints are built on
+  Servers/              Server profiles, DPAPI-encrypted passwords, paste-a-URL parser, type probe
+  Streaming/            Icecast and SHOUTcast source clients, buffering, reconnect state machine,
+                        multi-destination broadcast set
+  Diagnostics/          Staged connection tester with plain-language errors, session log
+  Metadata/             Manual, text-file, Windows media session and local HTTP endpoint sources
+  Localisation/         String catalogue, English reference, community translation packs
+  Recording/            Recorder with filename templates, encoded, lossless or WAV
+  Updates/              Opt-in release check. Never downloads or installs anything.
+  BroadcastEngine.cs    Ties it together; owns the single audio callback
+
+src/SIRS.App/           WPF single-window UI, server editor, first-run wizard, tray, hotkeys
+tests/SIRS.EncoderCheck/ Encoder, DSP, parser, recording, endpoint, MIDI, ASIO and translation checks
+```
+
+Config lives in `%APPDATA%\SIRS`. Dropping a file named `sirs-portable.txt` next to the executable
+switches to portable mode, with config in a `data` folder alongside it. Translations go in
+`%APPDATA%\SIRS\languages`.
+
+---
+
+## Design rules
+
+These decided every argument during the build. They are worth keeping.
+
+1. **One window.** Everything else is one click deep, at most.
+2. **Plain language over jargon.** "Stream address", not "mount point".
+3. **Every failure explains itself.** Never a raw socket error — `HTTP 401` becomes
+   *"The server rejected the username or password for 'My Station'."*
+4. **Test before you trust.** Inputs and destinations both have a test that answers in seconds.
+5. **Safe defaults, visible escape hatch.** 128 kbps MP3 works everywhere; Advanced holds the rest.
+6. **Free and unhobbled.** No feature gating, ever.
+
+---
+
+## What is built (Phases 1–4 / P0–P3)
+
+| Area | Done |
+|---|---|
+| Audio in | WASAPI capture, input gain, anti-aliased resampling |
+| Input sources | Microphones and line inputs, plus WASAPI loopback — broadcast the sound this PC is playing, from any app. ASIO interfaces appear too, where a driver is installed |
+| Input channels | Pick which inputs on a multi-channel interface feed the stream, or one side of a stereo input |
+| Mixing | Two sources with independent faders, mutes and meters — music under a live microphone |
+| Hot-plug | An input that drops out is taken back automatically the moment it returns |
+| Level coaching | Stereo peak meter with zone colouring, peak-hold marker, traffic-light verdict |
+| Loudness | BS.1770 / EBU R128 metering in LUFS, momentary and whole-show, against a chosen target |
+| Frequencies and phase | An optional panel, closed by default: a 24-band spectrum, and a stereo phase reading that catches a miswired cable or an over-widened source before mono listeners lose it |
+| Sound check | Record 10 s and play it straight back, with a verdict on the level |
+| Monitoring | Headphone output on a separately chosen device, feedback warning |
+| Dead air | Silence alarm while live |
+| Servers | Named profiles, add/edit/duplicate/delete, DPAPI-encrypted passwords |
+| Setup | Paste-a-URL and paste-an-email parsing, automatic server-type detection, host presets |
+| Sharing | Export the server list to a file another DJ can import; passwords deliberately stay behind |
+| Protocols | Icecast HTTP PUT with automatic SOURCE fallback, SHOUTcast v1 and v2, TLS |
+| Several servers at once | A main plus a backup relay, or the same show at two bitrates; one dropping does not take the others off air |
+| Testing | Six-stage connection test: find, connect, secure, identify, sign in, send audio |
+| Encoding | MP3, Ogg Opus, Ogg Vorbis and lossless Ogg FLAC, 32–320 kbps, quality presets plus full manual control |
+| Processing | Voice Enhance, automatic level control, bass/middle/treble, a preset-driven three-band compressor, always-on safety limiter |
+| Metadata | Manual now-playing, polled text file, the Windows media session, and a local endpoint your playout software can post to — including the Icecast admin form, unchanged |
+| Title format | `{artist} - {title}` templates with a live preview, and a hold switch for adverts and jingles |
+| Recording | While broadcasting or standalone, in the stream's format, lossless FLAC or WAV; filename templates, auto-split by duration, stops itself before the disk fills |
+| Shell | Notification-area icon coloured by on-air state, global hotkeys, auto-connect on start, automatic on-air when sound appears |
+| Remote control | An opt-in local endpoint other programs can drive SIRS from, and the same commands on the command line — `SIRS --live`, `--status`, `--title "…"` — which reach the copy already running |
+| MIDI | Physical buttons and faders from a control surface, mixer or keyboard, assigned by pressing Learn and moving the control |
+| Accessibility | Standard controls throughout; the drawn meters publish their level as text for screen readers |
+| Reliability | Send buffer, 1 s reconnect backoff, clear connection state machine, live throughput and buffer statistics |
+| Session log | Connects, drops, device trouble and track changes, shown in-app and appended to a daily file |
+| Listeners | Live count from Icecast, SHOUTcast v1 and v2 where the server reports it, summed across destinations |
+| Language | English built in, community translations as JSON files with coverage shown and English as the fallback |
+| Updates | Opt-in check for a newer release. It tells you; it never downloads or installs anything |
+| UI | Single window, first-run wizard, High-DPI, follows Windows light/dark |
+
+### Verified
+
+- **Encoders.** A 440 Hz tone survives MP3 and Ogg Opus round trips. The Opus stream is parsed back
+  by an independent demuxer whose CRC is checked against the catalogued Ogg test vector
+  (`0x89A1897F`), confirming page framing, BOS/EOS flags, sequence numbers, `OpusHead`/`OpusTags`,
+  and a decode returning exactly 3 s of 440 Hz audio at the input amplitude.
+- **Paste-a-URL parser.** Ten cases covering listen URLs, embedded credentials, bare host:port,
+  control-panel emails, SHOUTcast stream ids, implied TLS, and inputs that must be rejected.
+- **Loopback capture.** A tone played through a render device is captured back off that same device
+  and arrives at the expected level. Run it with `-- --loopback`; it is opt-in because it needs
+  audio hardware and briefly makes real sound.
+- **Mixing.** The ring buffer behind the second fader is covered by unit checks for wrap-around,
+  overflow, under-run and drift skipping. A live check (`-- --mixer`) puts the same playing device
+  on both faders and confirms the mix rises well above a single source.
+- **Hot-plug recovery.** A source is stopped out from under the engine — what a driver reset looks
+  like from the inside — and the watchdog takes it back and reports it (`-- --recovery`).
+- **Media session.** The Windows API opens and the poll loop runs (`-- --metadata`). Whether a
+  title appears depends on something playing, so on a quiet machine this check is deliberately
+  inconclusive rather than green.
+- **Listener counts.** Nine parsing cases across the shapes each server family returns, including
+  Icecast's single-object-vs-array switch and SHOUTcast's HTML-wrapped stats line.
+- **Session log.** Verified live: a real connect and disconnect appeared in the window and in the
+  day's file, in the same words the UI used.
+- **Sharing server settings.** Round-trip fidelity, passwords never reaching the exported file, and
+  importing your own export adding servers rather than replacing them.
+- **Ogg Vorbis.** Page structure, the three Vorbis headers, channel count and sample rate, and a
+  final granule position accounting for every sample fed in.
+- **Ogg FLAC.** The strictest check in the suite, because FLAC is lossless and so the answer can be
+  exact rather than approximate: an independently written decoder verifies both frame checksums and
+  every decoded sample must equal the input **bit for bit**. Run against a tone, and again against
+  digital silence, white noise, hard-panned content and a full-scale square wave, so the constant,
+  verbatim and fixed-predictor paths and the stereo decorrelation are all exercised.
+- **Loudness.** Six compliance cases from EBU Tech 3341, including both gates, checked to the ±0.1 LU
+  the standard requires. The numbers come from the standard rather than from this code, which is the
+  point: a K-weighting filter with a wrong coefficient still produces a plausible-looking figure.
+  Also verified at 44.1 kHz, where the coefficients are derived rather than quoted.
+- **Sound processing.** The three compressor bands sum back flat to within 0.00 dB from 60 Hz to
+  12 kHz, including at both crossover frequencies — the property that lets it be left on without
+  colouring audio that needs no work. Plus: one band compressing does not duck the others, the tone
+  controls move only their own range, and "Off" is a true bypass.
+- **Several servers at once.** Format conversion from one capture stream to destinations at
+  different rates and channel counts, ending in a check that a converted destination's MP3 frames
+  declare the sample rate and channel count its server was actually told.
+- **Recording.** Lossless and WAV recordings follow the captured audio rather than the broadcast's
+  settings, verified by decoding the files back and reading their declared rate and channel count.
+- **The now-playing endpoint.** Twenty cases over a real socket: the Icecast admin form, form posts,
+  URL escaping, the password, and a check that binding to loopback really does refuse a connection
+  from this machine's own network address.
+- **Title templates.** Missing pieces take their punctuation with them, so a station ident never
+  goes out as " - Station Ident".
+- **Input channels.** Choosing input 3 on a four-input device really takes input 3, and a single
+  input into a mono stream is not quietly halved by being averaged with silence.
+- **Automatic on-air.** It waits out a brief noise before going live, and twenty half-minute gaps
+  between tracks do not take a station off air.
+- **Translations.** A partly translated pack is used where it has text and falls back to English
+  everywhere else; coverage is reported honestly; a corrupt language file is skipped rather than
+  fatal.
+- **The update check.** It refuses to open anything that is not an ordinary http(s) page, so a
+  release feed cannot point SIRS at a local executable.
+- **The spectrum.** Checked against a brute-force DFT written separately in the test — a different
+  algorithm, not a rearrangement of the same one — agreeing to within 1e-9 on a signal built from
+  three unrelated tones and a DC offset. Plus: a tone lands in the bar whose label covers it, a
+  full-scale tone reads at the top, and the bars fall smoothly rather than flicker.
+- **Stereo phase.** Identical channels read +1 and lose nothing in mono; an inverted channel reads
+  −1, is reported as a fault in words, and is shown as cancelling almost completely; two unrelated
+  tones read near zero and are called wide rather than broken.
+- **MIDI.** Every path below the driver, driven from raw bytes: message decoding including the
+  zero-velocity note-off that most controllers actually send, learning, saving and reloading, a
+  damaged settings line losing only the damaged part, and — the one that matters — a held button
+  firing once rather than thirty times. A real MIDI interface on the build machine opens, stops and
+  reopens cleanly.
+- **ASIO.** Three of the four drivers on the build machine open, and a Behringer X-AIR interface
+  delivered 48128 samples in 500 ms at 48 kHz — exactly the expected rate. This found a real bug:
+  ASIO drivers are COM objects needing a single-threaded apartment, so the first version worked when
+  clicked (WPF's UI thread is STA) and would have failed every time the device watchdog tried to
+  recover an interface, because a timer callback is not.
+- **Remote control and the command line.** Twelve cases over a real socket, plus a live end-to-end
+  run: with SIRS running, `SIRS.exe --status` from a separate process reported the real meter and
+  loudness readings, `--title` set a title with accents and an em dash intact, `--mute` and `--gain`
+  took effect, and a command SIRS could not honour returned a non-zero exit code. Killing SIRS
+  outright leaves the handshake file behind, and the next command correctly reports "not running"
+  rather than hanging on a dead port.
+- **Screen-reader output.** The drawn meters report live values through UI Automation — confirmed
+  against the running app, which read back "Loudest -27 decibels".
+- **The app itself.** Runs, captures live audio from a real interface, the level coaching responds
+  correctly, and selecting a loopback source switches the on-screen guidance to match.
+- **A live broadcast.** SIRS has connected to a real Icecast server and streamed MP3 at 256 kbps,
+  48 kHz stereo over a plain connection, and it sounded right on the listening end. The source
+  handshake, encoder and send path are proven end to end.
+
+### Not yet verified
+
+One live Icecast broadcast is proven (above). These paths still have not met a real server:
+
+- **SHOUTcast v1 and v2.** Written to spec, including the automatic port fallback, but never run
+  against a DNAS. The fallback in particular deserves a real test, since it depends on how a given
+  host quotes its ports.
+- **TLS.** The secure path has only been exercised against the plain one's code, never a real
+  certificate.
+- **Reconnection under real network loss**, and long-run stability across a full show.
+- **A physically unplugged device.** The recovery path is tested, but nothing in the harness pulls
+  a cable, so Windows' own removal notifications have not been exercised.
+- **Mixer drift over a long session.** Two devices on separate clocks are corrected a frame at a
+  time; that has not yet been watched across hours.
+- **A real media-session title.** The API is proven reachable, but no title has been read from an
+  actual player. Play something and run `-- --metadata` to confirm.
+- **A listener count from a live server.** The parsing is covered, but no real status endpoint has
+  been queried — that needs someone actually listening.
+- **Global hotkeys and the tray icon.** Both are constructed without complaint and the app runs
+  normally, but nothing here presses Ctrl+Shift+G or clicks the notification area. Worth five
+  minutes by hand.
+- **Auto-split and the low-disk stop.** The logic is in place but has not been watched roll a file
+  at the hour mark, nor met a genuinely full disk.
+- **Vorbis, Opus and FLAC against a live server.** Only MP3 has completed a real broadcast. All
+  three round-trip correctly offline, but no server has been asked to accept an Ogg stream, and some
+  hosts are fussy about the content type. FLAC is worth checking earliest — it is roughly six times
+  the bandwidth, and plenty of hosts cap that.
+- **Two servers at once against two real servers.** The fan-out, the format conversion and the
+  aggregate state are all covered offline, but no second server has been connected in anger, and the
+  behaviour that matters — staying on air while one destination fails — needs a real failure.
+- **No external player has opened a SIRS FLAC file.** The bit-exact round trip is proven against an
+  independently written decoder, which is a strong result, but VLC and foobar2000 have not been
+  asked for a second opinion. Neither is installed here.
+- **The processing presets have not been listened to.** Talk, Music and Loud are measured to behave
+  correctly; whether they *sound* right is a judgement no test makes. Expect to adjust them.
+- **The loudness figure has not been cross-checked against another meter.** It matches the EBU
+  compliance cases, which is the meaningful bar, but a second opinion from a known-good meter on
+  real programme material would be worth having.
+- **Only part of the app is routed through the translation catalogue.** The framework is complete
+  and proven — packs, fallback, coverage, template export — but the strings that currently go
+  through it are the level coaching, the connection states, the server-setup problems and the
+  listener count. Everything else, including all the XAML labels, is still literal English. A
+  translator today would get a partly translated app, which is why coverage is shown rather than
+  claimed.
+- **The update feed does not exist.** `sirs.invalid` is a placeholder that cannot resolve by
+  design. The failure path is verified; the success path has never seen a real feed.
+- **Automatic on-air has not run a real unattended show.** The decision logic is well covered, but
+  nothing here has left it running overnight against a live server.
+- **A broadcast from an ASIO input, end to end.** The capture layer is proven against real hardware,
+  but no show has gone out from an ASIO interface, and nothing has unplugged one mid-broadcast to
+  see whether the watchdog takes it back. ASIO drivers also allow only one program at a time, so
+  what happens when a DAW is already holding the interface has not been watched from the UI.
+- **A real MIDI controller has not pressed a button.** Every path below the driver is checked from
+  raw bytes and a real interface opens, but no physical fader has been moved. What a specific desk
+  actually sends — particularly whether its buttons latch or send momentary values — is the kind of
+  thing only hardware settles.
+- **The spectrum and phase panel has not been looked at while live.** The numbers behind it are
+  verified; whether 24 bars at that decay rate read well in motion is a judgement no test makes.
+- **The remote control has not been driven by real automation software.** The endpoint is proven
+  from a socket and from SIRS's own command line, but no playout system has been pointed at it.
+
+---
+
+## Notable decisions
+
+- **No AAC.** The patent pool costs money to redistribute. Opus is free and better below 96 kbps.
+  MP3 patents expired in 2017, so LAME ships freely.
+- **Opus via Concentus**, a managed port, so there is no native Opus DLL to ship per architecture.
+- **Recording runs its own encoder** rather than tapping the broadcast's. It costs a little CPU and
+  buys the ability to record with no server configured at all.
+- **Authentication failures stop retrying.** A wrong password never comes right on its own, and
+  hammering the server buries the real reason under reconnect messages. Everything else retries.
+- **SHOUTcast port fallback.** SHOUTcast takes broadcasts on the port after the listener port, and
+  hosts are split on which they quote. SIRS tries both and says which worked.
+- **Ogg pages never split a packet.** Opus packets are far below the 65025 bytes that would force a
+  continuation, so the muxer skips that bookkeeping entirely and stays spec-compliant.
+- **FLAC is implemented here rather than bound to libFLAC**, for the same reason Opus uses Concentus:
+  a native codec means shipping and loading a DLL per architecture. It uses fixed polynomial
+  predictors rather than full LPC — a few percent of compression given up for a fraction of the CPU,
+  which is the right trade for a live encoder that may be running alongside three others.
+- **A live broadcast can be Live while a destination is failing.** A backup exists precisely so one
+  server going down does not take the show off air; reporting "Reconnecting" over a perfectly good
+  main stream would be a lie. What went wrong is named in the status line instead.
+- **The update check never downloads or installs.** An encoder that can replace its own binary is
+  one that can be made to run someone else's code by whoever controls that URL, and that is not a
+  key worth handing over on a machine that goes on air. SIRS reports the version and opens the
+  release page if asked.
+- **The now-playing endpoint is loopback-only unless you say otherwise, and opening it up requires a
+  password.** It is a listening socket on someone's machine; it should be as small a target as it
+  can be, and off entirely until asked for.
+- **Recording lossless follows the captured audio, not the broadcast's settings.** Recording a mono
+  64 kbps show as a mono FLAC would preserve nothing worth preserving.
+- **No VST hosting.** The VST3 SDK is GPLv3 or a commercial agreement, but the licence is the
+  smaller half. Hosting means scanning plugins, opening someone else's editor window inside SIRS,
+  and surviving a plugin that crashes — a whole out-of-process subsystem whose failure mode is "the
+  show went off air", built to serve users who by definition already own a DAW.
+- **Remote control is separate from the now-playing endpoint, and off by default.** One of them
+  changes what listeners read; the other can put a station on air. Someone who wants the first
+  should not silently get the second. Both refuse outright to open to the network without a
+  password rather than warning about it.
+- **The command line talks to the running copy, and only ever over loopback.** Letting `SIRS.exe`
+  aim at a host given on the command line would turn it into a small tool for putting other
+  people's stations off air.
+- **MIDI buttons act on the press and not again until released.** Plenty of desks repeat their value
+  while a button is held, which would otherwise toggle a station on and off many times a second.
+- **The spectrum is closed by default.** It is the most encoder-shaped thing in SIRS, and the whole
+  argument for the program is that the first screen does not look like one. The phase reading beside
+  it is the half that earns its place: nothing else in SIRS can see a miswired cable.
+- **ASIO drivers get a thread of their own.** They are COM objects requiring a single-threaded
+  apartment, and the device watchdog runs on a timer, which is not one. Without a dedicated STA
+  thread an ASIO input would open when chosen and then never recover from a glitch.
+
+---
+
+## Third-party components
+
+| Component | Licence |
+|---|---|
+| NAudio | MIT |
+| NAudio.Lame / LAME | LGPL (dynamically linked) |
+| Concentus | BSD-3-Clause |
+| OggVorbisEncoder | BSD-3-Clause |
+
+MP3, Opus, Vorbis and FLAC are all free of patent-licensing obligations for distribution. FLAC is
+implemented directly in SIRS, so there is no third-party component for it.
+
+---
+
+## Licence
+
+SIRS is free software under the **GNU General Public License, version 3 or later**. The full text is
+in [LICENSE](LICENSE).
+
+Copyleft rather than a permissive licence, and deliberately so. Design rule #6 is that SIRS is free
+and unhobbled, with no feature gating ever — and the competitor this exists to answer paywalls
+multi-stream, SSL, AAC and fast reconnect. A permissive licence would let anyone take this work,
+close it, and sell exactly the tiers SIRS was built to make unnecessary. The GPL is the only part of
+that promise that survives contact with someone who disagrees with it.
+
+All four dependencies above are compatible: MIT and BSD-3-Clause are permissive, and LGPL code that
+is dynamically linked combines with GPL-3.0 without difficulty.

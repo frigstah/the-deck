@@ -1,0 +1,27 @@
+# Build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+publish/
+artifacts/
+*.user
+*.suo
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.userprefs
+
+# NuGet
+*.nupkg
+packages/
+
+# Portable-mode marker and anything a run leaves behind. The marker is meant to be created by
+# whoever wants portable mode, not shipped with the source.
+sirs-portable.txt
+data/
+
+# Release archives built locally
+*.zip
