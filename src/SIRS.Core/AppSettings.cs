@@ -164,6 +164,15 @@ public sealed class AppSettings
 
     public double SilenceAlertSeconds { get; set; } = 15;
 
+    /// <summary>
+    /// Whether the level verdict - "sounds good", "too quiet" - is shown (B2). On by default,
+    /// because it is the thing that teaches a first-time broadcaster what a good level looks like.
+    /// Off for the people who already know: once you can read a meter, a badge telling you what you
+    /// can already see is just something else moving on the screen. The meter, the numbers and the
+    /// silence alert are unaffected - this hides the coaching, not the measurement.
+    /// </summary>
+    public bool ShowLevelCoaching { get; set; } = true;
+
     /// <summary>Language code, or "en" (I8). Unknown codes fall back to English.</summary>
     public string LanguageCode { get; set; } = "en";
 

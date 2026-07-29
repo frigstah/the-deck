@@ -349,6 +349,28 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         }
     }
 
+    /// <summary>
+    /// Whether the level verdict and its sentence are on screen (B2). The meter, the numbers and the
+    /// dead-air alert are deliberately not covered by this: turning off the coaching should not turn
+    /// off the measurement.
+    /// </summary>
+    public bool ShowLevelCoaching
+    {
+        get => _settings.ShowLevelCoaching;
+        set
+        {
+            if (_settings.ShowLevelCoaching == value) return;
+
+            _settings.ShowLevelCoaching = value;
+            Persist();
+            RaiseAll(nameof(ShowLevelCoaching), nameof(LevelCoachingHint));
+        }
+    }
+
+    public string LevelCoachingHint => ShowLevelCoaching
+        ? "SIRS tells you whether your level is right. Turn this off once you would rather just read the meter."
+        : "Off. The meter and the numbers are still there — only the verdict is hidden.";
+
     public Brush AdviceBrush => SeverityBrush(_engine.Capture.InputMeter.Advice.Severity());
 
     /// <summary>Fill behind the level verdict pill; the headline above supplies the text colour.</summary>
@@ -860,7 +882,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             _settings.SelectedServerId = value?.Id;
             Persist();
             RebuildExtraTargets();
-            RaiseAll(nameof(SelectedServerSummary), nameof(CanGoLive), nameof(QualitySummary), nameof(ListenUrl), nameof(SelectedServerShort));
+            RaiseAll(nameof(SelectedServerSummary), nameof(CanGoLive), nameof(QualitySummary),
+                nameof(ListenUrl), nameof(SelectedServerShort),
+                nameof(BroadcastTargetText), nameof(QualityShort));
         }
     }
 
@@ -893,7 +917,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
 
         SaveServers();
         RebuildExtraTargets();
-        RaiseAll(nameof(SelectedServerSummary), nameof(QualitySummary), nameof(ListenUrl), nameof(CanGoLive), nameof(SelectedServerShort));
+        RaiseAll(nameof(SelectedServerSummary), nameof(QualitySummary), nameof(ListenUrl),
+            nameof(CanGoLive), nameof(SelectedServerShort),
+            nameof(BroadcastTargetText), nameof(QualityShort));
     }
 
     public void RemoveServer(ServerProfile profile)
@@ -926,7 +952,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             SaveServers();
             SelectedServer ??= Servers.FirstOrDefault();
             RebuildExtraTargets();
-            RaiseAll(nameof(SelectedServerSummary), nameof(QualitySummary), nameof(CanGoLive), nameof(SelectedServerShort));
+            RaiseAll(nameof(SelectedServerSummary), nameof(QualitySummary), nameof(CanGoLive),
+                nameof(SelectedServerShort), nameof(BroadcastTargetText), nameof(QualityShort));
         }
 
         return added;
@@ -989,7 +1016,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         // pipeline is rebuilt now rather than at the moment of going live.
         if (!StreamState.IsBroadcasting()) StartAudio();
 
-        RaiseAll(nameof(TargetCountSummary), nameof(QualitySummary));
+        RaiseAll(nameof(TargetCountSummary), nameof(QualitySummary), nameof(BroadcastTargetText));
     }
 
     /// <summary>The destinations this broadcast will use: the chosen server first, then the extras.</summary>
@@ -1090,6 +1117,30 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             return megabytes < 1 ? $"{sent / 1024.0:0} KB sent" : $"{megabytes:0.0} MB sent";
         }
     }
+
+    /// <summary>
+    /// Where the show is going, as the strip says it: the server's name, plus how many others are
+    /// getting the same audio. The mockup's "Main + 1 backup" - what you are broadcasting to
+    /// is exactly the sort of thing that should not require changing pane to check.
+    /// </summary>
+    public string BroadcastTargetText
+    {
+        get
+        {
+            if (_selectedServer is null) return string.Empty;
+
+            var extras = ActiveProfiles().Count - 1;
+            return extras switch
+            {
+                <= 0 => _selectedServer.Name,
+                1 => $"{_selectedServer.Name} + 1 backup",
+                _ => $"{_selectedServer.Name} + {extras} backups",
+            };
+        }
+    }
+
+    /// <summary>Format and bitrate, compactly, e.g. "MP3 256k".</summary>
+    public string QualityShort => _selectedServer?.Encoder.ShortSummary ?? string.Empty;
 
     public string StatusMessage
     {
