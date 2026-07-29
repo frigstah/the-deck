@@ -210,6 +210,10 @@ These decided every argument during the build. They are worth keeping.
   took effect, and a command SIRS could not honour returned a non-zero exit code. Killing SIRS
   outright leaves the handshake file behind, and the next command correctly reports "not running"
   rather than hanging on a dead port.
+- **Both themes, on real hardware.** The window was captured from the running app in the Windows
+  light and dark settings, across several panes, with a live signal on the meter. This is how the
+  meter's peak-hold crash was found: it only fired once the level rose above the floor, so it looked
+  intermittent and theme-related when it was neither.
 - **The rail layout.** Every one of the seven panes was rendered from the running app and checked
   by eye, and all seven rail entries are reported to UI Automation as selectable tab items, so the
   navigation is reachable by keyboard and by a screen reader rather than only by mouse. Two defects
@@ -349,6 +353,24 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   which is the wrong idea entirely — a level is not a thing that fills up. The unlit segments also
   keep the whole scale on screen, so the green target zone is visible while the level is somewhere
   else, which is what makes the meter teach rather than just report.
+- **The accent is a petrol teal, not a UI blue.** It is the colour of instrument panelling, it does
+  not compete with the on-air red the way a saturated blue does, and it leaves red meaning exactly
+  one thing. Neutrals are warm-biased on light and slate-biased on dark; a pure grey reads as
+  unchosen.
+- **Labels are mono, small, uppercase and letter-spaced.** Legending on a control surface rather
+  than captions on a form. WPF has no letter-spacing property, so the spacing is written into the
+  strings — which is also why the labels are terse: every character costs twice.
+- **Nothing is rounded except the verdict pill.** Square corners throughout mean the one rounded
+  thing on screen reads as a badge rather than as another control.
+- **The dark theme is designed, not inverted.** The accent has to come *up* in lightness to hold
+  against a dark ground, which then makes white text on it unreadable — so there is a separate
+  "text on accent" colour that flips to near-black. The pill fills become deep tints of their own
+  hue rather than pale ones darkened, and the rail goes darker than the window rather than lighter,
+  so it still reads as an edge instead of a raised panel.
+- **The crash handler does not use a message box any more.** A modal box pumps the dispatcher, so a
+  fault that recurs during layout raises again inside the box, which shows another box — forty
+  levels deep until the stack overflows and the process dies silently. It now refuses re-entry,
+  writes every exception to `logs/crash.log`, and tells the user once.
 
 ---
 
