@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Input;
 using Microsoft.Win32;
 using Sirs.Core.Servers;
@@ -66,8 +67,39 @@ public partial class MainWindow : Window
     /// <summary>Minimising hides the window rather than leaving it on the taskbar (I4).</summary>
     private void OnWindowStateChanged(object? sender, EventArgs e)
     {
+        UpdateMaximiseButton();
+
         if (WindowState != WindowState.Minimized || !_viewModel.MinimiseToTray) return;
         Hide();
+    }
+
+    // ---------------------------------------------------------------- the window's own title bar
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        MaximiseBounds.Keep(this, RootLayout);
+    }
+
+    private void OnMinimiseWindow(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+    private void OnMaximiseOrRestoreWindow(object sender, RoutedEventArgs e) =>
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+
+    private void OnCloseWindow(object sender, RoutedEventArgs e) => Close();
+
+    /// <summary>
+    /// The middle button is two buttons wearing one coat, so its glyph, its tooltip and the name a
+    /// screen reader announces all have to follow the window rather than being set once. The system
+    /// title bar did this for free; drawing our own means doing it ourselves.
+    /// </summary>
+    private void UpdateMaximiseButton()
+    {
+        var maximised = WindowState == WindowState.Maximized;
+
+        MaximiseButton.Content = maximised ? "\uE923" : "\uE922";
+        MaximiseButton.ToolTip = maximised ? "Restore down" : "Maximise";
+        AutomationProperties.SetName(MaximiseButton, maximised ? "Restore down" : "Maximise");
     }
 
     private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
