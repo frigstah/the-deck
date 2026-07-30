@@ -242,27 +242,85 @@
                     <!-- Chips wrap rather than clip: a long server name on a narrow window should
                          drop to a second line, not vanish behind the buttons. -->
                     <WrapPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
-                        <Border Style="{StaticResource DeckChipStyle}">
+                        <!--
+                            The input, changeable in place. Same picker the Sound pane uses, same
+                            grouping into microphones and loopback sources - so swapping between a
+                            venue's desk feed and a laptop microphone is one click from the deck.
+
+                            The padlock sits outside the chip rather than in the dropdown, because it
+                            guards the chip: something you set once at the start of a show and then
+                            want to see the state of at a glance.
+                        -->
+                        <Border Style="{StaticResource DeckChipStyle}" Margin="0,0,2,0">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="IN&#160;&#160;" Style="{StaticResource DeckChipLabelStyle}" />
-                                <TextBlock Text="{Binding InputChip}" Style="{StaticResource DeckChipValueStyle}"
-                                           MaxWidth="200" TextTrimming="CharacterEllipsis" />
+                                <ComboBox Style="{StaticResource DeckChipComboStyle}"
+                                          ItemsSource="{Binding InputDevicesView}"
+                                          SelectedItem="{Binding SelectedInput}"
+                                          ItemTemplate="{StaticResource DeviceItemTemplate}"
+                                          IsEnabled="{Binding InputLocked, Converter={StaticResource InverseBoolean}}"
+                                          MaxWidth="230"
+                                          AutomationProperties.Name="Input"
+                                          ToolTip="Swap the input without opening setup.">
+                                    <ComboBox.GroupStyle>
+                                        <StaticResource ResourceKey="DeviceGroupStyle" />
+                                    </ComboBox.GroupStyle>
+                                </ComboBox>
                             </StackPanel>
                         </Border>
 
+                        <ToggleButton Style="{StaticResource DeckLockStyle}"
+                                      IsChecked="{Binding InputLocked}"
+                                      Margin="0,0,10,0"
+                                      ToolTip="{Binding InputLockTooltip}"
+                                      AutomationProperties.Name="Lock the input" />
+
+                        <!--
+                            The destination, changeable in place. This is the one a singer moving
+                            between venues reaches for most: each venue has its own stream, and
+                            without this every change meant opening setup and finding the Servers pane.
+                        -->
                         <Border Style="{StaticResource DeckChipStyle}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="OUT&#160;&#160;" Style="{StaticResource DeckChipLabelStyle}" />
-                                <TextBlock Text="{Binding OutputChip}" Style="{StaticResource DeckChipValueStyle}"
-                                           MaxWidth="240" TextTrimming="CharacterEllipsis"
-                                           ToolTip="{Binding OutputChip}" />
+                                <ComboBox Style="{StaticResource DeckChipComboStyle}"
+                                          ItemsSource="{Binding Servers}"
+                                          SelectedItem="{Binding SelectedServer}"
+                                          ItemTemplate="{StaticResource NameItemTemplate}"
+                                          MaxWidth="200"
+                                          AutomationProperties.Name="Server"
+                                          ToolTip="{Binding SelectedServerSummary}" />
                             </StackPanel>
                         </Border>
 
-                        <!-- Hidden rather than empty. Before a server is set up there is no quality
-                             to state, and an empty outlined box reads as something broken. -->
+                        <!--
+                            Quality: bitrate and sample rate as the handful of values anyone picks
+                            between, rather than the full range that lives in the server editor.
+                            Hidden rather than empty before a server exists, and while the codec is
+                            lossless - FLAC has no bitrate to choose.
+                        -->
                         <Border Style="{StaticResource DeckChipStyle}"
-                                Visibility="{Binding QualityShort, Converter={StaticResource TextToVisibility}}">
+                                Visibility="{Binding CanChangeQuality, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding CodecShort}" Style="{StaticResource DeckChipLabelStyle}"
+                                           Margin="0,0,8,0" />
+                                <ComboBox Style="{StaticResource DeckChipComboStyle}"
+                                          ItemsSource="{Binding BitrateLabels}"
+                                          SelectedItem="{Binding SelectedBitrateLabel}"
+                                          AutomationProperties.Name="Bitrate"
+                                          ToolTip="{Binding QualitySummary}" />
+                                <ComboBox Style="{StaticResource DeckChipComboStyle}"
+                                          ItemsSource="{Binding SampleRateLabels}"
+                                          SelectedItem="{Binding SelectedSampleRateLabel}"
+                                          Margin="10,0,0,0"
+                                          AutomationProperties.Name="Sample rate"
+                                          ToolTip="44.1 kHz is what most hosts expect. 48 kHz matches most interfaces and avoids a resample." />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Lossless states the codec and nothing else, since there is nothing to pick. -->
+                        <Border Style="{StaticResource DeckChipStyle}"
+                                Visibility="{Binding ShowLosslessChip, Converter={StaticResource BoolToVisibility}}">
                             <TextBlock Text="{Binding QualityShort}" Style="{StaticResource DeckChipValueStyle}"
                                        ToolTip="{Binding QualitySummary}" />
                         </Border>

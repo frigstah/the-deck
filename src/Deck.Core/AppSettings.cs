@@ -110,6 +110,17 @@ public sealed class AppSettings
     public bool ShowAdvancedMeters { get; set; }
 
     /// <summary>
+    /// Whether the deck's input chip refuses to change.
+    /// <para>
+    /// The input picker is on the deck so it can be swapped between songs without opening setup -
+    /// and that convenience is exactly what makes it dangerous mid-show, because changing the input
+    /// restarts capture and puts a gap in the broadcast. The lock is the answer: leave it open while
+    /// setting up, close it once the show starts.
+    /// </para>
+    /// </summary>
+    public bool InputLocked { get; set; }
+
+    /// <summary>
     /// Which pane of the window was open last. Remembered because someone who spends a show on the
     /// sound pane should not be put back on the servers pane every time Deck starts.
     /// </summary>
