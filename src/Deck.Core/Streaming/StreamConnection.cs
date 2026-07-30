@@ -230,17 +230,17 @@ public sealed class StreamConnection : IAsyncDisposable
             }
             catch (StreamException ex)
             {
-                LastError = ex.Message;
+                LastError = Explain(ex);
 
                 // A wrong password will never come right on its own, so stop rather than hammering
                 // the server and burying the real reason under retry messages.
                 if (ex.Failure == StreamFailure.Authentication)
                 {
-                    Transition(StreamState.Failed, ex.Message);
+                    Transition(StreamState.Failed, LastError);
                     break;
                 }
 
-                Transition(StreamState.Reconnecting, ex.Message);
+                Transition(StreamState.Reconnecting, LastError);
             }
             catch (Exception ex)
             {
@@ -268,6 +268,62 @@ public sealed class StreamConnection : IAsyncDisposable
                 break;
             }
         }
+    }
+
+    /// <summary>
+    /// How long the connection lasted before it broke. Zero if it never got on air at all.
+    /// </summary>
+    private TimeSpan TimeOnAir => _liveSinceTicks == 0 ? TimeSpan.Zero : Stopwatch.GetElapsedTime(_liveSinceTicks);
+
+    /// <summary>
+    /// Adds what the shape of a failure says about it.
+    /// <para>
+    /// A server that accepts a broadcast, says OK, and then drops it a second or two later is not a
+    /// network problem, and "the connection to the server was lost" sends the user looking at their
+    /// internet. It is nearly always the server disagreeing with what is being sent - a bitrate above
+    /// what the stream allows, a format it is not configured for, or another encoder already on. Deck
+    /// knows the shape even when the server will not say, so it says the shape.
+    /// </para>
+    /// </summary>
+    private string Explain(StreamException ex)
+    {
+        if (ex.Failure != StreamFailure.Network) return ex.Message;
+
+        var onAir = TimeOnAir;
+        if (onAir == TimeSpan.Zero || onAir > TimeSpan.FromSeconds(20)) return ex.Message;
+
+        var howLong = onAir.TotalSeconds < 10
+            ? $"{onAir.TotalSeconds:0.0} seconds"
+            : $"{onAir.TotalSeconds:0} seconds";
+
+        // Nothing at all got through. The sign-in was accepted and the server then closed the door,
+        // which is a different fault from a stream that ran and stopped - and worth saying apart,
+        // because it means the server objected to the broadcast rather than to the network.
+        if (BytesSent == 0)
+        {
+            return $"{_profile?.Host} accepted the sign-in and then closed the connection before any audio " +
+                   $"reached it, after {howLong}. The server is refusing the broadcast rather than the " +
+                   "connection: check that the station has a name, that the quality is one this server " +
+                   "allows, and that nothing else is already broadcasting to it.";
+        }
+
+        var sent = BytesSent < 1024 ? $"{BytesSent} bytes" : $"{BytesSent / 1024} KB";
+
+        var whatToCheck = _profile?.ServerType switch
+        {
+            ServerType.ShoutcastV1 or ServerType.ShoutcastV2 =>
+                $"A SHOUTcast server that drops a broadcast this quickly is usually refusing the audio " +
+                $"rather than the connection. Check that the quality Deck is sending ({_encoder?.BitrateKbps} kbps " +
+                $"{_encoder?.Codec.DisplayName()}) is what this stream is set up for - a bitrate above what the " +
+                $"server allows is the most common cause - and that nothing else is already broadcasting to it.",
+
+            _ =>
+                "A server that drops a broadcast this quickly is usually refusing the audio rather than the " +
+                "connection. Check that the format and bitrate are ones this server accepts, and that nothing " +
+                "else is already broadcasting to the same stream address.",
+        };
+
+        return $"{ex.Message} It had been on air for {howLong} and had sent {sent}. {whatToCheck}";
     }
 
     private async Task SendLoopAsync(IStreamSink sink, CancellationToken cancellationToken)

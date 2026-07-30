@@ -312,6 +312,57 @@ internal static class InputChecks
             Expect(program.ShortName == "KaraFun Player", $"the chip would say \"{program.ShortName}\"");
         });
 
+        failures += Check("a program you have open but are not playing is still offerable", () =>
+        {
+            // "Why can't I see Chrome?" - because Chrome tears its audio stream down when nothing is
+            // playing, so Windows had no session for it and Deck listed only what Windows said was
+            // playing. Setting up before pressing play is the normal order of things, and capture works
+            // on a silent program, so a program merely being open has to be enough.
+            var open = AudioProcesses.Open();
+            var playing = AudioProcesses.Playing();
+
+            foreach (var program in open)
+            {
+                Expect(program.Kind == AudioDeviceKind.Process, $"{program.Name} came back as {program.Kind}");
+                Expect(ProcessLoopbackCapture.IsProcessId(program.Id), $"{program.Id} is not a program id");
+                Expect(program.CategoryLabel == AudioProcesses.AlsoOpen,
+                    $"{program.Name} is grouped under \"{program.CategoryLabel}\"");
+            }
+
+            // The two lists must not offer the same program twice; a picker with Chrome in it twice, in
+            // two different groups, would read as a bug even though both entries would work.
+            var both = open.Select(d => d.Id).Intersect(playing.Select(d => d.Id)).ToList();
+            Expect(both.Count == 0, $"offered in both groups: {string.Join(", ", both)}");
+
+            var ids = open.Select(d => d.Id).ToList();
+            Expect(ids.Distinct(StringComparer.OrdinalIgnoreCase).Count() == ids.Count,
+                "the same program is offered more than once");
+
+            // Deck must never offer itself: capturing your own output is a feedback loop.
+            var self = ProcessLoopbackCapture.IdFor(
+                System.Diagnostics.Process.GetCurrentProcess().ProcessName);
+
+            Expect(!ids.Contains(self, StringComparer.OrdinalIgnoreCase), "Deck offered itself");
+            Expect(!playing.Any(d => d.Id.Equals(self, StringComparison.OrdinalIgnoreCase)), "Deck offered itself");
+        });
+
+        failures += Check("the two groups of programs are named apart", () =>
+        {
+            // The heading is what tells the user why one program is in a different part of the list from
+            // another. Both are capturable; only one is making a noise right now.
+            Expect(AudioProcesses.PlayingNow != AudioProcesses.AlsoOpen, "both groups have the same heading");
+
+            var playing = new AudioDevice("process:a", "A", AudioDeviceKind.Process, false, AudioProcesses.PlayingNow);
+            var open = new AudioDevice("process:b", "B", AudioDeviceKind.Process, false, AudioProcesses.AlsoOpen);
+            var plain = new AudioDevice("process:c", "C", AudioDeviceKind.Process, false);
+
+            Expect(playing.CategoryLabel == AudioProcesses.PlayingNow, $"got \"{playing.CategoryLabel}\"");
+            Expect(open.CategoryLabel == AudioProcesses.AlsoOpen, $"got \"{open.CategoryLabel}\"");
+
+            // Without an override it still falls back to the kind, so nothing else has to be changed.
+            Expect(plain.CategoryLabel == "One program on this PC", $"got \"{plain.CategoryLabel}\"");
+        });
+
         failures += Check("capturing one program needs no warning about feedback", () =>
         {
             // Whole-desktop loopback hears Deck's own monitoring coming back around, so it warns. One

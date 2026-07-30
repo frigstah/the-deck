@@ -20,7 +20,13 @@ public sealed class ShoutcastSink(ServerProfile profile, EncoderSettings encoder
 
     private SourceConnection? _connection;
     private int _sourcePort;
+    private string? _nameNote;
 
+    /// <summary>
+    /// Anything worth telling the user about how this connection was made: the port Deck had to move to,
+    /// and a station name it had to invent. Both are things that worked but were not what was asked for,
+    /// which is the category that belongs in the log rather than in an error.
+    /// </summary>
     public string? ConnectionNote { get; private set; }
 
     /// <summary>Admin commands go to the listener port, which is always one below the source port.</summary>
@@ -41,11 +47,17 @@ public sealed class ShoutcastSink(ServerProfile profile, EncoderSettings encoder
                 await TryConnectAsync(port, cancellationToken).ConfigureAwait(false);
                 _sourcePort = port;
 
+                var notes = new List<string>();
+
                 if (port != _profile.Port)
                 {
-                    ConnectionNote =
-                        $"Connected on port {port}. SHOUTcast takes broadcasts on the port after the one listeners use, so Deck moved up from {_profile.Port} for you.";
+                    notes.Add(
+                        $"Connected on port {port}. SHOUTcast takes broadcasts on the port after the one listeners use, so Deck moved up from {_profile.Port} for you.");
                 }
+
+                if (_nameNote is not null) notes.Add(_nameNote);
+
+                ConnectionNote = notes.Count == 0 ? null : string.Join(" ", notes);
 
                 return;
             }
@@ -74,6 +86,10 @@ public sealed class ShoutcastSink(ServerProfile profile, EncoderSettings encoder
 
         var response = await connection.ReadHandshakeReplyAsync(cancellationToken).ConfigureAwait(false);
         Interpret(response, port);
+
+        // Keep an ear on the socket for the rest of the broadcast. A DNAS that accepts a source and
+        // then objects to it says so and hangs up, and that sentence is the only explanation there is.
+        connection.ListenWhileSending();
     }
 
     private string BuildHandshake()
@@ -87,7 +103,29 @@ public sealed class ShoutcastSink(ServerProfile profile, EncoderSettings encoder
 
         builder.Append($"{Sanitise(password)}\r\n");
 
-        AppendIfPresent(builder, "icy-name", _profile.StationName);
+        // Never omitted, whatever the profile says. A SHOUTcast server that gets no icy-name accepts the
+        // password, answers OK2, and closes the connection - no error, no reason, and Deck reporting
+        // "the connection to the server was lost" four times over. The editor now asks for a station
+        // name, but a profile saved before it did must not fall into that hole either, so the server's
+        // own label stands in. Verified against a real DNAS: with the header, nine seconds of audio and
+        // counting; without it, gone forty milliseconds after sign-in.
+        var stationName = Sanitise(_profile.StationName);
+
+        if (stationName.Length == 0)
+        {
+            stationName = Sanitise(_profile.Name);
+            if (stationName.Length == 0) stationName = "Deck";
+
+            // Said out loud rather than done quietly: the server's own label is a private note to
+            // yourself - "Backup relay" - and listeners are about to see it as the station's name.
+            // Better to be on air with the wrong name and told about it than refused, which is what
+            // requiring a name would have done to a profile that now works.
+            _nameNote = $"This server has no station name, so listeners will see \"{stationName}\". " +
+                        "Set one under \"What listeners see\".";
+        }
+
+        builder.Append($"icy-name:{stationName}\r\n");
+
         AppendIfPresent(builder, "icy-genre", _profile.Genre);
         AppendIfPresent(builder, "icy-url", _profile.Website);
 

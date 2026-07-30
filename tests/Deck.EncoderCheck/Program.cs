@@ -72,6 +72,11 @@ internal static class Program
         Console.WriteLine(listenerFailures == 0 ? "PASS\n" : $"{listenerFailures} case(s) FAILED\n");
         failures += listenerFailures;
 
+        Console.WriteLine("--- What Deck says when it signs in ---");
+        var handshakeFailures = HandshakeChecks.Run();
+        Console.WriteLine(handshakeFailures == 0 ? "PASS\n" : $"{handshakeFailures} case(s) FAILED\n");
+        failures += handshakeFailures;
+
         Console.WriteLine("--- Asking a server for its listener count ---");
         var chainFailures = ListenerChainChecks.Run();
         Console.WriteLine(chainFailures == 0 ? "PASS\n" : $"{chainFailures} case(s) FAILED\n");
