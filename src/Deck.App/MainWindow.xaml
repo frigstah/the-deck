@@ -97,7 +97,8 @@
              rail appears to run to the very top of the window and the wordmark sits at the head of
              it. The right is the window's own background, so the caption simply is the pane: no
              line, no band, nothing to notice. All that is left of a title bar is three buttons. -->
-        <Grid Grid.Row="0" Height="40">
+        <Grid Grid.Row="0" Height="40"
+              Visibility="{Binding ShowFullTitleBar, Converter={StaticResource BoolToVisibility}}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
@@ -173,7 +174,7 @@
                  left after the fixed rows, and therefore grows with the window instead of leaving a
                  gap under it. -->
             <Grid Margin="34,26,34,24"
-                  Visibility="{Binding IsSetupOpen, Converter={StaticResource BoolToVisibilityInverted}}">
+                  Visibility="{Binding ShowDeck, Converter={StaticResource BoolToVisibility}}">
                 <!--
                     The slack lives in exactly one place: the row above the footer. An earlier
                     version gave the meter a star row and capped its height, which put half the
@@ -326,6 +327,12 @@
                     </WrapPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- The other direction from Setup: not more of Deck, but less of it. Next to
+                             Setup because both are about what is on screen rather than about the show. -->
+                        <Button Content="Mini" Click="OnEnterMiniMode"
+                                Style="{StaticResource DeckSetupButtonStyle}" Margin="0,0,12,0"
+                                ToolTip="Shrink to a thin strip that stays on top of your other windows." />
+
                         <Button Content="Setup" Command="{Binding OpenSetupCommand}"
                                 Style="{StaticResource DeckSetupButtonStyle}" Margin="0,0,12,0"
                                 ToolTip="Everything that is not the show." />
@@ -376,6 +383,99 @@
                     </Grid>
                 </Grid>
             </Grid>
+
+            <!-- ================================================ THE STRIP
+
+                 Mini mode. Four things and nothing else: whether you are on air, what it sounds
+                 like, where it is going, and the button that stops it.
+
+                 What is missing is the point. No input picker - you do not change interface
+                 mid-song. No quality, no now-playing, no listener count, no way to reach a setting.
+                 If you need any of those you need the deck, and the deck is one press away.
+
+                 The strip is also the window's title bar while it is the whole window: dragging the
+                 state block, the meter or the space around them moves it, and a double-click on them
+                 puts the deck back. Only the controls opt out of the caption, or there would be
+                 nothing left to drag the window by. -->
+            <Border x:Name="MiniStrip" Padding="12,0"
+                    Background="{DynamicResource BackgroundBrush}"
+                    Visibility="{Binding IsMiniMode, Converter={StaticResource BoolToVisibility}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" MinWidth="90" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Same square block as the status strip, so "am I live?" is answered by the
+                         same shape and colour wherever Deck happens to be showing it. -->
+                    <Border Grid.Column="0" Background="{Binding StateBrush}" Padding="10,4"
+                            VerticalAlignment="Center">
+                        <TextBlock Text="{Binding StateHeadlineUpper}" Foreground="White"
+                                   FontFamily="Consolas" FontWeight="Bold" FontSize="11.5" />
+                    </Border>
+
+                    <TextBlock Grid.Column="1" Text="{Binding UptimeText}"
+                               Style="{StaticResource StatusValueStyle}" Margin="12,0,0,0"
+                               Visibility="{Binding IsLive, Converter={StaticResource BoolToVisibility}}" />
+
+                    <!-- Short, and no scale: at this height the numbers under it would be unreadable,
+                         and the zone colours are what the meter is for at a glance. -->
+                    <local:LevelMeterControl Grid.Column="2" Height="20" Margin="16,0,16,0"
+                                             VerticalAlignment="Center" ShowScale="False"
+                                             PeakDbLeft="{Binding PeakDbLeft}"
+                                             PeakDbRight="{Binding PeakDbRight}"
+                                             HoldDb="{Binding WindowPeakDb}" />
+
+                    <!-- Dead air is the one thing the strip must never be too small to say. -->
+                    <TextBlock Grid.Column="3" Text="{Binding SilenceAlert}"
+                               Foreground="{DynamicResource BadBrush}"
+                               FontFamily="Consolas" FontWeight="Bold" FontSize="11.5"
+                               VerticalAlignment="Center" Margin="0,0,14,0"
+                               Visibility="{Binding SilenceAlert, Converter={StaticResource TextToVisibility}}" />
+
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center"
+                                WindowChrome.IsHitTestVisibleInChrome="True">
+                        <!-- The one picker worth keeping: a singer moving between venues changes
+                             where the sound goes far more often than anything else. -->
+                        <ComboBox Style="{StaticResource DeckChipComboStyle}" Tag="Server"
+                                  local:DeckChip.ValueText="{Binding SelectedServerShort}"
+                                  ItemsSource="{Binding Servers}"
+                                  SelectedItem="{Binding SelectedServer}"
+                                  ItemTemplate="{StaticResource NameItemTemplate}"
+                                  MaxWidth="170"
+                                  IsEnabled="{Binding CanChangeSignalPath}"
+                                  AutomationProperties.Name="Server"
+                                  ToolTip="{Binding ServerChipTooltip}" />
+
+                        <Button Content="{Binding RecordButtonLabel}" Click="OnToggleRecording"
+                                Style="{StaticResource DeckRecordButtonStyle}"
+                                ToolTip="{Binding RecordButtonTooltip}"
+                                AutomationProperties.Name="Record" />
+
+                        <Button Content="{Binding GoLiveButtonText}" Click="OnToggleBroadcast"
+                                Style="{StaticResource StripButtonStyle}" MinWidth="130"
+                                Margin="10,0,0,0"
+                                Background="{Binding GoLiveButtonBrush}"
+                                Foreground="{Binding GoLiveButtonTextBrush}"
+                                BorderBrush="{Binding GoLiveButtonBorderBrush}" />
+
+                        <Button Content="Deck" Click="OnLeaveMiniMode" Margin="10,0,0,0"
+                                Style="{StaticResource StripButtonStyle}"
+                                AutomationProperties.Name="Full deck"
+                                ToolTip="Back to the whole deck." />
+
+                        <Button x:Name="MiniMinimiseButton" Content="&#xE921;" Click="OnMinimiseWindow"
+                                Style="{StaticResource CaptionButtonStyle}" Margin="8,0,0,0"
+                                AutomationProperties.Name="Minimise" ToolTip="Minimise" />
+                        <Button x:Name="MiniCloseButton" Content="&#xE8BB;" Click="OnCloseWindow"
+                                Style="{StaticResource CaptionCloseButtonStyle}"
+                                AutomationProperties.Name="Close" ToolTip="Close" />
+                    </StackPanel>
+                </Grid>
+            </Border>
 
             <!-- ================================================ SETUP, over the top
 

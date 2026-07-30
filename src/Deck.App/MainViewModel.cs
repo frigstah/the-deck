@@ -198,6 +198,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     // ---------------------------------------------------------------- the deck, and getting off it
 
     private bool _isSetupOpen;
+    private bool _isMiniMode;
     private RelayCommand? _openSetupCommand;
     private RelayCommand? _closeSetupCommand;
 
@@ -220,12 +221,54 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             // The deck carries its own state when it is visible; the strip carries it when setup is
             // covering the deck. Exactly one of them is on screen at a time, and neither moment
             // leaves you unable to see that you are live.
-            Raise(nameof(ShowStatusStrip));
+            RaiseAll(nameof(ShowStatusStrip), nameof(ShowDeck));
         }
     }
 
     /// <summary>The strip only earns its height while the deck is hidden behind setup.</summary>
     public bool ShowStatusStrip => IsSetupOpen;
+
+    /// <summary>
+    /// Whether Deck is a thin strip instead of the whole deck (I4's neighbour).
+    /// <para>
+    /// Three sizes, and this is the middle one. The deck is what you watch when Deck is what you are
+    /// doing; the notification area is for when it is out of mind entirely; the strip is for the case
+    /// in between, which is most of a show - the music is coming from something else, that something
+    /// else wants the screen, and all you need from Deck is the meter, where it is going, and the
+    /// button that takes you off air.
+    /// </para>
+    /// <para>
+    /// It holds no settings and no way to reach them, exactly like the deck. Everything on it is
+    /// either a fact about the show or one of the three controls you touch during one.
+    /// </para>
+    /// </summary>
+    public bool IsMiniMode
+    {
+        get => _isMiniMode;
+        set
+        {
+            if (!Set(ref _isMiniMode, value)) return;
+
+            // Setup and the strip cannot both be true: setup is a screenful and the strip is 56
+            // pixels tall. Nothing offers the strip from inside setup, but the flag says so anyway
+            // rather than relying on that staying true.
+            if (value) IsSetupOpen = false;
+
+            _settings.MiniMode = value;
+            Persist();
+
+            RaiseAll(nameof(ShowDeck), nameof(ShowFullTitleBar));
+        }
+    }
+
+    /// <summary>The deck proper: not behind setup, and not shrunk to the strip.</summary>
+    public bool ShowDeck => !IsSetupOpen && !IsMiniMode;
+
+    /// <summary>
+    /// The strip draws its own caption buttons, because a 40-pixel title bar above a 56-pixel strip
+    /// would be nearly half of it spent saying what the strip already says.
+    /// </summary>
+    public bool ShowFullTitleBar => !IsMiniMode;
 
     public RelayCommand OpenSetupCommand => _openSetupCommand ??= new RelayCommand(() => IsSetupOpen = true);
 
