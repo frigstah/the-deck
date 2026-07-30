@@ -96,7 +96,7 @@ Priority key: **P0** = v1.0 must-ship · **P1** = v1.1, strongly wanted · **P2*
 |---|---|---|---|
 | C1 | Named server profiles, list view, add / edit / duplicate / delete | P0 | Duplicate matters: most people add a backup that differs by one field |
 | C2 | **Paste-a-URL setup**: paste `http://host:8000/live` (or a host's config snippet) and the fields auto-fill | P0 | Biggest single reduction in setup friction |
-| C3 | **Auto-detect server type** (Icecast vs SHOUTcast v1 vs v2) by probing the host | P0 | Removes the #1 confusing choice |
+| C3 | **Auto-detect server type** (Icecast vs SHOUTcast v1 vs v2) by probing the host, and connect on a family alone where the version is not yet known | P0 | Removes the #1 confusing choice. "SHOUTcast, version unsettled" is a type Deck can broadcast on: one handshake covers both versions and the reply names which, so a partial answer is never a reason to refuse |
 | C4 | Icecast source connect (HTTP PUT + legacy SOURCE) | P0 | |
 | C5 | SHOUTcast v1 (ICY) and v2 support | P0 | v2 = P0 for compatibility, v1 for older hosts |
 | C6 | TLS/SSL for Icecast (and SHOUTcast where supported) | P0 | Free, unlike Rocket |

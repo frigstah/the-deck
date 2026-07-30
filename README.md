@@ -466,6 +466,24 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   every track change. Under those sources the line locks — undimmed, because it is still
   what listeners are seeing — since committing a title there would not merely be overwritten by the
   next poll, it would switch the source to manual and quietly cut off the station's automation.
+- **A half-known server type is still a usable one.** Deck's type picker used to offer Icecast,
+  SHOUTcast v1, SHOUTcast v2 and "detect automatically", and that last one was really "I have no idea"
+  — which meant a server nobody could fully classify could not be broadcast to at all. But the version
+  is nearly never the thing in doubt. A host says "we're SHOUTcast" and stops there; a BUTT config
+  records SHOUTcast without saying which; a banner has the word in it and no number beside it. All
+  three were being flattened into "unknown", throwing away the one fact that actually decides how Deck
+  talks to the server. So plain **SHOUTcast** is now a type in its own right. It connects: both
+  versions share a single source handshake, and the only things the version decides — the `:#sid`
+  suffix for a v2 stream other than the first, and the `sid` on metadata updates — are not needed to
+  get on air. Then the server answers the question itself, in the reply to that handshake: `OK` from
+  v1, `OK2` from v2. Better evidence than a banner on the listener port, and it costs nothing, because
+  Deck was making the connection anyway. Narrowed one way only — `OK2` is a positive claim and is
+  acted on, while a bare `OK` is merely the absence of one and leaves the profile saying SHOUTcast, as
+  writing v1 onto a v2 server would silently drop the stream id from every metadata update afterwards.
+  The payoff is largest exactly where it was needed: of fifty-four servers imported from a real BUTT
+  config, fifty-one were SHOUTcast, and every one of them had previously been landing as undecided —
+  each needing a successful probe of a port that, being a source port, has nothing to say to an HTTP
+  request in the first place.
 - **The switching cost is the server list, not the software.** Somebody with fifty stations saved in
   BUTT is not going to retype fifty addresses, ports and passwords to try something else, and no
   amount of design work on the rest of Deck answers that — so Deck reads their file. It is the same
@@ -473,8 +491,9 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   difference. Only the servers cross: a BUTT config also carries audio devices, DSP settings, window
   positions and MIDI bindings, and the device indices mean nothing outside BUTT while silently
   importing somebody's compressor into a different compressor would be worse than not importing it.
-  A SHOUTcast entry arrives undecided, because BUTT does not record *which* SHOUTcast and guessing
-  would invent a fact the server can be asked for. Passwords do come across, and get protected on the
+  A SHOUTcast entry arrives as SHOUTcast, with the version left open: BUTT does not record *which*
+  SHOUTcast, and it does not have to, because both versions share one source handshake and the
+  server states which it is in its reply. Passwords do come across, and get protected on the
   way in — BUTT keeps them in the clear, so for anyone importing, the copy Deck holds is the safer
   one. The real fifty-four server file this was built against is also what found the bug: two of the
   stations had names differing only in capitals, and matching sections case-insensitively quietly

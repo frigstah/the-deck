@@ -187,6 +187,78 @@ internal static class HandshakeChecks
             Expect(!ServerType.Icecast.NeedsStationName(), "Icecast should not need a station name");
             Expect(ServerType.ShoutcastV1.NeedsStationName(), "SHOUTcast v1 does need one");
             Expect(ServerType.ShoutcastV2.NeedsStationName(), "SHOUTcast v2 does need one");
+            Expect(ServerType.Shoutcast.NeedsStationName(),
+                "a SHOUTcast whose version is unsettled needs one too - the rule belongs to the family");
+        });
+
+        // ------------------------------------------------- the server answers the version question
+
+        failures += Check("a server that answers OK2 has said it is v2, and is believed", () =>
+        {
+            // The version settled on the connection that was being made anyway. Better evidence than
+            // a banner on the listener port, and it costs nothing.
+            using var server = new HandshakeRecorder("OK2\r\nicy-caps:11\r\n\r\n");
+
+            var profile = Shoutcast(server.Port);
+            profile.ServerType = ServerType.Shoutcast;
+
+            Connect(profile);
+
+            Expect(profile.ServerType == ServerType.ShoutcastV2,
+                $"a server that said OK2 left the profile as {profile.ServerType}");
+        });
+
+        failures += Check("a plain OK is not read as a claim to be v1", () =>
+        {
+            // Narrowed one way only. "OK2" asserts v2; a bare "OK" is just the absence of that, and
+            // an unsettled family connects perfectly well for ever. Writing v1 onto a v2 server would
+            // silently drop the stream id from every metadata update after this.
+            using var server = new HandshakeRecorder("OK\r\n\r\n");
+
+            var profile = Shoutcast(server.Port);
+            profile.ServerType = ServerType.Shoutcast;
+
+            Connect(profile);
+
+            Expect(profile.ServerType == ServerType.Shoutcast,
+                $"a bare OK was taken as evidence of {profile.ServerType}");
+        });
+
+        failures += Check("a version somebody chose by hand is not overwritten by the reply", () =>
+        {
+            using var server = new HandshakeRecorder("OK2\r\nicy-caps:11\r\n\r\n");
+
+            var profile = Shoutcast(server.Port);
+            profile.ServerType = ServerType.ShoutcastV1;
+
+            Connect(profile);
+
+            Expect(profile.ServerType == ServerType.ShoutcastV1,
+                "a type the user set themselves was changed underneath them");
+        });
+
+        failures += Check("an unsettled SHOUTcast sends the same handshake as a settled one", () =>
+        {
+            // The reason none of this needs a decision up front: for the stream everybody is actually
+            // on, the bytes are identical. If they ever stop being identical this check says so.
+            using var undecided = new HandshakeRecorder("OK\r\n\r\n");
+            using var v2 = new HandshakeRecorder("OK\r\n\r\n");
+
+            var a = Shoutcast(undecided.Port);
+            a.ServerType = ServerType.Shoutcast;
+            a.StationName = "Same Station";
+            Connect(a);
+
+            var b = Shoutcast(v2.Port);
+            b.ServerType = ServerType.ShoutcastV2;
+            b.StreamId = 1;
+            b.StationName = "Same Station";
+            Connect(b);
+
+            var left = string.Join("\n", undecided.Handshake());
+            var right = string.Join("\n", v2.Handshake());
+
+            Expect(left == right, $"the handshakes differ:\n{left}\n---\n{right}");
         });
 
         return failures;

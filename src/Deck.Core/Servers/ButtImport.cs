@@ -102,11 +102,19 @@ public static class ButtImport
         // the file it came out of is readable by anything on the machine.
         if (Value(entry, "password") is { } password) profile.Password = password;
 
-        // type 1 is Icecast and type 0 is SHOUTcast - but BUTT does not record which SHOUTcast, and
-        // Deck's v1 and v2 are different handshakes. Guessing would be inventing a fact the server
-        // itself can be asked for, so a SHOUTcast entry arrives undecided and Deck probes it on the
-        // first Test or the first broadcast, which is what Unknown is for (C3).
-        profile.ServerType = Value(entry, "type") == "1" ? ServerType.Icecast : ServerType.Unknown;
+        // type 1 is Icecast, type 0 is SHOUTcast without saying which SHOUTcast. Both are recorded
+        // for exactly what they say (C3): the family is a fact the file gives, and throwing it away
+        // to arrive at Unknown would mean asking the user a question their own config had answered.
+        // The version is not needed to connect and the server states it in the handshake reply.
+        //
+        // Anything else - a type BUTT does not write, a section somebody hand-edited - stays
+        // undecided rather than being read as SHOUTcast by default.
+        profile.ServerType = Value(entry, "type") switch
+        {
+            "1" => ServerType.Icecast,
+            "0" => ServerType.Shoutcast,
+            _ => ServerType.Unknown,
+        };
 
         if (Value(entry, "mount") is { } mount)
         {

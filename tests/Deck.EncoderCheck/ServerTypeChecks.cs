@@ -139,6 +139,69 @@ internal static class ServerTypeChecks
                 : null;
         });
 
+        // ---------------------------------------------------------- knowing the family is enough
+
+        failures += Case("a SHOUTcast server still connects when the probe learns nothing", () =>
+        {
+            // The case a config imported from another encoder actually lands in. The port on the
+            // profile is often the source port, and a SHOUTcast source port has nothing to say to an
+            // HTTP GET - so the probe comes back empty on a server that is perfectly fine. Refusing
+            // here would ground a broadcast over a question the imported file had already answered.
+            using var server = new FakeServer("HTTP/1.1 200 OK\r\nServer: nginx\r\n\r\n<h1>hello</h1>");
+            var profile = Profile(server.Port);
+            profile.ServerType = ServerType.Shoutcast;
+
+            var (sink, detected) = Resolve(profile);
+            using var _ = sink as IDisposable;
+
+            if (detected) return "claimed to have learnt something from a probe that found nothing";
+            if (profile.ServerType != ServerType.Shoutcast) return $"type changed to {profile.ServerType}";
+            return sink is ShoutcastSink ? null : $"built a {sink.GetType().Name}";
+        });
+
+        failures += Case("a SHOUTcast server connects even with nothing listening to probe", () =>
+        {
+            // Same again with the probe unable to connect at all. An Unknown profile is refused here
+            // and should be; a family-typed one goes on to the real connection, which tries the port
+            // after the one entered as well and produces the honest error if that fails too.
+            var profile = Profile(ClosedPort());
+            profile.ServerType = ServerType.Shoutcast;
+
+            var (sink, _) = Resolve(profile);
+            using var _2 = sink as IDisposable;
+
+            return sink is ShoutcastSink ? null : $"built a {sink.GetType().Name}";
+        });
+
+        failures += Case("a probe that can only see the family reports the family", () =>
+        {
+            // A banner with the word in it and no version anywhere. This used to answer v2 on the
+            // grounds that the reply was not an ICY line, which is not evidence of anything.
+            using var server = new FakeServer(
+                "HTTP/1.1 200 OK\r\nServer: Shoutcast\r\nContent-Type: text/html\r\n\r\n<html></html>");
+            var profile = Profile(server.Port);
+
+            var (sink, detected) = Resolve(profile);
+            using var _ = sink as IDisposable;
+
+            if (profile.ServerType != ServerType.Shoutcast) return $"type is {profile.ServerType}";
+            if (!detected) return "did not report that there was something new to save";
+            return sink is ShoutcastSink ? null : $"built a {sink.GetType().Name}";
+        });
+
+        failures += Case("a probe that can see the version still narrows a family down", () =>
+        {
+            using var server = new FakeServer("HTTP/1.1 200 OK\r\nServer: DNAS/2.6\r\n\r\n<html></html>");
+            var profile = Profile(server.Port);
+            profile.ServerType = ServerType.Shoutcast;
+
+            var (sink, detected) = Resolve(profile);
+            using var _ = sink as IDisposable;
+
+            if (profile.ServerType != ServerType.ShoutcastV2) return $"type is {profile.ServerType}";
+            return detected ? null : "narrowed the type but did not say there was anything to save";
+        });
+
         failures += Case("a type that is already known is never probed", () =>
         {
             using var server = new FakeServer(IcecastFrontPage);

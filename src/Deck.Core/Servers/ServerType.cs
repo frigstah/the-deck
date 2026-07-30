@@ -6,6 +6,24 @@ public enum ServerType
     Unknown,
 
     Icecast,
+
+    /// <summary>
+    /// SHOUTcast, version not settled yet - and it does not have to be to connect (C3).
+    /// <para>
+    /// The two versions share one source handshake, so the only things the version decides are the
+    /// <c>:#sid</c> suffix on the password for a v2 stream other than the first, and the <c>sid</c>
+    /// parameter on metadata updates. Neither is needed to get on air, and the server's own reply to
+    /// the handshake - "OK" from v1, "OK2" from v2 - settles it without anyone being asked.
+    /// </para>
+    /// <para>
+    /// Which makes this the honest answer to a fact Deck often has: a BUTT config records "SHOUTcast"
+    /// without saying which, and a probe can find the word in a banner with no version beside it.
+    /// Before this existed both became <see cref="Unknown"/>, so a known family was thrown away and
+    /// the user was asked a question the file had already answered.
+    /// </para>
+    /// </summary>
+    Shoutcast,
+
     ShoutcastV1,
     ShoutcastV2,
 }
@@ -15,6 +33,7 @@ public static class ServerTypeInfo
     public static string DisplayName(this ServerType type) => type switch
     {
         ServerType.Icecast => "Icecast",
+        ServerType.Shoutcast => "SHOUTcast",
         ServerType.ShoutcastV1 => "SHOUTcast (older, v1)",
         ServerType.ShoutcastV2 => "SHOUTcast (v2)",
         ServerType.Unknown => "Detect automatically",
@@ -32,6 +51,7 @@ public static class ServerTypeInfo
     public static string ConnectionSummary(this ServerType type) => type switch
     {
         ServerType.Icecast => "Deck will connect as Icecast.",
+        ServerType.Shoutcast => "Deck will connect as SHOUTcast, and work out which version while it signs in.",
         ServerType.ShoutcastV2 => "Deck will connect as SHOUTcast v2.",
         ServerType.ShoutcastV1 => "Deck will connect as SHOUTcast v1, the older kind.",
         _ => "Deck will work out what kind of server this is — when you press Test, or the first time you go live.",
@@ -45,7 +65,7 @@ public static class ServerTypeInfo
     {
         ServerType.Icecast => "Stream address",
         ServerType.ShoutcastV2 => "Stream number",
-        ServerType.ShoutcastV1 => "Not needed for this server",
+        ServerType.ShoutcastV1 or ServerType.Shoutcast => "Not needed for this server",
         _ => "Stream address",
     };
 
@@ -53,6 +73,11 @@ public static class ServerTypeInfo
     {
         ServerType.ShoutcastV2 => "Usually 1, unless your host told you otherwise.",
         ServerType.ShoutcastV1 => "This kind of server only carries one stream, so there is nothing to fill in.",
+
+        // The one case where the version does matter, said where it can be acted on: a v2 server
+        // carrying more than one stream needs to be told which. Almost nobody is on stream 2, so
+        // this is a note rather than a field - the field appears if they pick v2 above.
+        ServerType.Shoutcast => "Nothing to fill in. If your host gave you a stream number other than 1, choose SHOUTcast (v2) above.",
 
         // Undecided included, and deliberately: "detect automatically" is now the normal state of a
         // half-filled server, and it used to be the one state where this field was shown with nothing
@@ -73,9 +98,16 @@ public static class ServerTypeInfo
     /// is required for one family and optional for the other, which is not a rule anyone would guess.
     /// </para>
     /// </summary>
-    public static bool NeedsStationName(this ServerType type) =>
-        type is ServerType.ShoutcastV1 or ServerType.ShoutcastV2;
+    public static bool NeedsStationName(this ServerType type) => type.IsShoutcast();
 
     /// <summary>Icecast authenticates a username too; SHOUTcast only ever wants a password.</summary>
     public static bool UsesUsername(this ServerType type) => type is ServerType.Icecast;
+
+    /// <summary>
+    /// Whether this is a SHOUTcast of any version. The family is what decides how Deck talks to the
+    /// server - one handshake, one sink, one set of rules about station names - so anything that
+    /// cares about the protocol should ask this rather than list the versions and forget one.
+    /// </summary>
+    public static bool IsShoutcast(this ServerType type) =>
+        type is ServerType.Shoutcast or ServerType.ShoutcastV1 or ServerType.ShoutcastV2;
 }

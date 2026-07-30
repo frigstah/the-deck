@@ -89,9 +89,14 @@ public static class ServerProbe
 
         if (haystack.Contains("shoutcast") || haystack.Contains("ultravox"))
         {
+            // Definitely SHOUTcast, with nothing here saying which version - the confident v2 markers
+            // are tested above and none of them matched. This used to answer v2 on the grounds that
+            // the reply was not an ICY line, which is not evidence of anything; the family is the
+            // whole of what was actually found, so it is the whole of what gets reported. The
+            // handshake settles the rest.
             return response.StartsWith("ICY", StringComparison.OrdinalIgnoreCase)
                 ? ServerType.ShoutcastV1
-                : ServerType.ShoutcastV2;
+                : ServerType.Shoutcast;
         }
 
         // A bare "ICY 200 OK" with nothing else is the classic v1 signature.
