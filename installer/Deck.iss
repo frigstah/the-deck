@@ -20,9 +20,20 @@
 #endif
 
 [Setup]
-; Never change this GUID. It is how Windows and every future installer recognise
-; an existing Deck and upgrade it in place rather than leaving two copies behind.
-AppId={{8D3F1C6E-5A47-4C2B-9E88-1B7A2F0D6C13}
+; Never change this GUID. It is how Windows and every future installer recognise an existing Deck and
+; upgrade it in place rather than leaving two copies behind.
+;
+; It was changed exactly once, and the reason is worth keeping. The fork inherited SIRS's AppId
+; verbatim, and an AppId is the whole of a product's identity to Windows - so Deck was not a new
+; program, it *was* SIRS as far as the installer was concerned. UsePreviousAppDir defaults to yes, so
+; setup looked up that id, found SIRS's install, ignored DefaultDirName and offered to install The Deck
+; into a folder called SIRS. Accepting that put Deck.exe and SIRS.exe side by side in one directory
+; under one uninstaller, with SIRS's own files orphaned inside it and its entry in Add or remove
+; programs quietly replaced. Two products cannot share an AppId; that is what it is for.
+;
+; Changing it means an alpha installed under the old id is not recognised by this installer and has to
+; be removed by hand. That was the right trade at this stage and would not be later.
+AppId={{04CE5577-3EEC-4029-8E37-920BB4F18475}
 AppName=The Deck
 AppVersion={#AppVersion}
 AppVerName=The Deck {#AppVersion}
