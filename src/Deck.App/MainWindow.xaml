@@ -157,8 +157,11 @@
 
         <!-- ==================================================== the content area
 
-             Two things occupy it, one at a time: the deck, and setup over the top of it. -->
-        <Grid Grid.Row="1">
+             Two things occupy it, one at a time: the deck, and setup over the top of it.
+
+             ClipToBounds because setup slides: without it the panel is drawn over the title bar and
+             the status strip on its way past them. -->
+        <Grid Grid.Row="1" ClipToBounds="True">
 
             <!-- ================================================ THE DECK
 
@@ -330,8 +333,17 @@
                  Opaque and full-height, so it is unmistakably a different mode rather than a panel
                  that appeared. The status strip below stays visible while it is open, which is what
                  lets you change a setting mid-show without losing sight of being on air. -->
-            <Border Background="{DynamicResource BackgroundBrush}"
-                    Visibility="{Binding IsSetupOpen, Converter={StaticResource BoolToVisibility}}">
+            <!--
+                Visibility and the offset are both driven from code rather than bound, because the
+                panel slides and a bound Visibility would snap it away mid-animation. See
+                MainWindow.xaml.cs: the distance it travels is its own ActualHeight, read at the
+                moment it moves, so it is right at any window size.
+            -->
+            <Border x:Name="SetupPanel" Background="{DynamicResource BackgroundBrush}"
+                    Visibility="Collapsed">
+                <Border.RenderTransform>
+                    <TranslateTransform x:Name="SetupOffset" Y="0" />
+                </Border.RenderTransform>
                 <Grid>
                     <!--
                         No header row. It held the word SETUP and a close button, and both were

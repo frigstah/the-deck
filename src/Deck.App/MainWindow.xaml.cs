@@ -3,6 +3,8 @@ using System.IO;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 using Microsoft.Win32;
 using Deck.Core.Servers;
 using Deck.Core.Streaming;
@@ -23,9 +25,79 @@ public partial class MainWindow : Window
         _viewModel = new MainViewModel();
         DataContext = _viewModel;
 
+        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+
         Loaded += OnLoaded;
         Closing += OnClosing;
         StateChanged += OnWindowStateChanged;
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.IsSetupOpen)) SlideSetup(_viewModel.IsSetupOpen);
+    }
+
+    /// <summary>How long setup takes to arrive or leave. Long enough to read as movement, short
+    /// enough that someone reaching for a setting mid-show is not waiting on it.</summary>
+    private static readonly Duration SlideDuration = new(TimeSpan.FromMilliseconds(220));
+
+    /// <summary>
+    /// Slides the setup panel up over the deck, and back down again.
+    /// <para>
+    /// Done here rather than as a storyboard in XAML for one reason: the distance is the panel's own
+    /// <see cref="FrameworkElement.ActualHeight"/>, which is only known at the moment it moves and
+    /// changes whenever the window is resized. A storyboard would need a fixed number, which is
+    /// either too small on a tall window - leaving setup half on screen when it should be gone - or
+    /// needlessly far on a short one.
+    /// </para>
+    /// <para>
+    /// Visibility is set here too, not bound. Bound, it would snap the panel away the instant the
+    /// flag changed and the slide out would never be seen.
+    /// </para>
+    /// </summary>
+    private void SlideSetup(bool open)
+    {
+        // Respect the system setting. Someone who has turned animations off in Windows has said what
+        // they want, and a 220ms slide is exactly the kind of thing they turned off.
+        if (!SystemParameters.ClientAreaAnimation)
+        {
+            SetupOffset.BeginAnimation(TranslateTransform.YProperty, null);
+            SetupOffset.Y = 0;
+            SetupPanel.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+            return;
+        }
+
+        var distance = SetupPanel.ActualHeight > 0 ? SetupPanel.ActualHeight : ActualHeight;
+
+        var slide = new DoubleAnimation
+        {
+            Duration = SlideDuration,
+            // Decelerating on the way in and accelerating on the way out, so it settles rather than
+            // stops dead, and leaves rather than vanishes.
+            EasingFunction = new CubicEase { EasingMode = open ? EasingMode.EaseOut : EasingMode.EaseIn },
+            From = open ? distance : 0,
+            To = open ? 0 : distance,
+        };
+
+        if (open)
+        {
+            // Visible before it moves, or the first frame of the slide is invisible.
+            SetupPanel.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            // Collapsed only once it is off screen, so the deck underneath does not take the clicks
+            // while the panel is still covering it.
+            void Finished(object? s, EventArgs args)
+            {
+                slide.Completed -= Finished;
+                if (!_viewModel.IsSetupOpen) SetupPanel.Visibility = Visibility.Collapsed;
+            }
+
+            slide.Completed += Finished;
+        }
+
+        SetupOffset.BeginAnimation(TranslateTransform.YProperty, slide);
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
