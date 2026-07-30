@@ -109,16 +109,10 @@ public sealed class AppSettings
     /// <summary>Whether the spectrum and phase panel is open (B9). Closed by default.</summary>
     public bool ShowAdvancedMeters { get; set; }
 
-    /// <summary>
-    /// Whether the deck's input chip refuses to change.
-    /// <para>
-    /// The input picker is on the deck so it can be swapped between songs without opening setup -
-    /// and that convenience is exactly what makes it dangerous mid-show, because changing the input
-    /// restarts capture and puts a gap in the broadcast. The lock is the answer: leave it open while
-    /// setting up, close it once the show starts.
-    /// </para>
-    /// </summary>
-    public bool InputLocked { get; set; }
+    // There was an InputLocked setting here, for a padlock beside the deck's input chip. Both are
+    // gone: the input is only dangerous to change while a show or a recording is running, Deck knows
+    // when that is, and the chips now shut themselves. A setting nobody has to find beats a switch
+    // everybody has to understand. Old settings files may still carry the key; it is ignored.
 
     /// <summary>
     /// Which pane of the window was open last. Remembered because someone who spends a show on the

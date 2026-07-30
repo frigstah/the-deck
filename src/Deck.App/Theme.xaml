@@ -760,6 +760,10 @@
         <Setter Property="FontSize" Value="17" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="VerticalAlignment" Value="Bottom" />
+        <!-- The gap after the verdict belongs to the verdict, so it goes away when the verdict does.
+             It used to be a left margin on the readouts, which meant that turning level coaching off
+             left the numbers indented against nothing. -->
+        <Setter Property="Margin" Value="0,0,16,0" />
     </Style>
 
     <Style x:Key="DeckReadoutStyle" TargetType="TextBlock" BasedOn="{StaticResource ReadoutStyle}">
@@ -958,91 +962,108 @@
     </Style>
 
     <!--
-        A picker that lives inside a deck chip, so a chip can be changed without opening setup.
-
-        Borderless and transparent, because the chip around it already provides the border and the
-        fill - the alternative was a box inside a box. It keeps the base picker's faded popup, its
-        keyboard handling and its selection binding; only the closed state is restyled.
+        A deck chip that opens a list. The chip IS the picker - there is no separate Border around it
+        any more, and it draws its own chrome.
+        <para>
+        It was the other way round: a Border holding a label and a small borderless ComboBox. That
+        left two things wrong. The label was outside the picker, so clicking the word "Input" did
+        nothing and only the chevron and the value answered - and the chevron is a 7px triangle, which
+        is a silly target for something the whole chip looks like it should do. And the popup had to be
+        told to align to the Border through Tag, because the picker's own bounds were a small inset
+        rectangle in the middle of the chip.
+        </para>
+        <para>
+        Folding the chip into the template fixes all of it at once. The toggle fills the control, so
+        every pixel of the chip opens the list; the popup's default placement target is the control,
+        which is now the chip, so it lands flush with no help; and Tag is freed to carry the chip's
+        label. The chevron is gone - the hover highlight and the cursor say "this opens" without
+        spending width on an arrow next to every value.
+        </para>
     -->
     <Style x:Key="DeckChipComboStyle" TargetType="ComboBox">
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="Padding" Value="0" />
+        <Setter Property="Padding" Value="12,7" />
         <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Margin" Value="0,0,10,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="FontFamily" Value="Consolas" />
         <Setter Property="FontSize" Value="11.5" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="MaxDropDownHeight" Value="320" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource DeckFocusVisualStyle}" />
+        <!-- Otherwise the explanation of why a chip is locked is invisible exactly when it is the
+             thing someone needs to read. -->
+        <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBox">
                     <Grid>
+                        <!--
+                            The chip's own surface. Kept out here in the ComboBox's template rather
+                            than inside the ToggleButton's, because a nested template is its own
+                            namescope and the triggers below - hover, open, locked - could not then
+                            find it by name.
+                        -->
+                        <Border x:Name="Chrome"
+                                Background="{DynamicResource SurfaceBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1" />
+
+                        <!-- Fills the chip and takes every click in it. Transparent rather than null:
+                             a null background is not hit-tested, and being clickable everywhere is
+                             the entire point of the change. -->
                         <ToggleButton x:Name="Toggle" Focusable="False" ClickMode="Press"
-                                      Background="Transparent"
                                       IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
-                                    <!-- Transparent, not null: a null background takes no hit test,
-                                         and the whole point is that the chip is clickable. -->
                                     <Border Background="Transparent" />
                                 </ControlTemplate>
                             </ToggleButton.Template>
                         </ToggleButton>
 
                         <!--
-                            A Grid rather than a horizontal StackPanel, so the value gets the width
-                            that is left and the chevron keeps its own. In a StackPanel the presenter
-                            measures at whatever the text wants and is then clipped by the chip's
-                            MaxWidth - which cuts a long device name off mid-word with no ellipsis,
-                            and reads as a rendering fault rather than as "there is more of this".
+                            Not hit-testable, so the clicks fall through to the toggle underneath
+                            rather than being swallowed by the text.
+
+                            A Grid rather than a StackPanel so the value gets whatever width is left
+                            after the label. In a StackPanel the presenter measures at the width its
+                            text wants and is then clipped by the chip's MaxWidth, which cuts a long
+                            server name off mid-word with no ellipsis and reads as a rendering fault
+                            rather than as "there is more of this".
                         -->
-                        <Grid IsHitTestVisible="False">
+                        <Grid IsHitTestVisible="False" Margin="{TemplateBinding Padding}">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
-                            <ContentPresenter x:Name="Selection" VerticalAlignment="Center"
+                            <!-- The chip's name, from Tag. Its colour is set here and not left to
+                                 inherit, because an implicit TextBlock style in this file sets
+                                 Foreground and an implicit style setter beats inheritance. -->
+                            <TextBlock x:Name="Label" VerticalAlignment="Center"
+                                       Text="{TemplateBinding Tag}"
+                                       Foreground="{DynamicResource TextBrush}" />
+
+                            <ContentPresenter x:Name="Selection" Grid.Column="1" Margin="10,0,0,0"
+                                              VerticalAlignment="Center"
                                               Content="{TemplateBinding SelectionBoxItem}"
                                               ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
                                               TextElement.Foreground="{TemplateBinding Foreground}" />
-
-                            <!-- A chevron, so the chip reads as something that opens. Muted, because
-                                 the value beside it is the thing worth reading. -->
-                            <Path x:Name="Arrow" Grid.Column="1" VerticalAlignment="Center"
-                                  Margin="7,1,0,0" Data="M 0 0 L 3.5 3.5 L 7 0 Z"
-                                  Fill="{DynamicResource MutedTextBrush}" />
                         </Grid>
 
                         <TextBox x:Name="PART_EditableTextBox" Visibility="Collapsed" />
 
-                        <!--
-                            Placed against whatever the usage site put in Tag - the chip Border - so
-                            the list opens flush with the left and bottom edges of the thing that was
-                            clicked. Without it the target is the ComboBox, which inside a chip is a
-                            small inner element inset by the chip's 12,7 padding: the list then hangs
-                            off the text at a couple of odd offsets and reads as a misdraw.
-
-                            Tag left unset means the picker aligns to itself, which is what the two
-                            side-by-side quality pickers want: there the pressable thing is the value,
-                            not the chip they share.
-                        -->
+                        <!-- No PlacementTarget needed: the default is the templated parent, which is
+                             now the whole chip, so the list opens flush with its left and bottom. -->
                         <Popup x:Name="PART_Popup" AllowsTransparency="True" Placement="Bottom"
-                               PlacementTarget="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
                                VerticalOffset="4"
                                IsOpen="{TemplateBinding IsDropDownOpen}" Focusable="False"
                                PopupAnimation="Fade">
-                            <!-- At least as wide as what it dropped from, so the list and the chip
-                                 share an edge instead of the list being arbitrarily wider. No target
-                                 to match means no minimum, and the list hugs its widest item rather
-                                 than overhanging the chip it came out of. -->
+                            <!-- At least as wide as the chip it came out of, so the two share an edge
+                                 instead of the list being arbitrarily narrower or wider. -->
                             <Border Background="{DynamicResource SurfaceBrush}"
                                     BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                                    MinWidth="{Binding PlacementTarget.ActualWidth,
-                                                       RelativeSource={RelativeSource AncestorType=Popup},
-                                                       FallbackValue=0}"
+                                    MinWidth="{TemplateBinding ActualWidth}"
                                     MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                 <ScrollViewer>
                                     <ItemsPresenter />
@@ -1051,20 +1072,51 @@
                         </Popup>
                     </Grid>
                     <ControlTemplate.Triggers>
+                        <!-- With no chevron, this is what says the chip opens. -->
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Arrow" Property="Fill" Value="{DynamicResource AccentBrush}" />
-                        </Trigger>
-                        <!-- Locked, or nothing to choose from. Both read as "not now" rather than
-                             disappearing, so the chip still states the fact. -->
-                        <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Arrow" Property="Visibility" Value="Collapsed" />
-                            <Setter Property="Cursor" Value="Arrow" />
+                            <Setter TargetName="Chrome" Property="BorderBrush"
+                                    Value="{DynamicResource AccentBrush}" />
                         </Trigger>
 
-                        <!-- The chip carries its own name instead, and stays one fixed width whatever
-                             is chosen. See DeckChip.ShowsValue. -->
+                        <Trigger Property="IsDropDownOpen" Value="True">
+                            <Setter TargetName="Chrome" Property="BorderBrush"
+                                    Value="{DynamicResource AccentBrush}" />
+                        </Trigger>
+
+                        <!-- The chip carries only its own name, and stays one fixed width whatever is
+                             chosen. See DeckChip.ShowsValue. -->
                         <Trigger Property="local:DeckChip.ShowsValue" Value="False">
                             <Setter TargetName="Selection" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+
+                        <!-- With a value beside it the label is a caption, and steps back so the value
+                             reads first. Alone, it is the thing being read. -->
+                        <Trigger Property="local:DeckChip.ShowsValue" Value="True">
+                            <Setter TargetName="Label" Property="Foreground"
+                                    Value="{DynamicResource MutedTextBrush}" />
+                        </Trigger>
+
+                        <!--
+                            Locked: while a show is on air or a recording is running, changing any of
+                            this would interrupt it, so it cannot be changed at all rather than being
+                            changed from behind a warning.
+
+                            It has to *look* shut, not merely refuse. The fill drops back to the
+                            window's own ground so the chip stops reading as a raised control, both
+                            label and value go muted, and the cursor stops promising anything. The
+                            value stays put and legible: a locked chip is still stating a fact.
+
+                            Last in the list on purpose - for equal targets the last active trigger
+                            wins, so this beats the caption colouring above whichever way ShowsValue
+                            happens to be set.
+                        -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Chrome" Property="Background"
+                                    Value="{DynamicResource BackgroundBrush}" />
+                            <Setter TargetName="Label" Property="Foreground"
+                                    Value="{DynamicResource MutedTextBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+                            <Setter Property="Cursor" Value="Arrow" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -1073,36 +1125,11 @@
     </Style>
 
     <!--
-        The padlock beside the input chip. Small, quiet, and off to one side: it is a guard against
-        changing the input by accident mid-show, not a feature anyone came for. Glyphs from the system
-        icon font, so they are the shapes Windows users already read as locked and unlocked.
+        The padlock that used to sit beside the input chip is gone. It was a manual switch for a
+        question the app can answer for itself: the only time changing the input is dangerous is while
+        something is running, and Deck knows when that is. So the chips lock themselves while a show is
+        on air or a recording is going, and there is one less control to explain.
     -->
-    <Style x:Key="DeckLockStyle" TargetType="ToggleButton">
-        <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Focusable" Value="True" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ToggleButton">
-                    <Border x:Name="Chrome" Background="Transparent" Padding="5,4" Margin="4,0,0,0">
-                        <TextBlock x:Name="Glyph" Text="&#xE785;" FontFamily="Segoe MDL2 Assets"
-                                   FontSize="12" Foreground="{DynamicResource MutedTextBrush}" />
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Glyph" Property="Text" Value="&#xE72E;" />
-                            <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource WarnBrush}" />
-                        </Trigger>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource NeutralSoftBrush}" />
-                        </Trigger>
-                        <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource NeutralSoftBrush}" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
 
     <!-- The footer: now playing on the left, how the connection is holding up on the right. -->
     <Style x:Key="DeckFooterStyle" TargetType="TextBlock" BasedOn="{StaticResource ReadoutStyle}">

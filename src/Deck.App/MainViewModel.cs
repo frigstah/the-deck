@@ -243,28 +243,48 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     /// fixed width, which means the hover is now the quickest way to answer "which input is this?" -
     /// so it leads with the answer and mentions what the chip does second.
     /// </summary>
-    public string InputChipTooltip => $"Input: {InputChip}. Click to change it without opening setup.";
+    public string InputChipTooltip => CanChangeSignalPath
+        ? $"Input: {InputChip}. Click to change it without opening setup."
+        : $"Input: {InputChip}. {LockReason}";
+
+    public string ServerChipTooltip => CanChangeSignalPath
+        ? SelectedServerSummary
+        : $"{SelectedServerSummary} {LockReason}";
+
+    public string QualityChipTooltip => CanChangeSignalPath
+        ? QualitySummary
+        : $"{QualitySummary} {LockReason}";
 
     /// <summary>
-    /// Stops the deck's input picker being changed by accident. Persisted, because the whole value of
-    /// it is being still locked when you sit down to the next show.
+    /// Whether the deck's three chips - input, destination, quality - can be changed right now.
+    /// <para>
+    /// False while a show is on air or a recording is running, because every one of these interrupts
+    /// what is running: changing the input restarts capture, a different server is a new connection,
+    /// and a different bitrate is a new encoder. There is no version of any of them that does not
+    /// leave a gap.
+    /// </para>
+    /// <para>
+    /// This replaced a padlock the user set by hand. The padlock was a manual answer to a question
+    /// Deck can answer itself - the input is only dangerous to change while something is running, and
+    /// Deck knows exactly when that is - so it was one more control to notice, understand and
+    /// remember to set, guarding against a case the app could simply refuse. Setup can still change
+    /// the destination mid-show, behind a confirmation: that is a deliberate trip through a settings
+    /// pane, not a chip you might brush past on the way to the Go live button.
+    /// </para>
     /// </summary>
-    public bool InputLocked
+    public bool CanChangeSignalPath => !StreamState.IsBroadcasting() && !IsRecording;
+
+    /// <summary>
+    /// Why the chips are shut, named specifically. "Locked" on its own invites the reader to think
+    /// they locked something; saying which of the two things is running tells them what to stop.
+    /// </summary>
+    private string LockReason => (StreamState.IsBroadcasting(), IsRecording) switch
     {
-        get => _settings.InputLocked;
-        set
-        {
-            if (_settings.InputLocked == value) return;
-
-            _settings.InputLocked = value;
-            Persist();
-            RaiseAll(nameof(InputLocked), nameof(InputLockTooltip));
-        }
-    }
-
-    public string InputLockTooltip => InputLocked
-        ? "The input is locked. Click to allow changing it."
-        : "Click to lock the input, so it cannot be changed by accident during a show.";
+        (true, true) => "Locked while you are on air and recording.",
+        (true, false) => "Locked while you are on air.",
+        (false, true) => "Locked while a recording is running.",
+        _ => string.Empty,
+    };
 
     /// <summary>
     /// Changes the destination or the quality while a show is running, by taking it off air and
@@ -1098,25 +1118,21 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     /// <summary>The other case: a server exists but its codec has no bitrate, so state it and stop.</summary>
     public bool ShowLosslessChip => _selectedServer is not null && _selectedServer.Encoder.Codec.IsLossless();
 
-    /// <summary>Just the codec name — "MP3", "OPUS" — since the numbers beside it are now pickers.</summary>
-    public string CodecShort => _selectedServer?.Encoder.Codec.DisplayName().ToUpperInvariant() ?? string.Empty;
-
     /// <summary>
-    /// Bitrate and sample rate as one list rather than two pickers.
+    /// The three bitrates anyone actually picks between. 128 is what every host accepts, 192 is the
+    /// usual compromise, 320 is as good as MP3 gets - and the full 32-320 range is still in the server
+    /// editor for the rare case that needs something else.
     /// <para>
-    /// One list because the chip says "Quality" and nothing else, and two chevrons under one word is
-    /// not a thing anyone can read. It turns out to be better than what it replaced for a second
-    /// reason: changing both used to be two edits, which on air meant two confirmations and two
-    /// reconnections to arrive at one setting. Now it is one of each.
+    /// Bitrate only. Sample rate was here briefly, paired with each bitrate, and it does not belong:
+    /// it is decided once when a server is set up, from what the host asks for, and then never touched
+    /// again. The deck is the surface for the things you change between songs, and putting a
+    /// set-and-forget setting on it doubles the length of this list to no purpose.
     /// </para>
     /// </summary>
-    public IReadOnlyList<string> QualityOptions { get; } =
-        (from bitrate in new[] { 128, 192, 320 }
-         from rate in new[] { "44.1 kHz", "48 kHz" }
-         select $"{bitrate}k · {rate}").ToList();
+    public IReadOnlyList<string> QualityOptions { get; } = ["128k", "192k", "320k"];
 
     /// <summary>
-    /// The current pairing, or empty when the server is set to something the deck does not offer -
+    /// The current bitrate, or empty when the server is set to something the deck does not offer -
     /// 256k from the server editor, say. Empty rather than a nearest guess: nothing is selected in
     /// the list, which is honest, and picking a value still works.
     /// </summary>
@@ -1126,32 +1142,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         {
             if (_selectedServer is null) return string.Empty;
 
-            var encoder = _selectedServer.Encoder;
-            var candidate = $"{encoder.BitrateKbps}k · {(encoder.SampleRate == 48000 ? "48 kHz" : "44.1 kHz")}";
-
+            var candidate = $"{_selectedServer.Encoder.BitrateKbps}k";
             return QualityOptions.Contains(candidate) ? candidate : string.Empty;
         }
 
         set
         {
             if (_selectedServer is null || string.IsNullOrEmpty(value)) return;
+            if (!int.TryParse(value.TrimEnd('k'), out var kbps)) return;
+            if (_selectedServer.Encoder.BitrateKbps == kbps) return;
 
-            var parts = value.Split('·', StringSplitOptions.TrimEntries);
-            if (parts.Length != 2) return;
-            if (!int.TryParse(parts[0].TrimEnd('k'), out var kbps)) return;
-
-            var rate = parts[1].StartsWith("48", StringComparison.Ordinal) ? 48000 : 44100;
-
-            var encoder = _selectedServer.Encoder;
-            if (encoder.BitrateKbps == kbps && encoder.SampleRate == rate) return;
-
-            if (!ConfirmDisruptionWhileLive("the quality"))
-            {
-                Raise(nameof(SelectedQualityOption));
-                return;
-            }
-
-            ApplyEncoderChange(encoder with { BitrateKbps = kbps, SampleRate = rate });
+            ApplyEncoderChange(_selectedServer.Encoder with { BitrateKbps = kbps });
         }
     }
 
@@ -1824,6 +1825,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         RaiseAll(nameof(IsRecording), nameof(RecordButtonText), nameof(RecordingStatus),
             nameof(RecordButtonLabel), nameof(RecordButtonTooltip),
             nameof(RecordingShort));
+
+        RaiseChipLock();
     }
 
     /// <summary>
@@ -2630,7 +2633,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             nameof(GoLiveButtonText), nameof(GoLiveButtonBrush), nameof(GoLiveButtonTextBrush),
             nameof(GoLiveButtonBorderBrush), nameof(StateHeadlineUpper), nameof(CanGoLive),
             nameof(UptimeText), nameof(SilenceAlert));
+
+        RaiseChipLock();
     });
+
+    /// <summary>
+    /// The chips shut and open with the show and the recording, so both of those transitions have to
+    /// say so. Raised from here rather than from the twenty-times-a-second tick, which would be
+    /// twenty notifications a second to report no change.
+    /// </summary>
+    private void RaiseChipLock() => RaiseAll(
+        nameof(CanChangeSignalPath), nameof(InputChipTooltip), nameof(ServerChipTooltip),
+        nameof(QualityChipTooltip));
 
     /// <summary>
     /// Connecting worked out what kind of server this is. Saved straight away rather than left in
