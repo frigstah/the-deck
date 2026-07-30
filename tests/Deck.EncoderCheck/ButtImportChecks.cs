@@ -1,4 +1,6 @@
+using Deck.Core.Codecs;
 using Deck.Core.Servers;
+using Deck.Core.Streaming;
 
 namespace Deck.EncoderCheck;
 
@@ -94,16 +96,53 @@ internal static class ButtImportChecks
             Expect(first.Password == "pa=ssw0rd!", $"password came through as {first.Password}");
         });
 
-        failures += Check("a SHOUTcast entry is left undecided rather than guessed at", () =>
+        failures += Check("a SHOUTcast entry keeps its family and leaves the version open", () =>
         {
             var second = Read().Servers.Single(s => s.Name == "Second Station");
 
-            // BUTT records "SHOUTcast" without saying which, and v1 and v2 are different handshakes.
-            Expect(second.ServerType == ServerType.Unknown,
-                $"a SHOUTcast entry arrived as {second.ServerType} rather than waiting to be probed");
+            // BUTT records "SHOUTcast" without saying which version. That is still a fact, and it is
+            // the fact that decides how Deck talks to the server - so it is kept. It used to become
+            // Unknown, which meant a config that said SHOUTcast produced a server Deck would refuse
+            // to broadcast to until somebody answered the question the file had already answered.
+            Expect(second.ServerType == ServerType.Shoutcast,
+                $"a SHOUTcast entry arrived as {second.ServerType}");
+            Expect(second.ServerType.IsShoutcast(), "the family did not survive the import");
 
             Expect(second.Password == "another-one", "the password did not come through");
             Expect(!second.UseTls, "TLS was off in the file and on after the import");
+        });
+
+        failures += Check("an imported SHOUTcast server is ready to broadcast as it stands", () =>
+        {
+            // The point of keeping the family: everything downstream of the import has to be able to
+            // act on it without a round trip to the server. A profile that still needs a question
+            // answered before it can connect has not really been imported.
+            var second = Read().Servers.Single(s => s.Name == "Second Station");
+
+            Expect(second.Validate().Count == 0,
+                $"an imported server was not ready to use: {string.Join("; ", second.Validate())}");
+
+            var sink = SinkFactory.Create(second, QualityPreset.Default.Settings);
+            Expect(sink is ShoutcastSink, $"built a {sink.GetType().Name} for a SHOUTcast server");
+
+            // SHOUTcast drops a source that does not name its station, silently. The family is enough
+            // to know that rule applies.
+            Expect(second.ServerType.NeedsStationName(), "the station-name rule was lost with the version");
+        });
+
+        failures += Check("a type BUTT would never write stays undecided", () =>
+        {
+            // The family is only claimed where the file actually states it. A hand-edited section
+            // with no type, or one carrying something unrecognised, is not read as SHOUTcast by
+            // default - that would be the import inventing the thing it was built to stop inventing.
+            // Both type 0 lines: the other one belongs to an entry with no address, which is skipped
+            // before its type is ever read.
+            var patched = Sample.Replace("type = 0", "type = 7");
+
+            var second = ButtImport.Read(patched).Servers.Single(s => s.Name == "Second Station");
+
+            Expect(second.ServerType == ServerType.Unknown,
+                $"an unrecognised type was read as {second.ServerType}");
         });
 
         failures += Check("the (none) placeholders do not become real values", () =>

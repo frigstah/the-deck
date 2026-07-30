@@ -203,8 +203,14 @@ public sealed class ServerEditorViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// The type picker, in the order it reads. Plain "SHOUTcast" sits directly under Icecast because
+    /// it is the answer most people actually have - a host says "we're SHOUTcast" and stops there -
+    /// and before it existed the list forced a guess between two versions to answer a question
+    /// nobody had asked. The versions stay below for the people who were told one.
+    /// </summary>
     public IReadOnlyList<ServerType> ServerTypes { get; } =
-        [ServerType.Unknown, ServerType.Icecast, ServerType.ShoutcastV2, ServerType.ShoutcastV1];
+        [ServerType.Unknown, ServerType.Icecast, ServerType.Shoutcast, ServerType.ShoutcastV2, ServerType.ShoutcastV1];
 
     public string Host
     {

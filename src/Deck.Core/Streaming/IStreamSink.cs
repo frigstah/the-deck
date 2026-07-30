@@ -32,7 +32,11 @@ public static class SinkFactory
     public static IStreamSink Create(ServerProfile profile, EncoderSettings encoder) => profile.ServerType switch
     {
         ServerType.Icecast => new IcecastSink(profile, encoder),
-        ServerType.ShoutcastV1 or ServerType.ShoutcastV2 => new ShoutcastSink(profile, encoder),
+
+        // Including the family with no version on it. One handshake covers both, so a profile that
+        // knows only "SHOUTcast" has everything it needs to connect.
+        _ when profile.ServerType.IsShoutcast() => new ShoutcastSink(profile, encoder),
+
         _ => throw new StreamException(
             StreamFailure.Protocol,
             "Deck does not know what kind of server this is. Open the server settings and pick the type your host told you to use."),
@@ -69,7 +73,9 @@ public static class SinkResolver
         EncoderSettings encoder,
         CancellationToken cancellationToken)
     {
-        if (profile.ServerType != ServerType.Unknown)
+        // Undecided, or decided only as far as the family. Both are worth a probe, because the probe
+        // can narrow a family to a version and save the handshake the trouble.
+        if (profile.ServerType is not (ServerType.Unknown or ServerType.Shoutcast))
         {
             return (SinkFactory.Create(profile, encoder), false);
         }
@@ -79,6 +85,17 @@ public static class SinkResolver
 
         if (probe.DetectedType == ServerType.Unknown)
         {
+            // A profile that knows its family does not need the probe to succeed. This is the case
+            // that matters most in practice: the probe asks the port on the profile, and a SHOUTcast
+            // source port - which is what a config imported from another encoder usually holds - has
+            // nothing to say to an HTTP request. Refusing here would ground a broadcast over a
+            // question that was already answered, and the connection about to be made can answer it
+            // better anyway.
+            if (profile.ServerType.IsShoutcast())
+            {
+                return (SinkFactory.Create(profile, encoder), false);
+            }
+
             // Two different failures, and the difference matters: one is "your address or port is
             // wrong", the other is "the address is right, I just need to be told the type". The probe
             // already phrases both, so pass its message through rather than inventing a third.
@@ -87,7 +104,11 @@ public static class SinkResolver
                 : probe.Message);
         }
 
+        // The probe wins even over a family the profile already claimed. What it found is the server
+        // as it is now; what the profile holds came out of a file somebody wrote earlier.
+        var narrowed = probe.DetectedType != profile.ServerType;
         profile.ServerType = probe.DetectedType;
-        return (SinkFactory.Create(profile, encoder), true);
+
+        return (SinkFactory.Create(profile, encoder), narrowed);
     }
 }

@@ -147,8 +147,14 @@ public sealed class ConnectionTester
                 effectiveProfile.Id = profile.Id;
                 effectiveProfile.ServerType = probe.DetectedType;
 
-                Update(ConnectionTestStage.IdentifyServer, TestStepStatus.Passed,
-                    $"This is {probe.DetectedType.DisplayName()}, not {profile.ServerType.DisplayName()} — Deck corrected it");
+                // Filling in the version of a family that was already right is not a correction, and
+                // saying "this is SHOUTcast v2, not SHOUTcast" would read as the server being other
+                // than what the user was told. Contradiction and refinement need different words.
+                var refined = profile.ServerType == ServerType.Shoutcast && probe.DetectedType.IsShoutcast();
+
+                Update(ConnectionTestStage.IdentifyServer, TestStepStatus.Passed, refined
+                    ? $"{probe.DetectedType.DisplayName()} — Deck worked out the version for you"
+                    : $"This is {probe.DetectedType.DisplayName()}, not {profile.ServerType.DisplayName()} — Deck corrected it");
             }
             else
             {

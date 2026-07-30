@@ -247,6 +247,26 @@ internal static class ListenerChainChecks
             Expect(server.Paths.Count == 0, "went asking endpoints before knowing what kind of server it is");
         });
 
+        failures += Check("a SHOUTcast with no version on it is still counted", () =>
+        {
+            // Knowing the family is enough to ask; it only means asking twice. Unknown gets no count
+            // and should not - there is no endpoint to try. SHOUTcast has two, and both are legal
+            // questions to put to a SHOUTcast.
+            using var server = new RoutedServer
+            {
+                ["/7.html"] = Text("<HTML><body>4,0,9,100,4,128, - </body></html>"),
+            };
+
+            var profile = Profile(server.Port);
+            profile.ServerType = ServerType.Shoutcast;
+
+            var report = ListenerCounter.QueryAsync(profile).GetAwaiter().GetResult();
+
+            Expect(report.Value == 4, $"got {Describe(report)}, expected 4");
+            Expect(server.Paths.Any(p => p.Contains("statistics")),
+                "never tried the v2 endpoint, so a v2 server would have gone uncounted");
+        });
+
         return failures;
     }
 

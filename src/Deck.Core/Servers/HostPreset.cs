@@ -57,7 +57,14 @@ public sealed record HostPreset(
     /// cannot undo. A preset with no view (<see cref="ServerType.Unknown"/>) never contradicts
     /// anything: a detected type is the preset working, not being overruled.
     /// </summary>
-    public bool Contradicts(ServerType type) => ServerType != ServerType.Unknown && type != ServerType;
+    public bool Contradicts(ServerType type)
+    {
+        if (ServerType == ServerType.Unknown || type == ServerType) return false;
+
+        // A profile that says "SHOUTcast, version unsettled" does not contradict a preset that says
+        // v2. A preset only ever knows the family, so agreeing about the family is agreement.
+        return !(type == ServerType.Shoutcast && ServerType.IsShoutcast());
+    }
 
     /// <summary>
     /// What a screen reader says when it reaches this choice in the list. A record's generated

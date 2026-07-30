@@ -207,7 +207,13 @@ public sealed class StreamConnection : IAsyncDisposable
 
                 if (detected) ServerTypeDetected?.Invoke(this, EventArgs.Empty);
 
+                // The handshake can settle what the probe could not - a SHOUTcast answering "OK2" is
+                // telling us it is v2 - so the type is worth reading again once the server has spoken.
+                var typeBeforeHandshake = _profile!.ServerType;
+
                 await sink.ConnectAsync(cancellationToken).ConfigureAwait(false);
+
+                if (_profile.ServerType != typeBeforeHandshake) ServerTypeDetected?.Invoke(this, EventArgs.Empty);
 
                 ConnectionNote = sink.ConnectionNote;
                 attempt = 0;

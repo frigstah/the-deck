@@ -36,6 +36,13 @@ public static partial class ListenerCounter
                 ServerType.Icecast => await QueryIcecastAsync(profile, cancellationToken).ConfigureAwait(false),
                 ServerType.ShoutcastV2 => await QueryShoutcastV2Async(profile, cancellationToken).ConfigureAwait(false),
                 ServerType.ShoutcastV1 => await QueryShoutcastV1Async(profile, cancellationToken).ConfigureAwait(false),
+
+                // A SHOUTcast that has not settled which version it is. Knowing the family is enough
+                // to ask - it just means asking twice, which is the entire cost of not having put the
+                // question to somebody who could not answer it.
+                _ when profile.ServerType.IsShoutcast() =>
+                    await QueryShoutcastEitherAsync(profile, cancellationToken).ConfigureAwait(false),
+
                 _ => ListenerReport.Unsupported(
                     "Deck has not worked out what kind of server this is yet, so it cannot ask for a listener count."),
             };
@@ -369,6 +376,27 @@ public static partial class ListenerCounter
         return document.RootElement.TryGetProperty("currentlisteners", out var top) && top.TryGetInt32(out var topCount)
             ? topCount
             : null;
+    }
+
+    /// <summary>
+    /// Both SHOUTcast stats endpoints, for a profile that knows its family but not its version.
+    /// <para>
+    /// v2's <c>/statistics</c> first, because it is explicit about which stream it is answering for,
+    /// then v1's <c>7.html</c> - which a DNAS 2 also serves for compatibility, so the order costs a
+    /// v1 server one wasted request and never costs a v2 server anything.
+    /// </para>
+    /// </summary>
+    private static async Task<ListenerReport> QueryShoutcastEitherAsync(
+        ServerProfile profile, CancellationToken cancellationToken)
+    {
+        var modern = await QueryShoutcastV2Async(profile, cancellationToken).ConfigureAwait(false);
+        if (modern.Known) return modern;
+
+        var legacy = await QueryShoutcastV1Async(profile, cancellationToken).ConfigureAwait(false);
+
+        // The v1 answer only when it is an answer. Otherwise the v2 report is the more informative
+        // of two "nothing published" messages, because it names the endpoint a modern host would use.
+        return legacy.Known ? legacy : modern;
     }
 
     private static async Task<ListenerReport> QueryShoutcastV1Async(

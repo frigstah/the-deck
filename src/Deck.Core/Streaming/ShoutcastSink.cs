@@ -8,6 +8,12 @@ namespace Deck.Core.Streaming;
 /// SHOUTcast source client covering both v1 and v2 (C5). Both are reached with the same legacy
 /// source handshake; v2 selects a stream by appending <c>:#sid</c> to the password.
 /// <para>
+/// Which is why a profile is allowed to arrive as <see cref="ServerType.Shoutcast"/> with no version
+/// on it at all. Nothing above the handshake needs to know, and the reply says which it was, so a
+/// profile that only knows its family gets on air and comes out of the connection knowing more than
+/// it went in with.
+/// </para>
+/// <para>
 /// SHOUTcast listens for sources on the port after the one listeners use, and hosts are split on
 /// which of the two they quote. Rather than making the user find out, Deck tries the port they
 /// entered and then the one after it, and says which worked.
@@ -156,7 +162,22 @@ public sealed class ShoutcastSink(ServerProfile profile, EncoderSettings encoder
 
         if (trimmed.StartsWith("OK", StringComparison.OrdinalIgnoreCase))
         {
-            return; // "OK" from v1, "OK2" from v2 in legacy mode.
+            // "OK" from v1, "OK2" from v2 in legacy mode - which is the version question answered by
+            // the server itself, on a connection that was being made anyway. Better evidence than a
+            // banner on the listener port, and free.
+            //
+            // Narrowed one way only. "OK2" is a positive claim to being v2 and is acted on; a plain
+            // "OK" is only the absence of that claim, so it leaves the profile saying SHOUTcast
+            // rather than asserting v1. Nothing is lost by staying undecided - the family connects
+            // perfectly well - whereas writing v1 onto a v2 server would drop the stream id from
+            // every metadata update afterwards.
+            if (_profile.ServerType == ServerType.Shoutcast &&
+                trimmed.StartsWith("OK2", StringComparison.OrdinalIgnoreCase))
+            {
+                _profile.ServerType = ServerType.ShoutcastV2;
+            }
+
+            return;
         }
 
         if (trimmed.Contains("invalid password", StringComparison.OrdinalIgnoreCase) ||
