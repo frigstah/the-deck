@@ -157,7 +157,10 @@ public partial class MainWindow : Window
         if (_viewModel.Settings.MiniMode) SetMiniMode(true);
     }
 
-    /// <summary>Minimising hides the window rather than leaving it on the taskbar (I4).</summary>
+    /// <summary>
+    /// Minimising hides the window rather than leaving it on the taskbar, if asked to (I4). Off by
+    /// default - see <see cref="Deck.Core.AppSettings.MinimiseToTray"/> for why that changed.
+    /// </summary>
     private void OnWindowStateChanged(object? sender, EventArgs e)
     {
         UpdateMaximiseButton();

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" role="img" aria-label="The Deck">
+  <!-- Small cut: the ticks go and the plate runs to the edge. -->
+  <path fill="var(--deck-ink, #16191C)" fill-rule="evenodd"
+        d="M1 1H15V15H1Z M8 4.4a3.6 3.6 0 1 0 0 7.2a3.6 3.6 0 1 0 0-7.2Z"/>
+  <circle cx="8" cy="8" r="2" fill="var(--deck-lamp, transparent)"/>
+</svg>

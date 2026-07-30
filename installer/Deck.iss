@@ -38,6 +38,14 @@ OutputBaseFilename=Deck-{#AppVersion}-setup
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
+; The setup program's own icon, and the mark on the wizard's pages. Both come from branding\IconGen,
+; and SetupIconFile is the same file the executable carries - one icon, so the thing you download and
+; the thing it installs are recognisably each other.
+SetupIconFile=..\src\Deck.App\Deck.ico
+WizardSmallImageFile=wizard-small.bmp
+; Without this, Add or remove programs shows a blank page icon next to Deck. It reads the icon out of
+; the installed executable, which is where ApplicationIcon put it.
+UninstallDisplayIcon={app}\Deck.exe
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible

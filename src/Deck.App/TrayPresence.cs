@@ -24,6 +24,21 @@ public sealed class TrayPresence : IDisposable
     private Drawing.Icon? _currentIcon;
     private StreamState _lastState = (StreamState)(-1);
 
+    /// <summary>
+    /// What size the notification area actually wants: 16 at 100% scaling and larger above it. Asking
+    /// Windows rather than assuming 16 is what keeps the icon crisp on a scaled display - at 150% the
+    /// tray asks for 24, and a 16-pixel icon stretched to fill that is the blurry one everybody has
+    /// seen. Snapped to a size that has a hand-set cut rather than scaling one that has not.
+    /// </summary>
+    private static int TrayIconSize
+    {
+        get
+        {
+            var wanted = Forms.SystemInformation.SmallIconSize.Width;
+            return DeckMark.IconSizes.OrderBy(size => Math.Abs(size - wanted)).First();
+        }
+    }
+
     public TrayPresence(Window window, Func<StreamState> stateProvider, Action toggleBroadcast)
     {
         _window = window;
@@ -78,20 +93,23 @@ public sealed class TrayPresence : IDisposable
     };
 
     /// <summary>
-    /// Draws the icon rather than shipping a set of .ico files, so the state colour and the shape
-    /// stay in one place.
+    /// Draws the icon rather than shipping a set of .ico files, so the state colour and the shape stay
+    /// in one place.
+    /// <para>
+    /// The mark takes the state colour whole, rather than lighting the lamp inside the counter. The
+    /// counter is six pixels across at this size, and a lamp in it is a detail nobody sees from across
+    /// a room - whereas the letter turning from grey to red is caught out of the corner of an eye,
+    /// which is the entire job of a tray icon. The lamp belongs in the sizes that have room for it.
+    /// </para>
+    /// <para>
+    /// No ground, unlike the application icon: the notification area is the one place Windows tells
+    /// you what colour it is, so the mark can sit on it directly, and a coloured tile there would look
+    /// like a badge rather than a status light.
+    /// </para>
     /// </summary>
     private static Drawing.Icon BuildIcon(Drawing.Color colour)
     {
-        using var bitmap = new Drawing.Bitmap(16, 16);
-        using (var graphics = Drawing.Graphics.FromImage(bitmap))
-        {
-            graphics.SmoothingMode = Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            graphics.Clear(Drawing.Color.Transparent);
-
-            using var brush = new Drawing.SolidBrush(colour);
-            graphics.FillEllipse(brush, 2, 2, 12, 12);
-        }
+        using var bitmap = DeckMark.Render(TrayIconSize, colour);
 
         var handle = bitmap.GetHicon();
         try

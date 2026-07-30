@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="The Deck">
+  <!-- Faders: two channel faders at different positions. Why the app is called The Deck. -->
+  <g fill="var(--deck-ink, #16191C)">
+    <rect x="18.5" y="6" width="3" height="52" opacity=".22"/>
+    <rect x="42.5" y="6" width="3" height="52" opacity=".22"/>
+    <rect x="9" y="18" width="22" height="7"/>
+  </g>
+  <rect x="33" y="36" width="22" height="7" fill="var(--deck-accent, #2A6A70)"/>
+</svg>

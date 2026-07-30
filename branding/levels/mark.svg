@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="The Deck">
+  <!-- Levels: the two channels of the meter that takes up half the deck. Six lit over four. -->
+  <g fill="var(--deck-ink, #16191C)">
+    <rect x="6.00" y="17" width="6.7" height="14"/>
+    <rect x="15.06" y="17" width="6.7" height="14"/>
+    <rect x="24.12" y="17" width="6.7" height="14"/>
+    <rect x="33.18" y="17" width="6.7" height="14"/>
+    <rect x="42.24" y="17" width="6.7" height="14"/>
+    <rect x="6.00" y="34" width="6.7" height="14"/>
+    <rect x="15.06" y="34" width="6.7" height="14"/>
+    <rect x="24.12" y="34" width="6.7" height="14"/>
+    <rect x="33.18" y="34" width="6.7" height="14"/>
+  </g>
+  <rect x="51.30" y="17" width="6.7" height="14" fill="var(--deck-accent, #2A6A70)"/>
+</svg>

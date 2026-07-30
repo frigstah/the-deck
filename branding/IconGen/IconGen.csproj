@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Writes The Deck's icon. Deliberately not part of Deck.sln: it runs by hand when the mark
+    changes, and the assets it produces are committed, so a normal build never needs it.
+
+      dotnet run (with the project switch) branding\IconGen
+
+    It borrows System.Drawing from the Windows Desktop framework rather than taking a NuGet
+    dependency, and it compiles Deck.App's own DeckMark rather than copying the geometry - two
+    copies of a mark is how an icon and an application end up drawing slightly different letters.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <UseWindowsForms>true</UseWindowsForms>
+    <!--
+      System.Drawing draws the mark; WPF's icon decoder reads the finished file back. Two different
+      parsers on purpose - System.Drawing's Icon cannot see a 256-pixel entry at all and quietly hands
+      back the 128 one instead, which made the check pass for the wrong reason until it was noticed.
+    -->
+    <UseWPF>true</UseWPF>
+    <RootNamespace>Deck.IconGen</RootNamespace>
+    <!-- A console tool, so there is no WinForms entry point to configure. -->
+    <NoWarn>$(NoWarn);WFAC010;WFO5001</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\src\Deck.App\DeckMark.cs" Link="DeckMark.cs" />
+  </ItemGroup>
+
+</Project>

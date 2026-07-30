@@ -1,0 +1,1020 @@
+<title>The Deck — five identity routes</title>
+
+<style>
+  /* ------------------------------------------------------------------ tokens
+     The page borrows The Deck's own palette and faces: petrol teal, on-air red,
+     Consolas for legending, Segoe UI Variable Display for anything stated loudly.
+     Page chrome stays quiet so the five marks are the only thing shouting.        */
+
+  :root {
+    --ground:  #F2F3F1;
+    --paper:   #FFFFFF;
+    --sunk:    #EAECE7;
+    --line:    #DCDED9;
+    --line-2:  #C9CCC5;
+    --text:    #1B1F23;
+    --muted:   #5D6469;
+    --petrol:  #2A6A70;
+    --live:    #C93F36;
+    --grid:    rgba(27,31,35,.055);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:  #111417;
+      --paper:   #191D20;
+      --sunk:    #0D1013;
+      --line:    #2A3035;
+      --line-2:  #3A4249;
+      --text:    #E7E9E7;
+      --muted:   #949CA2;
+      --petrol:  #5FB6B4;
+      --live:    #E8574C;
+      --grid:    rgba(231,233,231,.05);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:  #111417;
+    --paper:   #191D20;
+    --sunk:    #0D1013;
+    --line:    #2A3035;
+    --line-2:  #3A4249;
+    --text:    #E7E9E7;
+    --muted:   #949CA2;
+    --petrol:  #5FB6B4;
+    --live:    #E8574C;
+    --grid:    rgba(231,233,231,.05);
+  }
+
+  :root[data-theme="light"] {
+    --ground:  #F2F3F1;
+    --paper:   #FFFFFF;
+    --sunk:    #EAECE7;
+    --line:    #DCDED9;
+    --line-2:  #C9CCC5;
+    --text:    #1B1F23;
+    --muted:   #5D6469;
+    --petrol:  #2A6A70;
+    --live:    #C93F36;
+    --grid:    rgba(27,31,35,.055);
+  }
+
+  /* ------------------------------------------------------------------ base */
+
+  html { scroll-behavior: smooth; scroll-padding-top: 4.5rem; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .display {
+    font-family: "Segoe UI Variable Display", "Segoe UI Semibold", "Segoe UI", system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -.015em;
+    text-wrap: balance;
+  }
+
+  .legend {
+    font-family: Consolas, "Cascadia Mono", ui-monospace, monospace;
+    font-size: .7rem;
+    letter-spacing: .17em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 clamp(1.1rem, 4vw, 2.6rem); }
+
+  a { color: var(--petrol); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+
+  :focus-visible { outline: 2px solid var(--petrol); outline-offset: 2px; }
+
+  /* ------------------------------------------------------------------ nav */
+
+  nav.rail {
+    position: sticky; top: 0; z-index: 40;
+    background: color-mix(in srgb, var(--ground) 88%, transparent);
+    backdrop-filter: blur(9px);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .rail-in {
+    max-width: 1120px; margin: 0 auto;
+    padding: .55rem clamp(1.1rem, 4vw, 2.6rem);
+    display: flex; align-items: center; gap: .35rem 1.15rem; flex-wrap: wrap;
+  }
+
+  .rail-in .mk-nav { color: var(--text); display: flex; align-items: center; margin-right: .2rem; }
+
+  .rail a {
+    font-family: Consolas, ui-monospace, monospace;
+    font-size: .69rem; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--muted); text-decoration: none; padding: .3rem 0;
+    border-bottom: 2px solid transparent;
+  }
+  .rail a:hover { color: var(--text); border-bottom-color: var(--petrol); }
+
+  .air {
+    margin-left: auto; display: flex; align-items: center; gap: .55rem;
+    font-family: Consolas, ui-monospace, monospace; font-size: .69rem;
+    letter-spacing: .13em; text-transform: uppercase; color: var(--muted);
+    cursor: pointer; user-select: none;
+  }
+  .air input { position: absolute; opacity: 0; pointer-events: none; }
+  .track {
+    width: 38px; height: 20px; border: 1px solid var(--line-2);
+    background: var(--sunk); position: relative; transition: background .16s, border-color .16s;
+  }
+  .thumb {
+    position: absolute; top: 2px; left: 2px; width: 14px; height: 14px;
+    background: var(--muted); transition: transform .16s, background .16s;
+  }
+  .air input:checked + .track { background: var(--live); border-color: var(--live); }
+  .air input:checked + .track .thumb { transform: translateX(18px); background: #fff; }
+  .air input:focus-visible + .track { outline: 2px solid var(--petrol); outline-offset: 2px; }
+
+  /* ------------------------------------------------------------------ header */
+
+  header.top { padding: clamp(3rem, 9vw, 6rem) 0 clamp(2rem, 5vw, 3.2rem); }
+  header.top h1 { font-size: clamp(2.1rem, 5.6vw, 3.4rem); line-height: 1.06; margin: .8rem 0 0; }
+  header.top .stand {
+    margin: 1.4rem 0 0; max-width: 62ch; font-size: clamp(1rem, 1.6vw, 1.12rem);
+    color: var(--muted);
+  }
+  header.top .stand strong { color: var(--text); font-weight: 600; }
+
+  /* ------------------------------------------------------------------ judging table */
+
+  .judge { border-top: 1px solid var(--line); margin-top: clamp(2rem, 5vw, 3rem); }
+  .judge dl {
+    margin: 0; display: grid; gap: 0;
+    grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  }
+  .judge div {
+    padding: 1.15rem 1.3rem 1.35rem 0; border-bottom: 1px solid var(--line);
+  }
+  .judge dt { font-weight: 600; font-size: .95rem; }
+  .judge dd { margin: .3rem 0 0; color: var(--muted); font-size: .875rem; line-height: 1.5; }
+
+  /* ------------------------------------------------------------------ concept */
+
+  section.concept { padding: clamp(3rem, 7vw, 5rem) 0 clamp(2rem, 5vw, 3rem); border-top: 1px solid var(--line); }
+  section.concept:first-of-type { border-top: none; }
+
+  .chead { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+  .chead h2 { font-size: clamp(1.6rem, 3.4vw, 2.15rem); margin: .35rem 0 0; line-height: 1.1; }
+  .chead .tag { color: var(--muted); font-size: 1rem; }
+
+  .cgrid {
+    margin-top: 2.2rem; display: grid; gap: clamp(1.6rem, 3vw, 2.4rem);
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 900px) { .cgrid { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: start; } }
+
+  .prose p { margin: 0 0 .95rem; max-width: 60ch; }
+  .prose p:last-child { margin-bottom: 0; }
+  .prose .flag {
+    display: block; font-family: Consolas, ui-monospace, monospace; font-size: .66rem;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--muted);
+    margin: 1.4rem 0 .35rem;
+  }
+  .prose .flag.weak { color: var(--live); }
+
+  /* the two lockup panels, hard-coded light and dark so they ignore the page theme */
+  .lockups { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); }
+  .lk { padding: clamp(1.6rem, 4vw, 2.4rem) 1.4rem; display: flex; align-items: center; justify-content: center; min-height: 132px; }
+  .lk.on-light { background: #F4F5F3; color: #16191C; --m2: #2A6A70; }
+  .lk.on-dark  { background: #15181B; color: #F0F2F0; --m2: #5FB6B4; }
+  body.live .lk.on-light { --m2: #C93F36; --lamp: #C93F36; }
+  body.live .lk.on-dark  { --m2: #E8574C; --lamp: #E8574C; }
+
+  .lockup { display: flex; align-items: center; gap: var(--lk-gap, .7em); }
+  .lockup svg { display: block; flex: none; }
+
+  /* ------------------------------------------------------------------ wordmarks */
+
+  .wm { font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif; white-space: nowrap; }
+  .wm-lamp    { display: flex; flex-direction: column; line-height: 1; }
+  .wm-lamp i  { font-family: Consolas, ui-monospace, monospace; font-style: normal;
+                font-size: .30em; letter-spacing: .42em; opacity: .55; padding-left: .12em; }
+  .wm-lamp b  { font-weight: 600; letter-spacing: .13em; margin-top: .16em; }
+  .wm-levels  { font-family: Consolas, "Cascadia Mono", ui-monospace, monospace; font-weight: 700; letter-spacing: -.01em; }
+  .wm-faders  { font-weight: 600; letter-spacing: -.012em; }
+  .wm-faders i { font-style: normal; font-weight: 300; opacity: .62; }
+  .wm-plate   { font-weight: 700; letter-spacing: .05em; }
+  .wm-carrier { font-weight: 400; letter-spacing: .38em; }
+
+  /* ------------------------------------------------------------------ spec + sizes */
+
+  .band { margin-top: clamp(1.8rem, 4vw, 2.6rem); }
+  .band > .legend { display: block; margin-bottom: .85rem; }
+
+  .evidence {
+    display: grid; gap: clamp(1.4rem, 3vw, 2rem);
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 780px) { .evidence { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); } }
+
+  .panel { border: 1px solid var(--line); background: var(--paper); padding: 1.15rem 1.25rem 1.3rem; }
+  .panel > .legend { display: block; margin-bottom: 1rem; }
+
+  .ladder { display: flex; align-items: flex-end; gap: clamp(1.1rem, 3vw, 2.1rem); flex-wrap: wrap; }
+  .rung { display: flex; flex-direction: column; align-items: center; gap: .6rem; color: var(--text); --m2: var(--petrol); }
+  body.live .rung { --m2: var(--live); --lamp: var(--live); }
+  .rung svg { display: block; }
+  .rung span {
+    font-family: Consolas, ui-monospace, monospace; font-size: .62rem;
+    letter-spacing: .07em; color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+
+  .panel .legend.sub { margin-top: 1.6rem; padding-top: 1.1rem; border-top: 1px solid var(--line); }
+
+  .tbpair { display: flex; gap: 1.1rem; flex-wrap: wrap; }
+  .tbcase { display: flex; flex-direction: column; gap: .55rem; }
+  .tbcase > span:last-child {
+    font-family: Consolas, ui-monospace, monospace; font-size: .6rem; letter-spacing: .09em;
+    color: var(--muted); text-align: center;
+  }
+  .tbframe { width: 78px; height: 40px; display: block; border: 1px solid var(--line); }
+  .tbframe .tb-block { width: 76px; height: 38px; }
+  .tbframe.railed { border-color: #1D2226; }
+  .tbframe.railed .tb-block { background: #1D2226; color: #fff; }
+  .tbframe.light { background: #F4F5F3; color: #1B1F23; border-color: #CDD0CA; }
+  .tbframe.dark  { background: #15181B; color: #E7E9E7; border-color: #000; }
+  .tbframe .wmk { color: currentColor; }
+
+  .spec { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: .55rem 1rem; font-size: .8rem; }
+  .spec dt {
+    font-family: Consolas, ui-monospace, monospace; font-size: .62rem; letter-spacing: .13em;
+    text-transform: uppercase; color: var(--muted); padding-top: .18em;
+  }
+  .spec dd { margin: 0; line-height: 1.45; }
+
+  /* ------------------------------------------------------------------ mockups */
+
+  .shots { margin-top: clamp(1.6rem, 3.5vw, 2.2rem); display: grid; gap: clamp(1.2rem, 2.6vw, 1.8rem); }
+  .shot-row { display: grid; gap: clamp(1.2rem, 2.6vw, 1.8rem); grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 820px) { .shot-row.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+  .shot > .legend { display: block; margin-bottom: .7rem; }
+
+  /* min-width:0 on every rung of the chain, or the mockups' own min-widths propagate
+     back up as a min-content floor and the whole page scrolls sideways. */
+  .shots, .shot-row, .shot, .scroller { min-width: 0; }
+  .scroller { overflow-x: auto; }
+
+  /* --- the window chrome. Literal hex, independent of the page theme. --- */
+  .win {
+    border: 1px solid; font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    min-width: 560px;
+  }
+  .win.light, .mini.light {
+    --w-bg:#F4F5F3; --w-surface:#FFFFFF; --w-line:#DCDED9; --w-text:#1B1F23; --w-muted:#666D73;
+    --w-accent:#2A6A70; --w-onaccent:#FFFFFF; --w-live:#C93F36; --w-rail:#1D2226; --w-strip:#EAECE7;
+    --w-ok:#1F6E4C;
+    --mq:#B8C1BE; --mg:#2E8B62; --ml:#C08820; --mc:#BE3A2E;
+    --mq0:#F1F2EF; --mg0:#D6E8DE; --ml0:#EFE1C2; --mc0:#F0D6D2;
+    background: var(--w-bg); color: var(--w-text); border-color: #CDD0CA;
+  }
+  .win.dark, .mini.dark {
+    --w-bg:#15181B; --w-surface:#1C2024; --w-line:#2C3238; --w-text:#E7E9E7; --w-muted:#939BA2;
+    --w-accent:#5FB6B4; --w-onaccent:#10211F; --w-live:#E8574C; --w-rail:#0F1215; --w-strip:#101317;
+    --w-ok:#57C295;
+    --mq:#6E7A78; --mg:#3F9E76; --ml:#D7A64A; --mc:#DD5A4F;
+    --mq0:#262B2E; --mg0:#1E332B; --ml0:#332C1C; --mc0:#351F1D;
+    background: var(--w-bg); color: var(--w-text); border-color: #000;
+  }
+
+  .titlebar { height: 40px; display: flex; align-items: stretch; }
+  .tb-block { width: 78px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .tb-block.railed { background: var(--w-rail); color: #fff; }
+  .tb-block .wmk {
+    font-family: Consolas, ui-monospace, monospace; font-weight: 700; font-size: 13px; letter-spacing: .01em;
+  }
+  .caption { margin-left: auto; display: flex; }
+  .caption i {
+    width: 46px; display: grid; place-items: center; font-style: normal;
+    font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", "Segoe UI Symbol", sans-serif;
+    font-size: 10px; color: var(--w-muted);
+  }
+
+  .deck-body { padding: 22px 26px 18px; }
+
+  .staterow { display: flex; align-items: center; }
+  .lamp { width: 13px; height: 13px; background: var(--w-muted); flex: none; transition: background .16s; }
+  body.live .lamp { background: var(--w-live); }
+  .statetxt {
+    font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+    font-weight: 600; font-size: 30px; letter-spacing: -.01em; margin-left: 14px; line-height: 1;
+  }
+  .clock {
+    margin-left: auto; font-family: Consolas, ui-monospace, monospace; font-size: 28px;
+    font-variant-numeric: tabular-nums; display: none;
+  }
+  body.live .clock { display: block; }
+
+  .meter { margin-top: 24px; }
+  .mrow { display: flex; gap: 2px; height: 30px; }
+  .mrow + .mrow { margin-top: 5px; }
+  .mrow i { flex: 1; display: block; }
+  .sg.q { background: var(--mq); } .sg.g { background: var(--mg); }
+  .sg.l { background: var(--ml); } .sg.c { background: var(--mc); }
+  .sg.q.off { background: var(--mq0); } .sg.g.off { background: var(--mg0); }
+  .sg.l.off { background: var(--ml0); } .sg.c.off { background: var(--mc0); }
+  .mscale {
+    display: flex; justify-content: space-between; margin-top: 6px;
+    font-family: Consolas, ui-monospace, monospace; font-size: 9.5px; color: var(--w-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .verdict { display: flex; align-items: flex-end; gap: 16px; margin-top: 14px; }
+  .verdict .vd {
+    font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+    font-weight: 600; font-size: 17px; color: var(--w-ok);
+  }
+  .verdict .ro {
+    font-family: Consolas, ui-monospace, monospace; font-size: 12.5px; color: var(--w-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .verdict .ro.live-only { display: none; }
+  body.live .verdict .ro.live-only { display: block; }
+
+  .chiprow { display: flex; align-items: center; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
+  .chip {
+    border: 1px solid var(--w-line); background: var(--w-surface); padding: 7px 12px;
+    font-family: Consolas, ui-monospace, monospace; font-size: 11.5px; white-space: nowrap;
+  }
+  .chip b { color: var(--w-muted); font-weight: 400; margin-right: 8px; }
+  .chip.rec { color: var(--w-muted); }
+  .btn {
+    border: 1px solid var(--w-line); background: var(--w-surface); color: var(--w-text);
+    font-family: Consolas, ui-monospace, monospace; font-size: 13px; padding: 13px 22px;
+  }
+  .btn.go {
+    border: 0; background: var(--w-accent); color: var(--w-onaccent);
+    font-weight: 700; font-size: 14px; padding: 14px 30px; min-width: 150px; text-align: center;
+  }
+  body.live .btn.go { background: transparent; color: var(--w-live); border: 1px solid var(--w-live); }
+  .spacer { margin-left: auto; }
+
+  .deck-foot {
+    display: flex; align-items: center; gap: 18px; margin-top: 22px; padding-top: 14px;
+    border-top: 1px solid var(--w-line);
+    font-family: Consolas, ui-monospace, monospace; font-size: 11.5px; color: var(--w-muted);
+  }
+  .deck-foot .np { color: var(--w-text); }
+  .deck-foot .sent { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+  /* --- mini strip --- */
+  .mini {
+    height: 56px; display: flex; align-items: center; gap: 14px; padding: 0 12px;
+    border: 1px solid #000; background: var(--w-bg); color: var(--w-text);
+    font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; min-width: 620px;
+  }
+  .mini .mstate { font-family: "Segoe UI Variable Display", "Segoe UI", sans-serif; font-weight: 600; font-size: 15px; }
+  .mini .mclock { font-family: Consolas, ui-monospace, monospace; font-size: 15px; font-variant-numeric: tabular-nums; }
+  .mini .mmeter { display: block; flex: 1; min-width: 90px; max-width: 260px; }
+  .mini .mmeter .mrow { height: 9px; }
+  .mini .mmeter .mrow + .mrow { margin-top: 2px; }
+  .mini .btn.go { padding: 9px 16px; min-width: 118px; font-size: 12.5px; }
+  .mini .wmk { font-family: Consolas, ui-monospace, monospace; font-size: 11.5px; color: var(--w-muted); }
+
+  /* --- taskbar + tray --- */
+  .taskbar {
+    background: #1C1F23; border: 1px solid #000; padding: 6px 10px;
+    display: flex; align-items: center; gap: 14px; min-width: 420px;
+  }
+  .tb-icons { display: flex; align-items: center; gap: 12px; margin: 0 auto; }
+  .tb-icon { width: 34px; height: 30px; display: grid; place-items: center; position: relative; color: #C9CFD4; }
+  .tb-icon.ours { color: #F2F4F2; --m2: #5FB6B4; }
+  .tb-icon.ours::after {
+    content: ""; position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%);
+    width: 14px; height: 2px; background: #5FB6B4;
+  }
+  .tb-icon.ghost svg, .tb-icon.ghost span { opacity: .5; }
+  .tray { display: flex; align-items: center; gap: 11px; padding-left: 12px; border-left: 1px solid #2E3338; }
+  .tray .t { width: 16px; height: 16px; }
+  .tray-cap {
+    font-family: Consolas, ui-monospace, monospace; font-size: 9.5px; color: #8B949B;
+    letter-spacing: .08em; white-space: nowrap;
+  }
+  .clockw {
+    font-family: "Segoe UI Variable Text", "Segoe UI", sans-serif; font-size: 11px; color: #DFE3E6;
+    text-align: right; line-height: 1.25; white-space: nowrap;
+  }
+
+  /* ------------------------------------------------------------------ head to head */
+
+  .h2h { border-top: 1px solid var(--line); padding: clamp(3rem, 7vw, 5rem) 0 1rem; }
+  .h2h h2 { font-size: clamp(1.5rem, 3.2vw, 2rem); margin: .4rem 0 0; }
+  .h2h .stand { color: var(--muted); max-width: 62ch; margin: 1rem 0 2.2rem; }
+
+  table.compare { width: 100%; border-collapse: collapse; font-size: .84rem; }
+  table.compare th, table.compare td { border-bottom: 1px solid var(--line); padding: .85rem .7rem; text-align: left; vertical-align: middle; }
+  table.compare th {
+    font-family: Consolas, ui-monospace, monospace; font-size: .62rem; letter-spacing: .13em;
+    text-transform: uppercase; color: var(--muted); font-weight: 400;
+  }
+  table.compare td:first-child { font-weight: 600; white-space: nowrap; }
+  table.compare .cell { display: flex; align-items: center; gap: .8rem; color: var(--text); --m2: var(--petrol); }
+  body.live table.compare .cell { --m2: var(--live); --lamp: var(--live); }
+  table.compare .verd { color: var(--muted); font-size: .8rem; }
+
+  .wmstack { display: grid; gap: 0; border: 1px solid var(--line); margin-top: 2.5rem; }
+  .wmstack .row {
+    display: flex; align-items: center; gap: clamp(1rem, 4vw, 2.5rem); padding: 1.25rem 1.4rem;
+    border-bottom: 1px solid var(--line); background: var(--paper);
+  }
+  .wmstack .row:last-child { border-bottom: 0; }
+  .wmstack .row .nm {
+    font-family: Consolas, ui-monospace, monospace; font-size: .62rem; letter-spacing: .13em;
+    text-transform: uppercase; color: var(--muted); width: 5.5rem; flex: none;
+  }
+  .wmstack .row .lockup { color: var(--text); --m2: var(--petrol); font-size: 26px; }
+  body.live .wmstack .row .lockup { --m2: var(--live); --lamp: var(--live); }
+
+  /* ------------------------------------------------------------------ closing */
+
+  .closing { border-top: 1px solid var(--line); margin-top: clamp(3rem, 7vw, 5rem); padding: clamp(2.5rem, 6vw, 4rem) 0 clamp(3rem, 8vw, 5rem); }
+  .closing h2 { font-size: clamp(1.5rem, 3.2vw, 2rem); margin: .4rem 0 1.2rem; }
+  .closing p { max-width: 62ch; margin: 0 0 1rem; }
+  .closing ul { max-width: 62ch; padding-left: 1.15rem; margin: 0 0 1.4rem; }
+  .closing li { margin-bottom: .5rem; }
+  .pill {
+    display: inline-block; border-radius: 10px; padding: 3px 11px; background: var(--petrol);
+    color: #fff; font-family: Consolas, ui-monospace, monospace; font-size: .68rem;
+    letter-spacing: .06em; font-weight: 700;
+  }
+  :root[data-theme="dark"] .pill { color: #10211F; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pill { color: #10211F; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<nav class="rail">
+  <div class="rail-in">
+    <span class="mk-nav" id="navMark"></span>
+    <a href="#lamp">Lamp</a>
+    <a href="#levels">Levels</a>
+    <a href="#faders">Faders</a>
+    <a href="#plate">Plate</a>
+    <a href="#carrier">Carrier</a>
+    <label class="air">
+      <input type="checkbox" id="airToggle">
+      <span class="track"><span class="thumb"></span></span>
+      <span>On air</span>
+    </label>
+  </div>
+</nav>
+
+<header class="top">
+  <div class="wrap">
+    <span class="legend">Identity routes &nbsp;/&nbsp; The Deck 1.0.0.6</span>
+    <h1 class="display">Five ways to put a face on a thing that has never had one.</h1>
+    <p class="stand">
+      The Deck ships with no logo and no icon. There is no <code>.ico</code> in the repository, nothing
+      declared in the project file or the installer, and the notification area draws
+      <strong>a plain grey circle at runtime</strong> because that was the honest placeholder. So this is
+      not a redesign — it is the first mark the product will have.
+    </p>
+    <p class="stand">
+      Every route below is drawn in the app's own palette and set in the app's own faces, then dropped
+      into real surfaces at real sizes: the 78-pixel block at the head of the rail, the deck itself, the
+      mini strip, the taskbar, the tray. Flip <strong>On air</strong> in the bar above to see each one
+      hold up while a station is live.
+    </p>
+
+    <div class="judge">
+      <dl>
+        <div>
+          <dt>It has to work at 16 pixels</dt>
+          <dd>That is the tray, and the tray is where this app lives during a show. Anything that needs detail to be recognised has already failed.</dd>
+        </div>
+        <div>
+          <dt>It has to carry state</dt>
+          <dd>Off air, connecting, on air. The icon is the only thing visible when the window is minimised, so it has to say which.</dd>
+        </div>
+        <div>
+          <dt>The mark must stand without the word</dt>
+          <dd>And the word must stand without the mark. They meet in the lock-up; they do not depend on each other.</dd>
+        </div>
+        <div>
+          <dt>It must speak the window's language</dt>
+          <dd>Square corners, one-pixel rules, monospace legending. A soft, rounded, gradient mark would look borrowed from another product.</dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="concepts"></main>
+
+<section class="h2h wrap">
+  <span class="legend">The honest test</span>
+  <h2 class="display">All five, at the sizes that actually decide it.</h2>
+  <p class="stand">
+    Drawn at true pixel dimensions — no scaling, no zoom. The 16-pixel column is the tray icon during a
+    live show; the 24 is the taskbar. If a route only convinces in the left-hand column, it is a poster
+    and not an identity.
+  </p>
+  <div class="scroller">
+    <table class="compare" id="compareTable">
+      <thead>
+        <tr><th>Route</th><th>64 px</th><th>32 px</th><th>24 px</th><th>16 px</th><th>Reads as</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <span class="legend" style="display:block;margin-top:3rem">Lock-ups, one under another</span>
+  <div class="wmstack" id="wmStack"></div>
+</section>
+
+<section class="closing wrap">
+  <span class="legend">Where this goes next</span>
+  <h2 class="display">Pick one and it becomes eleven files and five edits.</h2>
+  <p>
+    Everything above is vector source, drawn on a 64-unit grid with a separate small-size cut below 20
+    pixels. Choosing a route turns it into the real package:
+  </p>
+  <ul>
+    <li><strong>The icon</strong> — a single multi-resolution <code>.ico</code> carrying 16, 20, 24, 32, 40, 48, 64, 128 and 256, each size hinted rather than downsampled, plus PNGs for the readme and the release page.</li>
+    <li><strong>The window</strong> — <code>ApplicationIcon</code> in <code>Deck.App.csproj</code>, so the taskbar and Alt-Tab stop showing the default WPF sheet.</li>
+    <li><strong>The tray</strong> — <code>TrayPresence.BuildIcon</code> currently fills an ellipse; it would draw the mark instead and keep the three state colours it already has.</li>
+    <li><strong>The title bar</strong> — the wordmark in the rail block becomes the lock-up, drawn as geometry rather than as text in Consolas.</li>
+    <li><strong>The installer and the releases</strong> — <code>SetupIconFile</code> and the wizard image in <code>installer/Deck.iss</code>, and the readme header.</li>
+  </ul>
+  <p>
+    One caveat worth stating plainly: the wordmarks on this page are set in <em>Segoe UI Variable
+    Display</em> and <em>Consolas</em>, which are the faces the app itself renders in. That is deliberate
+    — but a wordmark that is live text is not a wordmark. Whichever route wins, its lettering gets drawn
+    to outlines and the spacing set by hand, so it is identical on every machine and at every size.
+  </p>
+  <p style="margin-top:1.8rem"><span class="pill">Ready when you are</span></p>
+</section>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ================================================================= marks
+     One 64-unit grid, one small-size cut. Colour comes from the container:
+     currentColor for the form, --m2 for the accent detail, --lamp for the
+     on-air element (transparent until a station goes live).                */
+
+  var marks = {
+    lamp: {
+      big: function () {
+        return '<path fill="currentColor" fill-rule="evenodd" d="M4 4H60V60H4Z' +
+               ' M32 19a13 13 0 1 0 0 26a13 13 0 1 0 0-26Z' +
+               ' M9 30h9v4H9Z M46 30h9v4h-9Z"/>' +
+               '<circle cx="32" cy="32" r="7" fill="var(--lamp, transparent)"/>';
+      },
+      small: function () {
+        return '<path fill="currentColor" fill-rule="evenodd" d="M1 1H15V15H1Z' +
+               ' M8 4.4a3.6 3.6 0 1 0 0 7.2a3.6 3.6 0 1 0 0-7.2Z"/>' +
+               '<circle cx="8" cy="8" r="2" fill="var(--lamp, transparent)"/>';
+      }
+    },
+    levels: {
+      big: function () {
+        /* Six narrow segments to a row, not four wide ones. At four the cells came out
+           nearly square and the mark read as a grid of blocks rather than as a divided
+           meter bar, which is the whole idea. Top row six, bottom row four.            */
+        var w = 6.7, step = 9.06, out = '';
+        for (var i = 0; i < 6; i++) {
+          out += '<rect x="' + (6 + i * step).toFixed(2) + '" y="17" width="' + w + '" height="14" fill="' +
+                 (i === 5 ? 'var(--m2, currentColor)' : 'currentColor') + '"/>';
+        }
+        for (var j = 0; j < 4; j++) {
+          out += '<rect x="' + (6 + j * step).toFixed(2) + '" y="34" width="' + w + '" height="14" fill="currentColor"/>';
+        }
+        return out;
+      },
+      small: function () {
+        return '<rect x="2" y="3.5" width="12" height="3.6" fill="currentColor"/>' +
+               '<rect x="2" y="8.9" width="8" height="3.6" fill="currentColor"/>';
+      }
+    },
+    faders: {
+      big: function () {
+        return '<rect x="18.5" y="6" width="3" height="52" fill="currentColor" opacity=".22"/>' +
+               '<rect x="42.5" y="6" width="3" height="52" fill="currentColor" opacity=".22"/>' +
+               '<rect x="9" y="18" width="22" height="7" fill="currentColor"/>' +
+               '<rect x="33" y="36" width="22" height="7" fill="var(--m2, currentColor)"/>';
+      },
+      small: function () {
+        /* The slots have to stay, and stay visible. Dropped to hairlines they left two
+           offset bars, which at this size is indistinguishable from the Levels route -
+           two routes arriving at the same 16-pixel drawing is a failure of both.       */
+        return '<rect x="4.2" y="1.5" width="1.6" height="13" fill="currentColor" opacity=".45"/>' +
+               '<rect x="10.2" y="1.5" width="1.6" height="13" fill="currentColor" opacity=".45"/>' +
+               '<rect x="1.5" y="4.2" width="7" height="3" fill="currentColor"/>' +
+               '<rect x="7.5" y="8.8" width="7" height="3" fill="currentColor"/>';
+      }
+    },
+    plate: {
+      big: function () {
+        return '<path fill="currentColor" fill-rule="evenodd" d="M8 8H40L52 20V44L40 56H8Z' +
+               ' M20 20H36L40 24V40L36 44H20Z"/>' +
+               '<rect x="24.5" y="26" width="11" height="12" fill="var(--lamp, transparent)"/>';
+      },
+      small: function () {
+        return '<path fill="currentColor" fill-rule="evenodd" d="M2 2H10.5L13 4.5V11.5L10.5 14H2Z' +
+               ' M5 5H9L10 6V10L9 11H5Z"/>' +
+               '<rect x="6" y="6.5" width="2.6" height="3" fill="var(--lamp, transparent)"/>';
+      }
+    },
+    carrier: {
+      big: function () {
+        return '<path d="M4 42H12V22H28V42H44V22H60" fill="none" stroke="currentColor"' +
+               ' stroke-width="7" stroke-linecap="butt"/>' +
+               '<path d="M44 22H60" fill="none" stroke="var(--m2, currentColor)"' +
+               ' stroke-width="7" stroke-linecap="butt"/>';
+      },
+      small: function () {
+        return '<path d="M1 11H5V5H9.5V11H15" fill="none" stroke="currentColor"' +
+               ' stroke-width="2.4" stroke-linecap="butt"/>';
+      }
+    }
+  };
+
+  function mark(key, size) {
+    var m = marks[key];
+    var small = size <= 20;
+    var box = small ? 16 : 64;
+    return '<svg viewBox="0 0 ' + box + ' ' + box + '" width="' + size + '" height="' + size +
+           '" aria-hidden="true" focusable="false">' +
+           (small ? m.small() : m.big()) + '</svg>';
+  }
+
+  /* ================================================================= routes */
+
+  var routes = [
+    {
+      key: 'lamp',
+      name: 'Lamp',
+      tag: 'the light above the door',
+      wm: '<span class="wm wm-lamp"><i>the</i><b>DECK</b></span>',
+      wmSize: 34,
+      lkGap: '.62em',
+      gapNav: 6,
+      idea: 'A plate with a lens cut out of it, and two ticks of legending either side. It is the lamp ' +
+            'outside a live studio, reduced until only the hole is left. Off air the lens shows whatever ' +
+            'is behind it; on air it fills red.',
+      strong: 'It is the only route where the icon <em>is</em> the state. The tray already needs three ' +
+              'colours and this mark was built for them, so a minimised Deck says on-air from the corner ' +
+              'of your eye with no window open. The negative lens survives being drawn at 16 pixels ' +
+              'because a hole in a solid field is the last thing to disappear.',
+      weak: 'A solid square with a circular hole is not a rare idea. Without the flanking ticks it drifts ' +
+            'towards a record button, or a washer. It also carries the most ink of the five, which on the ' +
+            'light theme makes a fairly heavy black square in the corner of a deliberately pale window.',
+      spec: {
+        Mark: 'Solid plate, 56×56 on a 64 grid; lens r=13 knocked out; two 9×4 ticks at centre height.',
+        Wordmark: 'DECK in Segoe UI Variable Display Semibold, tracked 0.13em, under a Consolas "the" at 30%.',
+        'Small cut': 'Below 20px the ticks go and the plate runs to the edge. Lens drops to r=3.6.',
+        State: 'Plate stays ink; the lens fills — grey off air, amber connecting, #C93F36 live.'
+      },
+      reads: 'A lamp, or a record button'
+    },
+    {
+      key: 'levels',
+      name: 'Levels',
+      tag: 'the meter is the interface',
+      wm: '<span class="wm wm-levels">deck</span>',
+      wmSize: 34,
+      lkGap: '.5em',
+      gapNav: 7,
+      idea: 'Two segmented bars, four lit over three — the left and right channels of the meter that ' +
+            'takes up half the deck. The product\'s own face, cropped to a square.',
+      strong: 'It is the most truthful of the five: this is literally what you look at while presenting. ' +
+              'The asymmetry between the rows keeps it from being the generic four-bar "equaliser" glyph, ' +
+              'and stacked bars are the most robust shape there is at small sizes — the 16-pixel cut is ' +
+              'two solid rectangles and loses nothing.',
+      weak: 'Bars are common currency: signal strength, analytics, sound. It is the least ownable ' +
+            'silhouette here, and it says "audio" rather than "broadcast" — nothing about it suggests the ' +
+            'sound is going anywhere. It also cannot carry state well; recolouring a bar reads as a level ' +
+            'change, not as on-air.',
+      spec: {
+        Mark: 'Two rows, 14 units tall; segments 6.7 wide on a 2.4 gap. Six lit over four, flush left.',
+        Wordmark: 'deck, lowercase, Consolas Bold — the same face as every label in the window.',
+        'Small cut': 'Below 20px the segments merge: one 12-unit bar over one 8-unit bar.',
+        State: 'Weakest here. Live would tint the last lit segment, which is easy to miss.'
+      },
+      reads: 'Levels, or signal strength'
+    },
+    {
+      key: 'faders',
+      name: 'Faders',
+      tag: 'a mixing deck, at two glances',
+      wm: '<span class="wm wm-faders"><i>The&nbsp;</i>Deck</span>',
+      wmSize: 32,
+      lkGap: '.6em',
+      gapNav: 7,
+      idea: 'Two channel faders at different positions. It is the one route that answers the question ' +
+            'the name asks — why is this called The Deck — and it answers it in four rectangles.',
+      strong: 'The most human of the five, and the only one a singer setting up in a pub would recognise ' +
+              'instantly. The offset caps give it a silhouette nothing else in a taskbar has. It pairs ' +
+              'naturally with a title-case wordmark, which suits an app whose whole argument is that ' +
+              'broadcasting should not feel like operating equipment.',
+      weak: 'It is a picture of hardware in a product that deliberately has no faders — the deck reports, ' +
+            'setup changes, and there is not a slider on the main screen. At 16 pixels the slots reduce to ' +
+            'single hairlines that will grey out on a light taskbar, so the small cut leans almost entirely ' +
+            'on the two caps.',
+      spec: {
+        Mark: 'Two 3-unit slots at 25% opacity; caps 22×7, offset vertically by 18 units.',
+        Wordmark: '"The" in Segoe UI Light at 62%, "Deck" in Semibold. The only route that keeps the article.',
+        'Small cut': 'Slots hold at 1.6 units and 45% — dropped to hairlines they left two offset bars, which is the Levels route. Caps 7×3.',
+        State: 'Live tints the lower cap. Legible, but it competes with the slot for attention.'
+      },
+      reads: 'A mixer, or a settings slider'
+    },
+    {
+      key: 'plate',
+      name: 'Plate',
+      tag: 'one letter, cut square',
+      wm: '<span class="wm wm-plate">DECK</span>',
+      wmSize: 30,
+      lkGap: '.58em',
+      gapNav: 7,
+      idea: 'A D with its curve replaced by two 45-degree cuts, and a counter big enough to hold the ' +
+            'on-air lamp. A monogram that borrows the chamfer as a motif the rest of the identity can reuse.',
+      strong: 'The most scalable and the most professional: a letterform is unmistakably a product rather ' +
+              'than a category, so it never gets confused with a media player or a level meter. It is also ' +
+              'the only route that combines both ideas — the letter identifies the app, the counter lights ' +
+              'up when you are live. Alphabetical marks survive being stamped on anything: a favicon, a ' +
+              'sticker, a splash screen.',
+      weak: 'It is the safest and therefore the least interesting. A chamfered letter in a square is the ' +
+            'default move for technical software, and nothing in it is about sound or broadcast — it would ' +
+            'suit a disk utility equally well. The counter also needs 24 pixels before the lamp inside it ' +
+            'reads at all.',
+      spec: {
+        Mark: 'Stem and bowl 12 units thick; 12-unit chamfers top-right and bottom-right; square counter.',
+        Wordmark: 'DECK in Segoe UI Bold, tracked 0.05em. Tight, institutional, no article.',
+        'Small cut': 'Chamfers to 2.5 units, stroke to 3. The lamp is dropped below 24px.',
+        State: 'Strongest of the five: the counter is a dedicated lamp with nothing else competing in it.'
+      },
+      reads: 'A letter D — a product'
+    },
+    {
+      key: 'carrier',
+      name: 'Carrier',
+      tag: 'the signal itself, square',
+      wm: '<span class="wm wm-carrier">DECK</span>',
+      wmSize: 26,
+      lkGap: '.8em',
+      gapNav: 8,
+      idea: 'One unbroken stroke describing a square wave, stepping up as it leaves the frame. Not a sine ' +
+            '— a sine is analogue and rounded, and there is not a rounded corner in this application.',
+      strong: 'The only route drawn in the window\'s exact grammar: one weight of square-ended stroke, ' +
+              'mitred corners, no fills. It reads as digital audio to anyone technical and as motion to ' +
+              'everyone else, and it is the most distinctive silhouette here — nothing else in a taskbar ' +
+              'looks like it. The rising end gives it direction, which is the one thing a broadcast mark ' +
+              'should have.',
+      weak: 'It is the lightest, and light marks lose fights: on a busy taskbar or against a photograph it ' +
+            'has the least presence of the five. It also says "waveform" more than "station", and it is the ' +
+            'hardest to reduce — the small cut has to drop from two and a half cycles to one and a half, ' +
+            'which is a visibly different drawing rather than a simplification.',
+      spec: {
+        Mark: 'Single 7-unit stroke, butt caps, mitred joins. Baseline 42, crest 22, ends high.',
+        Wordmark: 'DECK in Segoe UI Regular tracked 0.38em — airy, to match the stroke\'s weight.',
+        'Small cut': 'One and a half cycles at 2.4 units. A redraw, not a reduction.',
+        State: 'The leading run carries the colour, so live turns the last third red.'
+      },
+      reads: 'A square wave, digital audio'
+    }
+  ];
+
+  /* ================================================================= mockups */
+
+  function meterRows(lit, seg) {
+    var n = seg || 42, html = '', rows = [lit, Math.max(0, lit - 0.09)];
+    for (var r = 0; r < 2; r++) {
+      var row = '';
+      for (var i = 0; i < n; i++) {
+        var p = i / (n - 1);
+        var zone = p < 0.55 ? 'q' : p < 0.80 ? 'g' : p < 0.92 ? 'l' : 'c';
+        row += '<i class="sg ' + zone + (p <= rows[r] ? '' : ' off') + '"></i>';
+      }
+      html += '<div class="mrow">' + row + '</div>';
+    }
+    return html;
+  }
+
+  function titleBlock(key, railed) {
+    return '<div class="tb-block' + (railed ? ' railed' : '') + '">' +
+             mark(key, 20) + '<span class="wmk">Deck</span>' +
+           '</div>';
+  }
+
+  function deckWindow(key, theme) {
+    return '<div class="win ' + theme + '">' +
+      '<div class="titlebar">' + titleBlock(key, false) +
+        '<div class="caption"><i>&#xE921;</i><i>&#xE922;</i><i>&#xE8BB;</i></div>' +
+      '</div>' +
+      '<div class="deck-body">' +
+        '<div class="staterow">' +
+          '<span class="lamp"></span>' +
+          '<span class="statetxt" data-off="OFF AIR" data-on="ON AIR">OFF AIR</span>' +
+          '<span class="clock">00:41:12</span>' +
+        '</div>' +
+        '<div class="meter">' + meterRows(0.68) +
+          '<div class="mscale"><span>-40</span><span>-30</span><span>-20</span><span>-12</span><span>-6</span><span>0</span></div>' +
+        '</div>' +
+        '<div class="verdict">' +
+          '<span class="vd">Sounds good</span>' +
+          '<span class="ro">peak -6.4 dB</span>' +
+          '<span class="ro">-16.2 LUFS</span>' +
+          '<span class="ro live-only">18 listeners</span>' +
+        '</div>' +
+        '<div class="chiprow">' +
+          '<span class="chip"><b>Input</b>Yeti Nano</span>' +
+          '<span class="chip"><b>Server</b>Elixir</span>' +
+          '<span class="chip"><b>Quality</b>128 kbps</span>' +
+          '<span class="chip rec">&#9679; REC</span>' +
+          '<span class="spacer"></span>' +
+          '<button class="btn" type="button">Mini</button>' +
+          '<button class="btn" type="button">Setup</button>' +
+          '<button class="btn go" type="button" data-off="Go live" data-on="Stop">Go live</button>' +
+        '</div>' +
+        '<div class="deck-foot">' +
+          '<span>NOW PLAYING&nbsp;&nbsp;</span>' +
+          '<span class="np">Saturday Night Session &mdash; live from The Anchor</span>' +
+          '<span class="sent" data-off="Sent 0 B" data-on="Sent 41.2 MB">Sent 0 B</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function miniStrip(key, theme) {
+    return '<div class="mini ' + theme + '">' +
+      mark(key, 20) +
+      '<span class="lamp"></span>' +
+      '<span class="mstate" data-off="OFF AIR" data-on="ON AIR">OFF AIR</span>' +
+      '<span class="mclock" style="display:none">00:41:12</span>' +
+      '<span class="mmeter">' + meterRows(0.68, 22) + '</span>' +
+      '<span class="spacer"></span>' +
+      '<span class="chip"><b>Server</b>Elixir</span>' +
+      '<span class="chip rec">&#9679; REC</span>' +
+      '<button class="btn go" type="button" data-off="Go live" data-on="Stop">Go live</button>' +
+      '<span class="wmk">Deck</span>' +
+    '</div>';
+  }
+
+  function taskbar(key) {
+    var ghost = '<span class="tb-icon ghost"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">' +
+                '<rect x="3" y="4" width="18" height="14" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
+                '</svg></span>';
+    var ghost2 = '<span class="tb-icon ghost"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">' +
+                 '<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
+                 '</svg></span>';
+    return '<div class="taskbar">' +
+      '<div class="tb-icons">' + ghost +
+        '<span class="tb-icon ours">' + mark(key, 24) + '</span>' + ghost2 +
+      '</div>' +
+      '<div class="tray">' +
+        '<span class="t" style="color:#8A8A93">' + mark(key, 16) + '</span>' +
+        '<span class="t" style="color:#E0A32E">' + mark(key, 16) + '</span>' +
+        '<span class="t" style="color:#D01B1B;--lamp:#D01B1B">' + mark(key, 16) + '</span>' +
+        '<span class="tray-cap">OFF / CONN / LIVE</span>' +
+      '</div>' +
+      '<div class="clockw">21:47<br>Sat 12 Jul</div>' +
+    '</div>';
+  }
+
+  function lockup(key, size, wm, gap) {
+    return '<span class="lockup" style="--lk-gap:' + gap + ';font-size:' + size + 'px">' +
+             mark(key, Math.round(size * 1.32)) + wm +
+           '</span>';
+  }
+
+  function specList(spec) {
+    var out = '';
+    Object.keys(spec).forEach(function (k) {
+      out += '<dt>' + k + '</dt><dd>' + spec[k] + '</dd>';
+    });
+    return '<dl class="spec">' + out + '</dl>';
+  }
+
+  function ladder(key) {
+    var sizes = [64, 48, 32, 24, 16], out = '';
+    sizes.forEach(function (s) {
+      out += '<span class="rung">' + mark(key, s) + '<span>' + s + ' px</span></span>';
+    });
+    return '<div class="ladder">' + out + '</div>';
+  }
+
+  /* The 78-pixel block at the head of the rail: rail-coloured while setup is open,
+     part of the window on the deck. Both states, true size.                        */
+  function titlePair(key) {
+    return '<div class="tbpair">' +
+      '<span class="tbcase"><span class="tbframe railed">' + titleBlock(key, true) + '</span>' +
+        '<span>setup open</span></span>' +
+      '<span class="tbcase"><span class="tbframe light">' + titleBlock(key, false) + '</span>' +
+        '<span>on the deck</span></span>' +
+      '<span class="tbcase"><span class="tbframe dark">' + titleBlock(key, false) + '</span>' +
+        '<span>dark deck</span></span>' +
+    '</div>';
+  }
+
+  /* ================================================================= render */
+
+  var host = document.getElementById('concepts');
+
+  host.innerHTML = routes.map(function (r, i) {
+    var theme = i % 2 === 0 ? 'light' : 'dark';
+    var other = theme === 'light' ? 'dark' : 'light';
+    return '' +
+    '<section class="concept" id="' + r.key + '">' +
+      '<div class="chead">' +
+        '<span class="legend">Route &nbsp;/&nbsp; ' + r.name + '</span>' +
+      '</div>' +
+      '<div class="chead"><h2 class="display">' + r.name + '</h2><span class="tag">' + r.tag + '</span></div>' +
+
+      '<div class="cgrid">' +
+        '<div class="prose">' +
+          '<p>' + r.idea + '</p>' +
+          '<span class="flag">What it has going for it</span>' +
+          '<p>' + r.strong + '</p>' +
+          '<span class="flag weak">Where it is weak</span>' +
+          '<p>' + r.weak + '</p>' +
+        '</div>' +
+        '<div class="lockups">' +
+          '<div class="lk on-light">' + lockup(r.key, r.wmSize, r.wm, r.lkGap) + '</div>' +
+          '<div class="lk on-dark">' + lockup(r.key, r.wmSize, r.wm, r.lkGap) + '</div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="band">' +
+        '<div class="evidence">' +
+          '<div class="panel"><span class="legend">Drawn at true size</span>' + ladder(r.key) +
+            '<span class="legend sub">In the title bar &nbsp;/&nbsp; 78 &times; 40</span>' + titlePair(r.key) +
+          '</div>' +
+          '<div class="panel"><span class="legend">Specification</span>' + specList(r.spec) + '</div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="shots">' +
+        '<div class="shot">' +
+          '<span class="legend">The deck &nbsp;/&nbsp; ' + theme + ' theme</span>' +
+          '<div class="scroller">' + deckWindow(r.key, theme) + '</div>' +
+        '</div>' +
+        '<div class="shot-row two">' +
+          '<div class="shot">' +
+            '<span class="legend">Mini mode &nbsp;/&nbsp; ' + other + ' theme</span>' +
+            '<div class="scroller">' + miniStrip(r.key, other) + '</div>' +
+          '</div>' +
+          '<div class="shot">' +
+            '<span class="legend">Taskbar and notification area</span>' +
+            '<div class="scroller">' + taskbar(r.key) + '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</section>';
+  }).join('');
+
+  /* nav mark cycles through the five, so the bar carries one of them at all times */
+  document.getElementById('navMark').innerHTML = mark('plate', 18);
+
+  /* head to head */
+  var tbody = document.querySelector('#compareTable tbody');
+  tbody.innerHTML = routes.map(function (r) {
+    return '<tr><td>' + r.name + '</td>' +
+      [64, 32, 24, 16].map(function (s) {
+        return '<td><span class="cell">' + mark(r.key, s) + '</span></td>';
+      }).join('') +
+      '<td class="verd">' + r.reads + '</td></tr>';
+  }).join('');
+
+  document.getElementById('wmStack').innerHTML = routes.map(function (r) {
+    return '<div class="row"><span class="nm">' + r.name + '</span>' +
+           lockup(r.key, 28, r.wm, r.lkGap) + '</div>';
+  }).join('');
+
+  /* ================================================================= on air */
+
+  var toggle = document.getElementById('airToggle');
+
+  function swap(live) {
+    document.body.classList.toggle('live', live);
+    var key = live ? 'on' : 'off';
+    Array.prototype.forEach.call(document.querySelectorAll('[data-off]'), function (el) {
+      var text = el.getAttribute('data-' + key);
+      if (text !== null) el.textContent = text;
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.mini .mclock'), function (el) {
+      el.style.display = live ? 'block' : 'none';
+    });
+  }
+
+  toggle.addEventListener('change', function () { swap(toggle.checked); });
+})();
+</script>
