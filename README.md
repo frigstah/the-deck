@@ -94,8 +94,8 @@ want published needs to be out of the source *before* the push rather than in a 
 
 ```
 src/Deck.Core/          No UI. Everything below is usable headless.
-  Audio/                WASAPI and ASIO capture, metering + level coaching, channel selection,
-                        resampling, format conversion, monitoring, sound check, automatic on-air
+  Audio/                WASAPI, ASIO and single-program capture, metering + level coaching, channel
+                        selection, resampling, format conversion, monitoring, sound check, auto on-air
   Audio/Dsp/            Voice Enhance, AGC, 3-band EQ, multiband compressor, safety limiter,
                         BS.1770 loudness meter, spectrum analyser, stereo phase meter
   Codecs/               MP3 (LAME), Ogg Opus (Concentus), Ogg Vorbis, Ogg FLAC, Ogg muxer, presets
@@ -338,6 +338,9 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   time; that has not yet been watched across hours.
 - **A real media-session title.** The API is proven reachable, but no title has been read from an
   actual player. Play something and run `-- --metadata` to confirm.
+- **A program that refuses to be captured.** Real programs work, including a karaoke player and a
+  3D client. What has not been met is one running as administrator while Deck is not, which Windows
+  refuses - the message for that case is written but has never been seen.
 - **A listener count with someone actually listening.** The whole loop is now watched end to end
   against a loopback server built to behave like a real shared host, and the fallback chain has been
   run against a real one read-only. What is left is a real audience: nothing has yet reported a figure
@@ -427,6 +430,15 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
 - **The status strip appears only while setup is open.** The deck states the same facts in far larger
   type, so showing both would say everything twice on one screen. Exactly one of the two is always
   visible, so the answer to "am I live?" never leaves.
+- **One program, not the whole desktop.** The second source can be a single program - the backing-track
+  player, and nothing else on the machine. That is what makes karaoke work: microphone on the main input,
+  KaraFun on the second, two faders, one stream. Whole-desktop capture would take the notifications, the
+  other window and Deck's own monitoring with it. Windows only offers this from build 20348, so below that
+  Deck does not offer it at all rather than failing when somebody goes on air.
+- **A program is remembered by name, not by process id.** A pid is different every time the program
+  starts. And because Windows only lists a program while it is playing, a chosen one is put back into the
+  list when it goes quiet - otherwise refreshing during a pause would silently move the second source to
+  something nobody picked, and the singer would find out on stage.
 - **"No listener count" is a different answer from "nought listeners".** Both used to look like an
   empty space, and a station owner staring at one could not tell whether nobody had tuned in or the
   server never tells Deck. Now the number is the number, not knowing says so, and the reason is on

@@ -137,6 +137,11 @@ public sealed class MonitorPlayer : IDisposable
             return "You are broadcasting this PC's own sound, so you can already hear it. Monitoring is not usually needed here.";
         }
 
+        // A program's own stream carries nothing but that program, so Deck's monitoring cannot get into
+        // it however it is played. That is the quiet advantage of capturing one program rather than the
+        // whole desktop, and it is the reason there is no warning here.
+        if (inputKind == AudioDeviceKind.Process) return null;
+
         return inputKind == AudioDeviceKind.Input
             ? "Use headphones while monitoring. If this plays through speakers, your microphone will pick it up and howl."
             : null;

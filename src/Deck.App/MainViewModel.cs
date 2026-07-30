@@ -2584,6 +2584,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         InputDevices.Clear();
         foreach (var device in AudioDevices.AllInputSources()) InputDevices.Add(device);
 
+        // A program only appears in that list while Windows says it is playing, so a chosen one has to
+        // be put back when it is paused - otherwise refreshing while the backing track is stopped moves
+        // the second source to something nobody picked, and the singer finds out on stage (A9).
+        KeepChosenProgram(previousInputId, previousInputKind);
+        KeepChosenProgram(
+            _selectedSecondaryInput?.Id ?? _settings.SecondaryDeviceId,
+            _selectedSecondaryInput?.Kind ?? _settings.SecondaryDeviceKind);
+
         MonitorDevices.Clear();
         foreach (var device in AudioDevices.Outputs()) MonitorDevices.Add(device);
 
@@ -2610,6 +2618,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         RaiseAll(nameof(SelectedInput), nameof(SelectedSecondaryInput), nameof(SelectedMonitorDevice),
             nameof(IsLoopbackInput), nameof(InputSourceHint), nameof(MonitorWarning),
             nameof(PrimaryFaderLabel));
+    }
+
+    /// <summary>Puts a chosen program back into the list when it is not currently playing.</summary>
+    private void KeepChosenProgram(string? deviceId, AudioDeviceKind kind)
+    {
+        if (kind != AudioDeviceKind.Process || !ProcessLoopbackCapture.IsProcessId(deviceId)) return;
+        if (InputDevices.Any(d => d.Matches(deviceId, AudioDeviceKind.Process))) return;
+
+        InputDevices.Add(AudioProcesses.Named(deviceId!));
     }
 
     private void StartAudio()

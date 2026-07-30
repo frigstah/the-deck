@@ -262,6 +262,68 @@ internal static class InputChecks
             Expect(device.ShortName == "IN 1-8", $"the chip says \"{device.ShortName}\"");
         });
 
+        // ------------------------------------------------------------------ one program as a source (A9)
+        //
+        // The capture itself needs audio hardware and lives behind --process. What can be checked here is
+        // everything that decides whether a saved setting still means anything tomorrow.
+
+        failures += Check("a program is remembered by name, not by process id", () =>
+        {
+            // A process id is different every time the program starts. Storing one would give a setting
+            // that worked all evening and pointed at nothing, or at somebody else's program, the next day.
+            var id = ProcessLoopbackCapture.IdFor("KaraFun");
+
+            Expect(ProcessLoopbackCapture.IsProcessId(id), $"\"{id}\" is not recognised as a program");
+            Expect(ProcessLoopbackCapture.ProgramNameFrom(id) == "karafun",
+                $"got \"{ProcessLoopbackCapture.ProgramNameFrom(id)}\" back");
+
+            Expect(!int.TryParse(ProcessLoopbackCapture.ProgramNameFrom(id), out _),
+                "the stored name is a number, which is what this is meant to prevent");
+        });
+
+        failures += Check("a program id is never mistaken for a device id", () =>
+        {
+            // Endpoint ids look like "{0.0.1.00000000}.{guid}" and ASIO ids carry their own prefix. All
+            // three end up in the same setting, so a program id has to be unmistakable.
+            Expect(!ProcessLoopbackCapture.IsProcessId("{0.0.1.00000000}.{a-guid}"), "an endpoint id read as a program");
+            Expect(!ProcessLoopbackCapture.IsProcessId("asio:X-AIR ASIO Driver"), "an ASIO id read as a program");
+            Expect(!ProcessLoopbackCapture.IsProcessId(null), "null read as a program");
+            Expect(!ProcessLoopbackCapture.IsProcessId(string.Empty), "an empty id read as a program");
+        });
+
+        failures += Check("Windows versions that cannot do it are recognised", () =>
+        {
+            // Offered on a version that cannot capture a program, Deck would fail at the moment somebody
+            // went on air - which is the worst possible time to find out.
+            Expect(!ProcessLoopbackCapture.SupportedOn(17763), "1809 was treated as capable");
+            Expect(!ProcessLoopbackCapture.SupportedOn(19041), "2004 was treated as capable");
+            Expect(!ProcessLoopbackCapture.SupportedOn(20347), "one build short was treated as capable");
+            Expect(ProcessLoopbackCapture.SupportedOn(20348), "the first capable build was refused");
+            Expect(ProcessLoopbackCapture.SupportedOn(26100), "Windows 11 was refused");
+        });
+
+        failures += Check("a program says what it is in the picker", () =>
+        {
+            var program = new AudioDevice(
+                ProcessLoopbackCapture.IdFor("karafun"), "KaraFun Player", AudioDeviceKind.Process, IsSystemDefault: false);
+
+            // "KaraFun Player" in a list of microphones needs a heading, exactly as loopback did.
+            Expect(program.CategoryLabel == "One program on this PC", $"grouped under \"{program.CategoryLabel}\"");
+            Expect(program.ShortName == "KaraFun Player", $"the chip would say \"{program.ShortName}\"");
+        });
+
+        failures += Check("capturing one program needs no warning about feedback", () =>
+        {
+            // Whole-desktop loopback hears Deck's own monitoring coming back around, so it warns. One
+            // program's stream carries only that program, which is the quiet advantage of this feature -
+            // and a warning that does not apply is one the user learns to ignore.
+            Expect(MonitorPlayer.FeedbackWarning(AudioDeviceKind.Process, "process:karafun", "some-output") is null,
+                "warned about feedback that cannot happen");
+
+            Expect(MonitorPlayer.FeedbackWarning(AudioDeviceKind.Loopback, "device-a", "device-a") is not null,
+                "stopped warning about the case that genuinely feeds back");
+        });
+
         return failures;
     }
 
