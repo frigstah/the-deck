@@ -446,6 +446,20 @@
     -->
     <sys:Double x:Key="RailWidth">78</sys:Double>
 
+    <!--
+        The mini strip's two control heights, held here rather than left to each control's own padding.
+        The strip carries four things you can press and they came from three different styles, so they
+        sized themselves to three different heights - a chip at 31, a button at 32, near enough to look
+        like a mistake rather than a decision. On a 56-pixel row that misalignment is most of what the
+        eye notices.
+
+        So: everything that reports or switches is one height, and the one control that takes a station
+        on or off air is the other. Being the only thing on the row that is a different size is how it
+        says it is the different kind of thing.
+    -->
+    <sys:Double x:Key="MiniControlHeight">32</sys:Double>
+    <sys:Double x:Key="MiniActionHeight">40</sys:Double>
+
     <Style x:Key="RailItemStyle" TargetType="TabItem">
         <Setter Property="Foreground" Value="{DynamicResource RailTextBrush}" />
         <Setter Property="Cursor" Value="Hand" />

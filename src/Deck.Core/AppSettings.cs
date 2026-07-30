@@ -20,6 +20,23 @@ public enum AppTheme
     Dark,
 }
 
+/// <summary>
+/// Whether setup slides in and out, or simply appears (I12).
+/// <para>
+/// Three states rather than a switch, and for the same reason as <see cref="AppTheme"/>: following
+/// Windows is the right default and the wrong answer for some people, in both directions. Somebody who
+/// turned animations off in Windows for motion sensitivity should not have to argue with Deck about it;
+/// somebody who turned them off for an old machine's sake, or who never knew the setting existed, should
+/// not be told that a 220ms slide is unavailable to them.
+/// </para>
+/// </summary>
+public enum SetupMotion
+{
+    System,
+    Always,
+    Never,
+}
+
 /// <summary>Everything Deck remembers between runs that is not a server profile.</summary>
 public sealed class AppSettings
 {
@@ -182,6 +199,22 @@ public sealed class AppSettings
     /// </para>
     /// </summary>
     public bool MinimiseToTray { get; set; }
+
+    /// <summary>Whether setup slides in and out. Follows the Windows animation setting by default.</summary>
+    public SetupMotion SetupMotion { get; set; } = SetupMotion.System;
+
+    /// <summary>
+    /// Whether the strip's on-air sign carries the listener count, so it reads "ON AIR WITH 7
+    /// LISTENERS" rather than "ON AIR" (I12).
+    /// <para>
+    /// On by default, because the strip has nowhere else to put the number and it is one of the two
+    /// things anyone looks up for during a show. Off is for the case the default cannot serve: a strip
+    /// parked where other people can see it. A presenter who knows eleven people are listening is
+    /// informed; a room that knows it is a different matter, and on a bad night it is the last thing
+    /// anyone wants on a screen behind them.
+    /// </para>
+    /// </summary>
+    public bool ShowListenersOnStrip { get; set; } = true;
 
     /// <summary>
     /// Whether Deck is a thin strip rather than the whole deck.

@@ -203,6 +203,17 @@ internal static class DeckMark
     public static Media.Geometry TitleBarGeometry { get; } = Media.Geometry.Parse("F0 " + PathData(TitleBarSize));
 
     /// <summary>
+    /// The size the mark is drawn at on the mini strip. Forty-eight is what fits: the strip is 56 pixels
+    /// tall and fixed, so this is the largest hinted size that leaves the mark room to breathe rather
+    /// than running into both edges. The letter inside the box is 34 by 36, which puts ten pixels of
+    /// strip above and below it.
+    /// </summary>
+    public const int MiniStripSize = 48;
+
+    /// <summary>The mark for the mini strip, at its own hinted size rather than a scaled title bar.</summary>
+    public static Media.Geometry MiniStripGeometry { get; } = Media.Geometry.Parse("F0 " + PathData(MiniStripSize));
+
+    /// <summary>
     /// The same shape as path data for XAML, so the title bar draws the mark rather than a letter in
     /// a font. Uses the hinted cut for the size it will actually be drawn at, so it lands on whole
     /// pixels instead of being scaled off the grid by a Viewbox.

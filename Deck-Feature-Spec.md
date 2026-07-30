@@ -173,7 +173,7 @@ Priority key: **P0** = v1.0 must-ship · **P1** = v1.1, strongly wanted · **P2*
 | I9 | Auto-update check | P2 — **built** | Extended past the original scope on request: Deck now installs the update as well as reporting it. Pinned repository, https only, SHA-256 verified |
 | I10 | CLI / remote control API | P3 — **built** | Both. Off by default, loopback unless deliberately opened, and opening it needs a password |
 | I11 | MIDI CC control | P3 — **built** | Learn-by-moving-the-control. Everything below the driver is checked from raw bytes |
-| I12 | Mini mode: a thin always-on-top strip | — **built** | Not in the original list; it followed from I1 and I4. Three sizes rather than two, and the strip holds the meter, the destination, record and go live. No settings on it and no way to reach one |
+| I12 | Mini mode: a thin always-on-top strip | — **built** | Not in the original list; it followed from I1 and I4. Three sizes rather than two, and the strip holds the mark, the meter, the destination, record and go live. No settings on it and no way to reach one. Its on-air sign carries the listener count — "ON AIR WITH 7 LISTENERS" — since there is no readout row to put a number in; switchable, because the strip is the part of Deck other people end up seeing |
 
 ### 3.10 Explicit non-goals for v1
 

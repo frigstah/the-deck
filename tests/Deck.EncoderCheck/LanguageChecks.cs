@@ -129,6 +129,34 @@ internal static class LanguageChecks
                 Expect(text == "42 listeners", $"got \"{text}\"");
             });
 
+            failures += Check("the strip's state block reserves enough room for any count", () =>
+            {
+                // The mini strip draws "ON AIR WITH 18 LISTENERS", and a hidden twin holding the
+                // longest form claims the width so the block stops resizing as people tune in and out -
+                // the meter takes whatever is left on that row, so a block that resizes drags the meter
+                // sideways. That only works while the reserve really is the widest string, which is a
+                // property of the text and therefore breaks in translation rather than in code.
+                //
+                // Character count is a fair stand-in for width here, and only here: the block is set in
+                // Consolas, so every character is the same width.
+                Strings.Use("en");
+
+                var reserve = Strings.Get(StringId.StateWithListeners, Strings.Get(StringId.ListenerMany, 999));
+
+                for (var count = 0; count <= 999; count++)
+                {
+                    var listeners = count == 1
+                        ? Strings.Get(StringId.ListenerOne)
+                        : Strings.Get(StringId.ListenerMany, count);
+
+                    var actual = Strings.Get(StringId.StateWithListeners, listeners);
+
+                    Expect(actual.Length <= reserve.Length,
+                        $"\"{actual}\" is wider than the reserved \"{reserve}\", so the block would " +
+                        "resize at that many listeners and shift the meter");
+                }
+            });
+
             // ---------------------------------------------------------------- updates (I9)
 
             failures += Check("the update check never offers to run anything", () =>

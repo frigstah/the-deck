@@ -74,9 +74,19 @@ public partial class MainWindow : Window
     /// </summary>
     private void SlideSetup(bool open)
     {
-        // Respect the system setting. Someone who has turned animations off in Windows has said what
-        // they want, and a 220ms slide is exactly the kind of thing they turned off.
-        if (!SystemParameters.ClientAreaAnimation)
+        // Follow Windows by default: someone who turned animations off there has said what they want,
+        // and a 220ms slide is exactly the kind of thing they turned off. But it is only the default -
+        // that setting gets turned off for an old machine's sake, or by an IT policy, or by somebody who
+        // never knew it existed, and none of those people have said anything about this slide. So Deck
+        // takes an answer of its own if it has been given one.
+        var animate = _viewModel.Settings.SetupMotion switch
+        {
+            Core.SetupMotion.Always => true,
+            Core.SetupMotion.Never => false,
+            _ => SystemParameters.ClientAreaAnimation,
+        };
+
+        if (!animate)
         {
             SetupOffset.BeginAnimation(TranslateTransform.YProperty, null);
             SetupOffset.Y = 0;
@@ -182,8 +192,19 @@ public partial class MainWindow : Window
     /// Wide enough that the meter is still a meter. The controls and the state block take a fixed
     /// amount of the row and the meter gets what is left, so a narrower strip does not make Deck
     /// smaller - it makes the one thing on the strip worth watching too small to read.
+    /// <para>
+    /// Everything on this row is fixed width except the meter, so anything added to the strip comes out
+    /// of the meter unless the strip grows with it. It went up by sixty for the mark, which is what the
+    /// mark and its gap take, and by a hundred and twenty for the listener count in the state block -
+    /// "ON AIR WITH 999 LISTENERS" is a hundred and fourteen pixels wider than "OFF AIR", and the block
+    /// reserves the widest case so it does not resize during a show.
+    /// </para>
+    /// <para>
+    /// This is only the width the strip starts at. The width is free afterwards, so anyone who wants a
+    /// shorter strip can have one and the meter shrinks rather than anything being cut off.
+    /// </para>
     /// </summary>
-    private const double MiniWidth = 860;
+    private const double MiniWidth = 1040;
 
     /// <summary>Where the deck was, so the strip can put it back rather than guess at it.</summary>
     private Rect _deckPlacement = Rect.Empty;

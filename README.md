@@ -463,12 +463,40 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   plain-text table, then the mount's own admin stats using the broadcast password — because a shared
   host can remove the public status pages and leave a healthy server that publishes nothing.
 - **Three sizes, and the middle one is the strip.** Press Mini and Deck becomes a 56-pixel bar that
-  stays on top of other windows: the on-air block, the meter, the destination, record, go live, and the
-  way back. Nothing else, and no route to a setting — for that you need the deck, which is one press or
+  stays on top of other windows: the mark, the on-air block, the meter, the destination, record, go
+  live, and the way back. Nothing else, and no route to a setting — for that you need the deck, which is one press or
   one double-click away. The deck is for when Deck is what you are doing; the notification area is for
   when it is out of mind; the strip is for the case in between, which is most of a show. It is
   remembered between runs, because parking it along the top of a screen is a way of working rather than
   a passing choice.
+- **Setup slides, and "follow Windows" was not enough of an answer.** It arrives and leaves over 220ms,
+  easing out on the way in and in on the way out, and the distance is the panel's own height so it is
+  right at any window size. Deck skipped the movement entirely when Windows had animation effects turned
+  off, which is the correct default and turned out to be the wrong *only* option: that setting gets
+  switched off for an old machine's sake, by an IT policy, or by somebody who never knew it existed, and
+  none of those people said anything about this slide. So it is three states like the palette — follow
+  Windows, always, never — and when it is following, the hint says which way Windows currently has it,
+  because otherwise there is no way to tell why setup does or does not move.
+- **The strip's on-air sign carries the listener count: "ON AIR WITH 7 LISTENERS".** One sign for the
+  two things you look up for during a show. The deck keeps them apart because it has a readout row to
+  put the number in and saying it twice on one screen would be worse; the strip has no readouts at all,
+  which is exactly why it goes in the sign there. It appears only when live and only when the number is
+  actually known — "ON AIR WITH NO LISTENER COUNT" is a worse sign than "ON AIR". A hidden twin holding
+  the longest form claims the width, because the meter takes whatever is left on that row and a block
+  that resized as people tuned in and out would drag the meter sideways all show. The strip is not
+  polled while off air: the count is not shown there, so asking would be traffic to somebody's server
+  every fifteen seconds in exchange for nothing. It is a switch, under Deck itself, because the strip is
+  the one part of Deck that ends up on a screen other people can see — a presenter who knows eleven are
+  listening is informed, and a room that knows it is a different matter. Off, the sign reads "ON AIR"
+  and the number is still on the deck.
+- **The strip is the one place the mark is drawn large, and it holds two control heights.** It is the
+  only part of Deck that floats over other programs with no title bar and no wordmark, so it is the
+  only part that has to say whose strip it is — in the accent rather than the text colour, because the
+  loudest thing on that row has to stay the on-air block and a 48-pixel near-white letter beside it
+  would win that argument. The four things you can press came from three different styles and sized
+  themselves to 31, 31, 32 and 32, which on a row this tight reads as a fault rather than a decision.
+  Everything that reports or switches is one height now; going on air is the other, and being the only
+  differently sized thing on the row is how it says it is a different kind of thing.
 - **The installer had SIRS's identity, and that is not a cosmetic thing.** An `AppId` is the whole of a
   product's identity to Windows, and the fork inherited SIRS's verbatim — so The Deck was not a new
   program, it *was* SIRS. Inno looks that id up before showing the folder page, so it found SIRS's
