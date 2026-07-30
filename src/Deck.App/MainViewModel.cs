@@ -241,12 +241,35 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         ? SelectedServerShort
         : BroadcastTargetText;
 
-    /// <summary>Present only while it is true. A chip reading "not recording" is noise.</summary>
-    public bool ShowRecordingChip => IsRecording;
+    /// <summary>
+    /// The deck's record control.
+    /// <para>
+    /// A button, not the chip this started as. The mockup drew "REC ●" among the signal-path chips,
+    /// which were all facts rather than controls - so it was built as an indicator, and there was
+    /// then no way to start a recording without opening setup. It reads as a control now and it is
+    /// one; it still shows elapsed time while running, so it does the indicator's job as well.
+    /// </para>
+    /// </summary>
+    public string RecordButtonLabel => IsRecording
+        ? $"● {_engine.Recorder.Elapsed:mm\\:ss}"
+        : "● REC";
 
-    public string RecordingChip => IsRecording
-        ? $"REC {_engine.Recorder.Elapsed:mm\\:ss}"
-        : string.Empty;
+    public Brush RecordButtonBrush => IsRecording
+        ? (Brush)AppResource("BadBrush")
+        : (Brush)AppResource("MutedTextBrush");
+
+    /// <summary>
+    /// Says why it is running, when Deck started it rather than the user. Without this, someone who
+    /// set "record every show" months ago has no way to tell whether the recording that is running
+    /// is the one they meant.
+    /// </summary>
+    public string RecordButtonTooltip => IsRecording
+        ? _recordingStartedWithShow
+            ? "Recording, started automatically with the show. Press to stop."
+            : "Recording. Press to stop."
+        : RecordEveryShow
+            ? "Press to start recording now. One will also start by itself when you go on air."
+            : "Press to start recording.";
 
     /// <summary>
     /// The line listeners are seeing, or nothing. Read-only here on purpose: the deck reports, and
@@ -265,8 +288,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         : string.Empty;
 
     private void RaiseDeck() => RaiseAll(
-        nameof(InputChip), nameof(OutputChip), nameof(ShowRecordingChip), nameof(RecordingChip),
-        nameof(NowPlayingLine), nameof(BufferText));
+        nameof(InputChip), nameof(OutputChip), nameof(RecordButtonLabel), nameof(RecordButtonBrush),
+        nameof(RecordButtonTooltip), nameof(NowPlayingLine), nameof(BufferText));
 
     // ---------------------------------------------------------------- which pane is open
 
@@ -1243,6 +1266,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     {
         if (StreamState.IsBroadcasting())
         {
+            // Before the stream closes, so the recording covers the whole show rather than stopping
+            // a moment after the last audio went out.
+            StopRecordingWithShow();
+
             _ = _engine.StopBroadcastAsync().ContinueWith(_ => OnUi(RefreshTargetStatus),
                 TaskScheduler.Default);
             return;
@@ -1272,11 +1299,40 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             StatusMessage = string.Empty;
             _engine.GoLive(profiles);
             RefreshTargetStatus();
+
+            if (RecordEveryShow && !IsRecording) StartRecordingWithShow();
         }
         catch (Exception ex)
         {
             StatusMessage = ex.Message;
         }
+    }
+
+    /// <summary>
+    /// Recording that began because the show did, rather than because someone pressed record.
+    /// <para>
+    /// Tracked so that coming off air stops it again - but only when Deck was the one that started
+    /// it. Someone who pressed record before going on air is recording deliberately, and having the
+    /// end of a broadcast silently end their recording too would be the wrong call.
+    /// </para>
+    /// </summary>
+    private bool _recordingStartedWithShow;
+
+    private void StartRecordingWithShow()
+    {
+        ToggleRecording();
+        _recordingStartedWithShow = IsRecording;
+
+        if (IsRecording) _engine.Log.Info("Recording started with the show.");
+    }
+
+    private void StopRecordingWithShow()
+    {
+        if (!_recordingStartedWithShow || !IsRecording) return;
+
+        _recordingStartedWithShow = false;
+        _engine.Log.Info("Show ended — stopping the recording it started.");
+        ToggleRecording();
     }
 
     /// <summary>
@@ -1570,8 +1626,39 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             StatusMessage = ex.Message;
         }
 
-        RaiseAll(nameof(IsRecording), nameof(RecordButtonText), nameof(RecordingStatus));
+        RaiseAll(nameof(IsRecording), nameof(RecordButtonText), nameof(RecordingStatus),
+            nameof(RecordButtonLabel), nameof(RecordButtonBrush), nameof(RecordButtonTooltip),
+            nameof(RecordingShort));
     }
+
+    /// <summary>
+    /// Start recording whenever the show starts, and stop when it ends.
+    /// <para>
+    /// The setting has existed since the first version and nothing read it, so it did nothing at all.
+    /// It is wired now.
+    /// </para>
+    /// </summary>
+    public bool RecordEveryShow
+    {
+        get => _settings.RecordWhileBroadcasting;
+        set
+        {
+            if (_settings.RecordWhileBroadcasting == value) return;
+
+            _settings.RecordWhileBroadcasting = value;
+            Persist();
+
+            // Turned on while already live: start now rather than waiting for the next show, which
+            // is what someone reaching for this switch mid-broadcast is asking for.
+            if (value && StreamState.IsBroadcasting() && !IsRecording) StartRecordingWithShow();
+
+            RaiseAll(nameof(RecordEveryShow), nameof(RecordEveryShowHint), nameof(RecordingStatus));
+        }
+    }
+
+    public string RecordEveryShowHint => RecordEveryShow
+        ? "Every show is kept. Recording starts when you go on air and stops when you come off."
+        : "Recording is only ever started by hand.";
 
     public IReadOnlyList<(int Minutes, string Label)> SplitOptions { get; } = RecordingSettings.SplitOptions;
 

@@ -267,13 +267,17 @@
                                        ToolTip="{Binding QualitySummary}" />
                         </Border>
 
-                        <!-- Recording is the one chip that comes and goes, because it is the one
-                             whose absence means something. -->
-                        <Border Style="{StaticResource DeckChipStyle}"
-                                Visibility="{Binding ShowRecordingChip, Converter={StaticResource BoolToVisibility}}">
-                            <TextBlock Text="{Binding RecordingChip}" Style="{StaticResource DeckChipValueStyle}"
-                                       Foreground="{DynamicResource BadBrush}" />
-                        </Border>
+                        <!--
+                             Record is a button, not a chip. It sits at the end of the chip row
+                             because that is where the mockup drew it and it belongs with the signal
+                             path - but everything to its left is a fact and this is a control, so it
+                             is shaped like one and it works.
+                        -->
+                        <Button Content="{Binding RecordButtonLabel}" Click="OnToggleRecording"
+                                Style="{StaticResource DeckRecordButtonStyle}"
+                                Foreground="{Binding RecordButtonBrush}"
+                                ToolTip="{Binding RecordButtonTooltip}"
+                                AutomationProperties.Name="Record" />
                     </WrapPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
@@ -1077,6 +1081,13 @@
                                             Style="{StaticResource RowButtonStyle}"
                                             ToolTip="Open the recordings folder." />
                                 </StackPanel>
+                            </local:SettingRow>
+
+                            <local:SettingRow Label="Record every show" ContentWidth="38"
+                                              Hint="{Binding RecordEveryShowHint}">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding RecordEveryShow}"
+                                          AutomationProperties.Name="Record every show" />
                             </local:SettingRow>
 
                             <local:SettingRow Label="Saved as" ContentWidth="330"
