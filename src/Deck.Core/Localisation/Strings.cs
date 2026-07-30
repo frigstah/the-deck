@@ -215,6 +215,7 @@ public static class Strings
             // ---- listeners (H4)
             [StringId.ListenerOne] = "1 listener",
             [StringId.ListenerMany] = "{0} listeners",
+            [StringId.ListenerUnknown] = "no listener count",
 
             // ---- updates (I9)
             [StringId.UpdateUpToDate] = "Deck is up to date.",
@@ -258,6 +259,7 @@ public static class StringId
 
     public const string ListenerOne = "listeners.one";
     public const string ListenerMany = "listeners.many";
+    public const string ListenerUnknown = "listeners.unknown";
 
     public const string UpdateUpToDate = "update.upToDate";
     public const string UpdateAvailable = "update.available";

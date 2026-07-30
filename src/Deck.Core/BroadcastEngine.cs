@@ -115,7 +115,20 @@ public sealed class BroadcastEngine : IDisposable
     /// <summary>Listeners the servers last reported, or null when none of them say (H4).</summary>
     public int? ListenerCount { get; private set; }
 
+    /// <summary>
+    /// How the count was arrived at, or why there is not one. Not a headline - the deck says the
+    /// number and this says the rest, on hover and in the log.
+    /// </summary>
+    public string? ListenerDetail { get; private set; }
+
     public event EventHandler? ListenerCountChanged;
+
+    /// <summary>
+    /// Servers already explained once. A poll runs every few seconds for the length of a show, and a
+    /// server that publishes nothing will say so every single time; the log is for the morning after,
+    /// not for the same sentence four hundred times.
+    /// </summary>
+    private readonly HashSet<Guid> _listenersExplained = [];
 
     private async Task PollListenersAsync()
     {
@@ -123,25 +136,34 @@ public sealed class BroadcastEngine : IDisposable
 
         if (live.Count == 0)
         {
-            if (ListenerCount is null) return;
+            _listenersExplained.Clear();
+
+            if (ListenerCount is null && ListenerDetail is null) return;
 
             ListenerCount = null;
+            ListenerDetail = null;
             ListenerCountChanged?.Invoke(this, EventArgs.Empty);
             return;
         }
 
-        var counts = await Task.WhenAll(live.Select(t => ListenerCounter.QueryAsync(t.Profile)))
+        var reports = await Task.WhenAll(live.Select(t => ListenerCounter.QueryAsync(t.Profile)))
             .ConfigureAwait(false);
 
-        // Summed across destinations that answer, ignoring those that do not. Someone listening to
-        // the backup relay is still a listener, and a server that stays silent should not drag the
-        // total to zero.
-        var reported = counts.Where(c => c.HasValue).Select(c => c!.Value).ToList();
-        var total = reported.Count == 0 ? (int?)null : reported.Sum();
+        // Say once, in the log, why a count is missing. Without this the answer to "why does it never
+        // show listeners?" lived nowhere at all - which is exactly how it went unnoticed that one
+        // ordinary host serves 404 for the endpoint every Icecast is supposed to have.
+        for (var i = 0; i < reports.Length; i++)
+        {
+            if (reports[i].Known || !_listenersExplained.Add(live[i].Profile.Id)) continue;
+            Log.Info(reports[i].Detail);
+        }
 
-        if (total == ListenerCount) return;
+        var combined = ListenerTally.Combine(reports);
 
-        ListenerCount = total;
+        if (combined.Value == ListenerCount && combined.Detail == ListenerDetail) return;
+
+        ListenerCount = combined.Value;
+        ListenerDetail = combined.Detail;
         ListenerCountChanged?.Invoke(this, EventArgs.Empty);
     }
 

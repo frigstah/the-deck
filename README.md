@@ -338,8 +338,10 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   time; that has not yet been watched across hours.
 - **A real media-session title.** The API is proven reachable, but no title has been read from an
   actual player. Play something and run `-- --metadata` to confirm.
-- **A listener count from a live server.** The parsing is covered, but no real status endpoint has
-  been queried — that needs someone actually listening.
+- **A listener count with someone actually listening.** The whole loop is now watched end to end
+  against a loopback server built to behave like a real shared host, and the fallback chain has been
+  run against a real one read-only. What is left is a real audience: nothing has yet reported a figure
+  above nought that came from a stranger's media player.
 - **Global hotkeys and the tray icon.** Both are constructed without complaint and the app runs
   normally, but nothing here presses Ctrl+Shift+G or clicks the notification area. Worth five
   minutes by hand.
@@ -425,6 +427,12 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
 - **The status strip appears only while setup is open.** The deck states the same facts in far larger
   type, so showing both would say everything twice on one screen. Exactly one of the two is always
   visible, so the answer to "am I live?" never leaves.
+- **"No listener count" is a different answer from "nought listeners".** Both used to look like an
+  empty space, and a station owner staring at one could not tell whether nobody had tuned in or the
+  server never tells Deck. Now the number is the number, not knowing says so, and the reason is on
+  hover and in the log. Getting the number at all takes three tries — Icecast's JSON stats, the older
+  plain-text table, then the mount's own admin stats using the broadcast password — because a shared
+  host can remove the public status pages and leave a healthy server that publishes nothing.
 - **Three sizes, and the middle one is the strip.** Press Mini and Deck becomes a 56-pixel bar that
   stays on top of other windows: the on-air block, the meter, the destination, record, go live, and the
   way back. Nothing else, and no route to a setting — for that you need the deck, which is one press or

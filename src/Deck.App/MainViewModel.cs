@@ -164,7 +164,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             while (LogEntries.Count > 300) LogEntries.RemoveAt(0);
         });
 
-        _engine.ListenerCountChanged += (_, _) => OnUi(() => Raise(nameof(ListenerText)));
+        _engine.ListenerCountChanged += (_, _) =>
+            OnUi(() => RaiseAll(nameof(ListenerText), nameof(ListenerTooltip)));
 
         _engine.Capture.CaptureFailed += OnCaptureFailed;
         _engine.DeviceRecovered += (_, e) => OnUi(() =>
@@ -1494,15 +1495,31 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     public SessionLog Log => _engine.Log;
 
     /// <summary>
-    /// Listener count for the header. Servers that do not report it simply show nothing, rather
-    /// than a zero that would read as "nobody is listening".
+    /// Listener count for the deck and the strip.
+    /// <para>
+    /// "No listener count" rather than an empty space, and that is the whole of this wave's point. An
+    /// empty space could mean two opposite things - nobody has tuned in, or this server never tells
+    /// Deck - and a station owner staring at one cannot tell which. Now nought listeners says nought,
+    /// and not knowing says it does not know, with the reason on hover.
+    /// </para>
     /// </summary>
-    public string ListenerText => _engine.ListenerCount switch
+    public string ListenerText
     {
-        null => string.Empty,
-        1 => Strings.Get(StringId.ListenerOne),
-        var count => Strings.Get(StringId.ListenerMany, count),
-    };
+        get
+        {
+            if (!StreamState.IsBroadcasting()) return string.Empty;
+
+            return _engine.ListenerCount switch
+            {
+                null => Strings.Get(StringId.ListenerUnknown),
+                1 => Strings.Get(StringId.ListenerOne),
+                var count => Strings.Get(StringId.ListenerMany, count),
+            };
+        }
+    }
+
+    /// <summary>Where the number came from, or why there is not one. Never the only place it is said.</summary>
+    public string ListenerTooltip => _engine.ListenerDetail ?? string.Empty;
 
     public void ToggleBroadcast()
     {
@@ -2678,7 +2695,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             nameof(StreamState), nameof(IsLive), nameof(StateHeadline), nameof(StateBrush),
             nameof(GoLiveButtonText), nameof(GoLiveButtonBrush), nameof(GoLiveButtonTextBrush),
             nameof(GoLiveButtonBorderBrush), nameof(StateHeadlineUpper), nameof(CanGoLive),
-            nameof(UptimeText), nameof(SilenceAlert));
+            nameof(UptimeText), nameof(SilenceAlert),
+            // The listener readout only exists while on air, so going off has to clear it rather than
+            // waiting for the next poll to notice.
+            nameof(ListenerText), nameof(ListenerTooltip));
 
         RaiseChipLock();
     });

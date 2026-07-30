@@ -229,7 +229,10 @@
                         <TextBlock Text="{Binding LevelReadout}" Style="{StaticResource DeckReadoutStyle}"
                                    Margin="0,0,0,1" />
                         <TextBlock Text="{Binding IntegratedLoudnessText}" Style="{StaticResource DeckReadoutStyle}" />
+                        <!-- The hover carries where the number came from, or why there is not one. The
+                             readout has room for "no listener count" and not for the reason. -->
                         <TextBlock Text="{Binding ListenerText}" Style="{StaticResource DeckReadoutStyle}"
+                                   ToolTip="{Binding ListenerTooltip}"
                                    Visibility="{Binding ListenerText, Converter={StaticResource TextToVisibility}}" />
                         <TextBlock Text="{Binding CorrelationSummary}" Style="{StaticResource DeckReadoutStyle}"
                                    Visibility="{Binding CorrelationSummary, Converter={StaticResource TextToVisibility}}" />
@@ -1514,6 +1517,7 @@
                                ToolTip="{Binding BroadcastTargetText}"
                                Visibility="{Binding BroadcastTargetText, Converter={StaticResource TextToVisibility}}" />
                     <TextBlock Text="{Binding ListenerText}" Style="{StaticResource StatusChipStyle}"
+                               ToolTip="{Binding ListenerTooltip}"
                                Visibility="{Binding ListenerText, Converter={StaticResource TextToVisibility}}" />
                     <TextBlock Text="{Binding QualityShort}" Style="{StaticResource StatusChipStyle}"
                                ToolTip="{Binding QualitySummary}"
