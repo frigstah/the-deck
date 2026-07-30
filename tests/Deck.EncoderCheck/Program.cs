@@ -68,6 +68,11 @@ internal static class Program
         Console.WriteLine(lineageFailures == 0 ? "PASS\n" : $"{lineageFailures} case(s) FAILED\n");
         failures += lineageFailures;
 
+        Console.WriteLine("--- Who hosts your stream ---");
+        var hostFailures = HostQuestionChecks.Run();
+        Console.WriteLine(hostFailures == 0 ? "PASS\n" : $"{hostFailures} case(s) FAILED\n");
+        failures += hostFailures;
+
         Console.WriteLine("--- Working out the server type ---");
         var serverTypeFailures = ServerTypeChecks.Run();
         Console.WriteLine(serverTypeFailures == 0 ? "PASS\n" : $"{serverTypeFailures} case(s) FAILED\n");

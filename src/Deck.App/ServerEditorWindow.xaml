@@ -70,23 +70,47 @@
                         <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
 
                         <TextBlock Text="Who hosts your stream?" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,4" />
-                        <ComboBox ItemsSource="{Binding HostPresets}" SelectedItem="{Binding SelectedHostPreset}"
-                                  ItemTemplate="{StaticResource NameItemTemplate}" />
+                        <!-- The placeholder is laid over the closed picker rather than being an entry in
+                             the list, because it is a statement about this server, not a choice anyone
+                             could make. It never takes a click: the picker underneath does. -->
+                        <Grid>
+                            <ComboBox ItemsSource="{Binding HostPresetsView}" SelectedItem="{Binding SelectedHostPreset}"
+                                      ItemTemplate="{StaticResource NameItemTemplate}">
+                                <ComboBox.GroupStyle>
+                                    <StaticResource ResourceKey="DeviceGroupStyle" />
+                                </ComboBox.GroupStyle>
+                            </ComboBox>
+                            <TextBlock Text="Already set up — nothing to choose here" Style="{StaticResource HintStyle}"
+                                       Margin="11,0,32,0" IsHitTestVisible="False"
+                                       Visibility="{Binding ShowHostPlaceholder, Converter={StaticResource BoolToVisibility}}" />
+                        </Grid>
                         <TextBlock Text="{Binding HostGuidance}" Style="{StaticResource HintStyle}" Margin="0,6,0,0"
                                    Visibility="{Binding HostGuidance, Converter={StaticResource TextToVisibility}}" />
                         <TextBlock Text="{Binding HostFieldNaming}" Style="{StaticResource HintStyle}" Margin="0,4,0,0"
                                    Visibility="{Binding HostFieldNaming, Converter={StaticResource TextToVisibility}}" />
 
-                        <TextBlock Text="Server type" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,4" />
-                        <ComboBox ItemsSource="{Binding ServerTypes}" SelectedItem="{Binding ServerTypeValue}">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Converter={StaticResource ServerTypeName}}" />
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                        <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0"
-                                   Text="Leave this on “Detect automatically” unless your host told you otherwise — pressing Test will work it out." />
+                        <!-- One question, not two. Naming the host settles the server type for every host
+                             in that list, so this says what was settled instead of asking again. The raw
+                             picker is one press away, and shows itself uninvited if the two ever disagree. -->
+                        <TextBlock Text="{Binding ServerTypeSummary}" Style="{StaticResource HintStyle}"
+                                   Margin="0,10,0,0" />
+                        <Button Content="Change this myself" Click="OnChangeServerType" HorizontalAlignment="Left"
+                                Style="{StaticResource LinkButtonStyle}" Margin="0,4,0,0"
+                                Visibility="{Binding ShowServerTypeLink, Converter={StaticResource BoolToVisibility}}" />
+
+                        <StackPanel Margin="0,10,0,0"
+                                    Visibility="{Binding ShowServerTypeOverride, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="Server type" Style="{StaticResource FieldLabelStyle}" />
+                            <ComboBox ItemsSource="{Binding ServerTypes}" SelectedItem="{Binding ServerTypeValue}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Converter={StaticResource ServerTypeName}}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0"
+                                       Text="Only worth setting if your host told you the server is something else, or if Deck worked it out wrongly. “Detect automatically” is almost always the right answer." />
+                        </StackPanel>
 
                         <Grid Margin="0,12,0,0">
                             <Grid.ColumnDefinitions>

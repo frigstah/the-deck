@@ -99,6 +99,35 @@ internal static class ThemeChecks
             }
         });
 
+        failures += Check("a button's own colour actually reaches its text", () =>
+        {
+            // The check above passed for months while every accent button on screen ignored
+            // OnAccentColor entirely: 1.9:1 on the dark palette, 2.7:1 on the light one. The palette
+            // was never wrong - the button template simply never used it. A ContentPresenter handed a
+            // string builds a TextBlock, and that TextBlock takes the application-wide implicit
+            // TextBlock style ahead of anything it would have inherited from the control.
+            //
+            // So this checks the mechanism, not the numbers: the shared Button template has to push
+            // its Foreground back onto its content. It is a text scan and it cannot prove the result
+            // is on screen - only the pixels can - but it fails loudly if the line that makes it work
+            // is ever dropped, which is what happened.
+            var styleStart = themeXaml.IndexOf("<Style TargetType=\"Button\">", StringComparison.Ordinal);
+            Expect(styleStart >= 0, "the shared Button style is no longer where this check looks for it");
+
+            var template = Between(
+                themeXaml[styleStart..], "<ControlTemplate TargetType=\"Button\">", "</ControlTemplate>");
+
+            Expect(template is not null, "the shared Button style no longer carries a template");
+
+            var presenter = Between(template!, "<ContentPresenter", "</ContentPresenter>")
+                ?? throw new Exception(
+                    "the Button template's ContentPresenter is self-closing, so nothing colours the text it builds");
+
+            Expect(presenter.Contains("TargetType=\"TextBlock\"") && presenter.Contains("Property=\"Foreground\""),
+                "the Button template does not push its Foreground onto the text it builds, so accent " +
+                "buttons will silently draw in the body text colour");
+        });
+
         failures += Check("the on-air state block reads on both palettes", () =>
         {
             // Always white text on the live colour, in the strip and on the deck.
@@ -177,6 +206,16 @@ internal static class ThemeChecks
     /// WCAG contrast ratio. Colours carrying alpha are composited over the value behind them first,
     /// because a wash at 12% opacity is not the colour it names.
     /// </summary>
+    /// <summary>The text between the first opening marker and the first closing one after it.</summary>
+    private static string? Between(string text, string open, string close)
+    {
+        var start = text.IndexOf(open, StringComparison.Ordinal);
+        if (start < 0) return null;
+
+        var end = text.IndexOf(close, start, StringComparison.Ordinal);
+        return end < 0 ? null : text[start..end];
+    }
+
     private static double Contrast(string foreground, string background)
     {
         if (!TryParse(foreground, out var fg)) throw new Exception($"cannot read colour {foreground}");

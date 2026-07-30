@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Windows.Data;
 using System.Windows.Media;
 using Deck.Core.Codecs;
 using Deck.Core.Diagnostics;
@@ -42,6 +44,7 @@ public sealed class ServerEditorViewModel : ObservableObject
     private string? _testAdvice;
     private bool _isTesting;
     private bool _showAdvanced;
+    private bool _showServerTypeOverride;
     private QualityPreset? _selectedPreset;
     private HostPreset? _selectedHostPreset;
 
@@ -50,6 +53,11 @@ public sealed class ServerEditorViewModel : ObservableObject
         Profile = profile;
         _selectedPreset = QualityPreset.Match(profile.Encoder) ?? QualityPreset.Default;
         _showAdvanced = QualityPreset.Match(profile.Encoder) is null;
+
+        // Grouped so the one question can hold three kinds of answer - the company, the software,
+        // or "I don't know" - without reading as a jumble.
+        HostPresetsView = new CollectionViewSource { Source = HostPreset.All }.View;
+        HostPresetsView.GroupDescriptions.Add(new PropertyGroupDescription(nameof(HostPreset.Group)));
 
         // Set directly rather than through the property: selecting a preset applies it, and an
         // existing server being edited must not have its settings rewritten just by opening it.
@@ -60,7 +68,7 @@ public sealed class ServerEditorViewModel : ObservableObject
 
     // ---------------------------------------------------------------- host preset (C11)
 
-    public IReadOnlyList<HostPreset> HostPresets { get; } = HostPreset.All;
+    public ICollectionView HostPresetsView { get; }
 
     public HostPreset? SelectedHostPreset
     {
@@ -74,13 +82,47 @@ public sealed class ServerEditorViewModel : ObservableObject
             RaiseAll(nameof(ServerTypeValue), nameof(Port), nameof(UseTls), nameof(Username),
                 nameof(StreamPathLabel), nameof(StreamPathHint), nameof(ShowMountPoint),
                 nameof(ShowStreamId), nameof(ShowUsername), nameof(ListenUrl),
-                nameof(HostGuidance), nameof(HostFieldNaming));
+                nameof(HostGuidance), nameof(HostFieldNaming), nameof(ShowHostPlaceholder),
+                nameof(ServerTypeSummary), nameof(ShowServerTypeOverride), nameof(ShowServerTypeLink));
         }
     }
 
-    public string? HostGuidance => _selectedHostPreset?.WhereToFind;
+    public string? HostGuidance => _selectedHostPreset?.WhereToFind
+        ?? "Choose a host only if you want Deck to fill in its standard settings again.";
+
+    /// <summary>
+    /// An existing server has no preset selected - there is no way to know afterwards which host it
+    /// came from - and an empty picker at the top of a form reads as a required question nobody has
+    /// answered. So it says what it is instead of sitting there blank.
+    /// </summary>
+    public bool ShowHostPlaceholder => _selectedHostPreset is null;
 
     public string? HostFieldNaming => _selectedHostPreset?.FieldNaming;
+
+    // ---------------------------------------------------------------- server type (C3)
+
+    /// <summary>What the host question decided, said plainly, since the picker itself is hidden.</summary>
+    public string ServerTypeSummary => Profile.ServerType.ConnectionSummary();
+
+    /// <summary>
+    /// The raw picker. Hidden by default: for every host in the list, answering "who hosts your
+    /// stream?" has already answered this, and asking the same thing twice in different words is the
+    /// single most confusing part of setting a server up.
+    /// <para>
+    /// It appears on request, and by itself the moment the type disagrees with the chosen host - an
+    /// override the user cannot see is one they cannot undo.
+    /// </para>
+    /// </summary>
+    public bool ShowServerTypeOverride =>
+        _showServerTypeOverride || (_selectedHostPreset?.Contradicts(Profile.ServerType) ?? false);
+
+    public bool ShowServerTypeLink => !ShowServerTypeOverride;
+
+    public void RevealServerTypeOverride()
+    {
+        _showServerTypeOverride = true;
+        RaiseAll(nameof(ShowServerTypeOverride), nameof(ShowServerTypeLink));
+    }
 
     // ---------------------------------------------------------------- paste a URL (C2)
 
@@ -137,7 +179,8 @@ public sealed class ServerEditorViewModel : ObservableObject
             nameof(MountPoint), nameof(Username), nameof(Password), nameof(ServerTypeValue), nameof(StreamId),
             nameof(Name), nameof(StationName), nameof(Genre), nameof(Website),
             nameof(StreamPathLabel), nameof(StreamPathHint), nameof(ShowMountPoint), nameof(ShowStreamId),
-            nameof(ShowUsername), nameof(ListenUrl));
+            nameof(ShowUsername), nameof(ListenUrl),
+            nameof(ServerTypeSummary), nameof(ShowServerTypeOverride), nameof(ShowServerTypeLink));
     }
 
     // ---------------------------------------------------------------- fields
@@ -155,7 +198,8 @@ public sealed class ServerEditorViewModel : ObservableObject
         {
             Profile.ServerType = value;
             RaiseAll(nameof(ServerTypeValue), nameof(StreamPathLabel), nameof(StreamPathHint),
-                nameof(ShowMountPoint), nameof(ShowStreamId), nameof(ShowUsername), nameof(ListenUrl));
+                nameof(ShowMountPoint), nameof(ShowStreamId), nameof(ShowUsername), nameof(ListenUrl),
+                nameof(ServerTypeSummary), nameof(ShowServerTypeOverride), nameof(ShowServerTypeLink));
         }
     }
 
