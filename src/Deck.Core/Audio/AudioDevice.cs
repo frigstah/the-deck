@@ -23,7 +23,8 @@ public sealed record AudioDevice(
     string Id,
     string Name,
     AudioDeviceKind Kind,
-    bool IsSystemDefault)
+    bool IsSystemDefault,
+    string? Category = null)
 {
     /// <summary>Name as shown in a picker, e.g. "Microphone (Yeti X) — default".</summary>
     public string DisplayName => IsSystemDefault ? $"{Name} — default" : Name;
@@ -70,8 +71,12 @@ public sealed record AudioDevice(
     /// <summary>
     /// Group heading in the input picker. A render device offered as a capture source needs saying
     /// out loud, because "Speakers" in a list of microphones is otherwise baffling.
+    /// <para>
+    /// Usually decided by the kind, but a source may override it: programs are split into the ones
+    /// making a noise right now and the ones merely open, and the kind cannot carry that distinction.
+    /// </para>
     /// </summary>
-    public string CategoryLabel => Kind switch
+    public string CategoryLabel => Category ?? Kind switch
     {
         AudioDeviceKind.Loopback => "Sound playing on this PC",
         AudioDeviceKind.Input => "Microphones and line inputs",

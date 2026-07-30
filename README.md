@@ -435,10 +435,25 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   KaraFun on the second, two faders, one stream. Whole-desktop capture would take the notifications, the
   other window and Deck's own monitoring with it. Windows only offers this from build 20348, so below that
   Deck does not offer it at all rather than failing when somebody goes on air.
+- **Programs you have open, not only the ones playing.** Windows lists a program's audio only while it is
+  actually playing, so the first version of this could not offer a browser with a paused tab - the honest
+  answer to "why can't I see Chrome?" was "Windows has nothing to hand over". The picker now has a second
+  group for programs that are merely open, because setting up before pressing play is the normal order of
+  things and capture works on a silent program.
 - **A program is remembered by name, not by process id.** A pid is different every time the program
   starts. And because Windows only lists a program while it is playing, a chosen one is put back into the
   list when it goes quiet - otherwise refreshing during a pause would silently move the second source to
   something nobody picked, and the singer would find out on stage.
+- **SHOUTcast is never sent a nameless broadcast.** A server that gets no station name accepts the
+  password, answers OK, and closes the connection without a word - which reached the user as "the
+  connection to the server was lost", four times over. Deck now always sends a name, falling back to the
+  server's own label and saying so, because refusing to go live would stop a station that works. Icecast
+  does not care, so it is not asked.
+- **A broadcast that drops seconds after starting says what that means.** It is not the network; a server
+  that accepts a sign-in and then hangs up is refusing the audio. The message now says how long it lasted,
+  how much was sent, and what to check - and if the server explained itself on the way out, that sentence
+  is quoted, because Deck listens to the socket for the whole broadcast now rather than only during the
+  handshake.
 - **"No listener count" is a different answer from "nought listeners".** Both used to look like an
   empty space, and a station owner staring at one could not tell whether nobody had tuned in or the
   server never tells Deck. Now the number is the number, not knowing says so, and the reason is on

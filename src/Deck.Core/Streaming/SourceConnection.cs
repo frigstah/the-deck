@@ -16,10 +16,90 @@ internal sealed class SourceConnection : IAsyncDisposable
     private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan HandshakeTimeout = TimeSpan.FromSeconds(10);
 
+    private readonly StringBuilder _volunteered = new();
+    private readonly object _volunteeredLock = new();
+
     private TcpClient? _client;
     private Stream? _stream;
+    private CancellationTokenSource? _listening;
 
     public bool IsConnected => _client?.Connected == true && _stream is not null;
+
+    /// <summary>
+    /// Anything the server has said of its own accord since the handshake, or null if it said nothing.
+    /// <para>
+    /// This exists because of a real failure with no explanation in it. A SHOUTcast server accepted a
+    /// broadcast, said OK, and closed the connection two seconds later; all the user got was "the
+    /// connection to the server was lost", four times over. The server had almost certainly said why -
+    /// but Deck stopped listening the moment it went on air, so nobody read it.
+    /// </para>
+    /// </summary>
+    public string? ServerSaid
+    {
+        get
+        {
+            lock (_volunteeredLock)
+            {
+                var text = _volunteered.ToString().Trim();
+                return text.Length == 0 ? null : text;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Starts listening for whatever the server says while audio is flowing. Source protocols are
+    /// one-way once running, so anything arriving is either a warning or the reason for a hang-up -
+    /// and it is worth having when the write finally fails.
+    /// </summary>
+    public void ListenWhileSending()
+    {
+        if (_stream is null || _listening is not null) return;
+
+        _listening = new CancellationTokenSource();
+        var token = _listening.Token;
+        var stream = _stream;
+
+        _ = Task.Run(async () =>
+        {
+            var buffer = new byte[512];
+
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    var read = await stream.ReadAsync(buffer, token).ConfigureAwait(false);
+                    if (read <= 0) return; // the server closed its half; the write will notice
+
+                    lock (_volunteeredLock)
+                    {
+                        // Capped: a server that talks endlessly must not grow this without bound.
+                        if (_volunteered.Length < 2048)
+                        {
+                            _volunteered.Append(Encoding.ASCII.GetString(buffer, 0, read));
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // The connection is going or gone. Whatever was already read is what matters.
+            }
+        }, token);
+    }
+
+    /// <summary>
+    /// Gives the listener a moment to finish reading a parting message. A server usually writes its
+    /// reason and closes in one go, so the write fails at almost the same instant the text arrives.
+    /// </summary>
+    public async Task<string?> DrainServerMessageAsync()
+    {
+        for (var i = 0; i < 5 && ServerSaid is null; i++)
+        {
+            await Task.Delay(50).ConfigureAwait(false);
+        }
+
+        return ServerSaid;
+    }
 
     public async Task OpenAsync(string host, int port, bool useTls, CancellationToken cancellationToken)
     {
@@ -62,8 +142,22 @@ internal sealed class SourceConnection : IAsyncDisposable
         }
         catch (Exception ex) when (ex is IOException or SocketException or ObjectDisposedException)
         {
-            throw new StreamException(StreamFailure.Network, "The connection to the server was lost.", ex);
+            // If the server explained itself on the way out, that sentence is worth a hundred of ours.
+            var said = await DrainServerMessageAsync().ConfigureAwait(false);
+
+            throw new StreamException(
+                StreamFailure.Network,
+                said is null
+                    ? "The connection to the server was lost."
+                    : $"The server closed the connection and said: {FirstLine(said)}",
+                ex);
         }
+    }
+
+    private static string FirstLine(string text)
+    {
+        var line = text.Split('\n')[0].Trim();
+        return line.Length > 200 ? line[..200] + "…" : line;
     }
 
     public Task WriteAsciiAsync(string text, CancellationToken cancellationToken) =>
@@ -122,6 +216,13 @@ internal sealed class SourceConnection : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        if (_listening is not null)
+        {
+            await _listening.CancelAsync().ConfigureAwait(false);
+            _listening.Dispose();
+            _listening = null;
+        }
+
         if (_stream is not null)
         {
             try

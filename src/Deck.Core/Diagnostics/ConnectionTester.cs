@@ -203,7 +203,10 @@ public sealed class ConnectionTester
             Update(stage, TestStepStatus.Failed, ex.Message);
             MarkRemainingSkipped(steps, stage, Report);
 
-            return new ConnectionTestResult(false, steps, ex.Message, AdviceFor(ex, effectiveProfile), effectiveProfile.ServerType);
+            return new ConnectionTestResult(
+                false, steps, ex.Message,
+                AdviceFor(ex, effectiveProfile, signedIn: stage == ConnectionTestStage.SendAudio),
+                effectiveProfile.ServerType);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -267,8 +270,24 @@ public sealed class ConnectionTester
 
     private static byte[] EncodeBlock(IAudioEncoder encoder, float[] samples) => encoder.Encode(samples).ToArray();
 
-    private static string? AdviceFor(StreamException ex, ServerProfile profile) => ex.Failure switch
+    private static string? AdviceFor(StreamException ex, ServerProfile profile, bool signedIn) => ex.Failure switch
     {
+        // Signed in, then dropped without a word. Deck used to leave the user with "the connection to
+        // the server was lost", which sends them to look at their internet - and it is not the network,
+        // it is the server objecting to the broadcast. The station name leads the list because a
+        // SHOUTcast server refuses a nameless one exactly like this, silently, and it is the single most
+        // likely cause on a profile that was set up by pasting a host's email.
+        StreamFailure.Network when signedIn && profile.ServerType.NeedsStationName()
+                                  && string.IsNullOrWhiteSpace(profile.StationName) =>
+            "Give the station a name under \"What listeners see\" and test again. SHOUTcast accepts the " +
+            "password and then closes the connection when the broadcast has no name, without saying that " +
+            "is the reason.",
+
+        StreamFailure.Network =>
+            "The sign-in worked, so the address, port and password are right. A server that then drops the " +
+            "broadcast is refusing the audio: check the bitrate is one this stream allows, and that nothing " +
+            "else is already broadcasting to it.",
+
         StreamFailure.Authentication =>
             "Copy the password straight from your host's email — a trailing space is the usual culprit.",
 

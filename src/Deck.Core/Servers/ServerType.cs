@@ -65,6 +65,17 @@ public static class ServerTypeInfo
 
     public static bool UsesStreamId(this ServerType type) => type is ServerType.ShoutcastV2;
 
+    /// <summary>
+    /// Whether the server will refuse a broadcast that does not name its station.
+    /// <para>
+    /// SHOUTcast will, and it does it silently: the password is accepted, "OK2" comes back, and the
+    /// connection closes a moment later with no explanation at all. Icecast does not care. So the name
+    /// is required for one family and optional for the other, which is not a rule anyone would guess.
+    /// </para>
+    /// </summary>
+    public static bool NeedsStationName(this ServerType type) =>
+        type is ServerType.ShoutcastV1 or ServerType.ShoutcastV2;
+
     /// <summary>Icecast authenticates a username too; SHOUTcast only ever wants a password.</summary>
     public static bool UsesUsername(this ServerType type) => type is ServerType.Icecast;
 }

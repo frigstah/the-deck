@@ -56,6 +56,80 @@ public static class AudioProcesses
             .ToList();
     }
 
+    public const string PlayingNow = "One program on this PC";
+
+    public const string AlsoOpen = "Other programs you have open";
+
+    /// <summary>
+    /// Programs that are open but not currently making a noise.
+    /// <para>
+    /// This exists because of the obvious question, asked the moment the feature shipped: "why can't I
+    /// see Chrome?" Chrome was running with a tab open, and Windows had no audio session for it at all -
+    /// a browser tears its output stream down when nothing is playing, so there was nothing to list.
+    /// Offering only what Windows says is playing means the answer to "capture my browser" is "first go
+    /// and make it play something, then come back", which is not an answer.
+    /// </para>
+    /// <para>
+    /// Capturing a program that is not playing yet works: the stream delivers silence until the program
+    /// starts, which is exactly right - you set it up first and press play afterwards.
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<AudioDevice> Open()
+    {
+        if (!ProcessLoopbackCapture.IsSupported) return [];
+
+        var playing = Playing()
+            .Select(d => ProcessLoopbackCapture.ProgramNameFrom(d.Id))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var found = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var self = Environment.ProcessId;
+
+        try
+        {
+            foreach (var process in Process.GetProcesses())
+            {
+                using (process)
+                {
+                    try
+                    {
+                        if (process.Id == self) continue;
+
+                        // A visible window is the test for "a program the user thinks of as open". It
+                        // keeps out the hundred services and background hosts, without Deck having to
+                        // keep a list of which names are boring - a list that would be wrong the moment
+                        // somebody wanted one of them.
+                        if (process.MainWindowHandle == IntPtr.Zero) continue;
+                        if (string.IsNullOrWhiteSpace(process.MainWindowTitle)) continue;
+
+                        var name = process.ProcessName;
+                        if (playing.Contains(name) || found.ContainsKey(name)) continue;
+
+                        found[name] = Friendly(process.Id, name);
+                    }
+                    catch (Exception)
+                    {
+                        // Exited while being looked at, or protected. Not offerable either way.
+                    }
+                }
+            }
+        }
+        catch (Exception)
+        {
+            return [];
+        }
+
+        return found
+            .OrderBy(entry => entry.Value, StringComparer.CurrentCultureIgnoreCase)
+            .Select(entry => new AudioDevice(
+                ProcessLoopbackCapture.IdFor(entry.Key),
+                entry.Value,
+                AudioDeviceKind.Process,
+                IsSystemDefault: false,
+                Category: AlsoOpen))
+            .ToList();
+    }
+
     /// <summary>
     /// A program by name, whether or not it is making a noise right now.
     /// <para>
@@ -226,6 +300,21 @@ public static class AudioProcesses
     /// </summary>
     private static string Friendly(int pid, string processName)
     {
+        // The session's own process first, then the earliest process of the same name. That second try
+        // is what makes a browser read properly: the audio comes from a sandboxed child whose module
+        // cannot be opened, while the browser process it belongs to says "Google Chrome" quite happily.
+        if (Describe(pid) is { } fromSession) return fromSession;
+
+        foreach (var id in SafeGetProcessesByName(processName).OrderBy(id => id))
+        {
+            if (Describe(id) is { } fromSibling) return fromSibling;
+        }
+
+        return processName;
+    }
+
+    private static string? Describe(int pid)
+    {
         try
         {
             using var process = Process.GetProcessById(pid);
@@ -235,9 +324,49 @@ public static class AudioProcesses
         }
         catch (Exception)
         {
-            // A protected or 32-bit-versus-64-bit process will not open its module. The name will do.
+            // Protected, or a different bitness. There is another way in.
         }
 
-        return processName;
+        // Reading a process's module list needs permission a browser will not grant; asking Windows for
+        // its image path needs far less, and the file itself carries the name. This is the difference
+        // between "chrome" and "Google Chrome" in the picker.
+        return FromImagePath(pid);
     }
+
+    private static string? FromImagePath(int pid)
+    {
+        var handle = OpenProcess(QueryLimitedInformation, false, pid);
+        if (handle == IntPtr.Zero) return null;
+
+        try
+        {
+            var buffer = new System.Text.StringBuilder(1024);
+            var size = buffer.Capacity;
+
+            if (!QueryFullProcessImageNameW(handle, 0, buffer, ref size)) return null;
+
+            var description = System.Diagnostics.FileVersionInfo.GetVersionInfo(buffer.ToString()).FileDescription;
+            return string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+        finally
+        {
+            CloseHandle(handle);
+        }
+    }
+
+    private const int QueryLimitedInformation = 0x1000;
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr OpenProcess(int access, bool inheritHandle, int processId);
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern bool QueryFullProcessImageNameW(
+        IntPtr process, int flags, System.Text.StringBuilder name, ref int size);
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool CloseHandle(IntPtr handle);
 }

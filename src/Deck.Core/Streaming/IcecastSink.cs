@@ -41,6 +41,10 @@ public sealed class IcecastSink(ServerProfile profile, EncoderSettings encoder) 
         }
 
         Interpret(response);
+
+        // Icecast rarely volunteers anything mid-stream, but when it does - a mount taken over, a limit
+        // reached - it is the reason the broadcast is about to end, and there is nowhere else to read it.
+        _connection?.ListenWhileSending();
     }
 
     private async Task<string> HandshakeAsync(bool useLegacySourceMethod, CancellationToken cancellationToken)

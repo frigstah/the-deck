@@ -24,7 +24,13 @@ public static class AudioDevices
     /// </para>
     /// </summary>
     public static IReadOnlyList<AudioDevice> AllInputSources() =>
-        [.. Inputs(), .. LoopbackSources(), .. AudioProcesses.Playing(), .. AsioCapture.Devices()];
+    [
+        .. Inputs(),
+        .. LoopbackSources(),
+        .. AudioProcesses.Playing(),
+        .. AudioProcesses.Open(),
+        .. AsioCapture.Devices(),
+    ];
 
     private static IReadOnlyList<AudioDevice> Enumerate(DataFlow flow, AudioDeviceKind kind)
     {
