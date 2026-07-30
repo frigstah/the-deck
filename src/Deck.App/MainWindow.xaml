@@ -223,7 +223,10 @@
                         <TextBlock Text="{Binding AdviceHeadline}" Style="{StaticResource DeckVerdictStyle}"
                                    Foreground="{Binding AdviceBrush}"
                                    Visibility="{Binding ShowLevelCoaching, Converter={StaticResource BoolToVisibility}}" />
-                        <TextBlock Text="{Binding LevelReadout}" Style="{StaticResource DeckReadoutStyle}" />
+                        <!-- First in the row, so no leading gap of its own: the verdict before it
+                             carries that, and the row has to start flush when the verdict is off. -->
+                        <TextBlock Text="{Binding LevelReadout}" Style="{StaticResource DeckReadoutStyle}"
+                                   Margin="0,0,0,1" />
                         <TextBlock Text="{Binding IntegratedLoudnessText}" Style="{StaticResource DeckReadoutStyle}" />
                         <TextBlock Text="{Binding ListenerText}" Style="{StaticResource DeckReadoutStyle}"
                                    Visibility="{Binding ListenerText, Converter={StaticResource TextToVisibility}}" />
@@ -247,82 +250,61 @@
                             grouping into microphones and loopback sources - so swapping between a
                             venue's desk feed and a laptop microphone is one click from the deck.
 
-                            The padlock sits outside the chip rather than in the dropdown, because it
-                            guards the chip: something you set once at the start of a show and then
-                            want to see the state of at a glance.
-
                             It says "Input" and not which input, which is the one place this row gives
                             something up. Device names are far longer than anything else here - "IN 1-8
                             (BEHRINGER X-AIR) - default" - so this chip alone decided the width of the
                             row, and anything growing anywhere reflowed it onto a second line. A fixed
                             word is a fixed width. Which input is chosen is one click away, ticked in
                             the list, in the tooltip, and spelled out on the Sound pane.
-                        -->
-                        <Border x:Name="InputChipBorder" Style="{StaticResource DeckChipStyle}" Margin="0,0,2,0">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Input&#160;" Style="{StaticResource DeckChipValueStyle}" />
-                                <ComboBox Style="{StaticResource DeckChipComboStyle}"
-                                          local:DeckChip.ShowsValue="False"
-                                          Tag="{Binding ElementName=InputChipBorder}"
-                                          ItemsSource="{Binding InputDevicesView}"
-                                          SelectedItem="{Binding SelectedInput}"
-                                          ItemTemplate="{StaticResource DeviceItemTemplate}"
-                                          IsEnabled="{Binding InputLocked, Converter={StaticResource InverseBoolean}}"
-                                          AutomationProperties.Name="Input"
-                                          ToolTip="{Binding InputChipTooltip}">
-                                    <ComboBox.GroupStyle>
-                                        <StaticResource ResourceKey="DeviceGroupStyle" />
-                                    </ComboBox.GroupStyle>
-                                </ComboBox>
-                            </StackPanel>
-                        </Border>
 
-                        <ToggleButton Style="{StaticResource DeckLockStyle}"
-                                      IsChecked="{Binding InputLocked}"
-                                      Margin="0,0,10,0"
-                                      ToolTip="{Binding InputLockTooltip}"
-                                      AutomationProperties.Name="Lock the input" />
+                            Every chip below is one control: the chip and the picker are the same
+                            element, so all of it is the click target and the popup needs no help
+                            finding its edges. Tag is the label.
+                        -->
+                        <ComboBox Style="{StaticResource DeckChipComboStyle}" Tag="Input"
+                                  local:DeckChip.ShowsValue="False"
+                                  ItemsSource="{Binding InputDevicesView}"
+                                  SelectedItem="{Binding SelectedInput}"
+                                  ItemTemplate="{StaticResource DeviceItemTemplate}"
+                                  IsEnabled="{Binding CanChangeSignalPath}"
+                                  AutomationProperties.Name="Input"
+                                  ToolTip="{Binding InputChipTooltip}">
+                            <ComboBox.GroupStyle>
+                                <StaticResource ResourceKey="DeviceGroupStyle" />
+                            </ComboBox.GroupStyle>
+                        </ComboBox>
 
                         <!--
                             The destination, changeable in place. This is the one a singer moving
                             between venues reaches for most: each venue has its own stream, and
                             without this every change meant opening setup and finding the Servers pane.
                         -->
-                        <Border x:Name="ServerChipBorder" Style="{StaticResource DeckChipStyle}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="OUT&#160;&#160;" Style="{StaticResource DeckChipLabelStyle}" />
-                                <ComboBox Style="{StaticResource DeckChipComboStyle}"
-                                          Tag="{Binding ElementName=ServerChipBorder}"
-                                          ItemsSource="{Binding Servers}"
-                                          SelectedItem="{Binding SelectedServer}"
-                                          ItemTemplate="{StaticResource NameItemTemplate}"
-                                          MaxWidth="200"
-                                          AutomationProperties.Name="Server"
-                                          ToolTip="{Binding SelectedServerSummary}" />
-                            </StackPanel>
-                        </Border>
+                        <ComboBox Style="{StaticResource DeckChipComboStyle}" Tag="OUT"
+                                  ItemsSource="{Binding Servers}"
+                                  SelectedItem="{Binding SelectedServer}"
+                                  ItemTemplate="{StaticResource NameItemTemplate}"
+                                  MaxWidth="200"
+                                  IsEnabled="{Binding CanChangeSignalPath}"
+                                  AutomationProperties.Name="Server"
+                                  ToolTip="{Binding ServerChipTooltip}" />
 
                         <!--
-                            Quality: the handful of bitrate and sample-rate pairings anyone picks
-                            between, rather than the full range that lives in the server editor. One
-                            word and one picker, not a codec plus two - "Quality" is the question, and
-                            the answers belong in the list where there is room to say them properly.
+                            Quality: the handful of bitrates anyone picks between, rather than the full
+                            range that lives in the server editor. Bitrate only - sample rate is set
+                            once per server and then left alone, so it belongs in the editor and not on
+                            a surface meant for the things you change between songs.
+
                             Hidden rather than empty before a server exists, and while the codec is
                             lossless, since FLAC has no bitrate to choose.
                         -->
-                        <Border x:Name="QualityChipBorder" Style="{StaticResource DeckChipStyle}"
-                                Visibility="{Binding CanChangeQuality, Converter={StaticResource BoolToVisibility}}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Quality&#160;" Style="{StaticResource DeckChipValueStyle}" />
-                                <ComboBox Style="{StaticResource DeckChipComboStyle}"
-                                          local:DeckChip.ShowsValue="False"
-                                          Tag="{Binding ElementName=QualityChipBorder}"
-                                          ItemsSource="{Binding QualityOptions}"
-                                          SelectedItem="{Binding SelectedQualityOption}"
-                                          AutomationProperties.Name="Quality"
-                                          ToolTip="{Binding QualitySummary}" />
-                            </StackPanel>
-                        </Border>
+                        <ComboBox Style="{StaticResource DeckChipComboStyle}" Tag="Quality"
+                                  local:DeckChip.ShowsValue="False"
+                                  Visibility="{Binding CanChangeQuality, Converter={StaticResource BoolToVisibility}}"
+                                  ItemsSource="{Binding QualityOptions}"
+                                  SelectedItem="{Binding SelectedQualityOption}"
+                                  IsEnabled="{Binding CanChangeSignalPath}"
+                                  AutomationProperties.Name="Quality"
+                                  ToolTip="{Binding QualityChipTooltip}" />
 
                         <!-- Lossless states the codec and nothing else, since there is nothing to pick. -->
                         <Border Style="{StaticResource DeckChipStyle}"
