@@ -27,9 +27,9 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
 
@@ -100,7 +100,7 @@ jobs:
             --target ${{ github.sha }} `
             (Get-Item publish/*.exe, publish/*.zip, publish/SHA256SUMS.txt | ForEach-Object { $_.FullName })
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: Deck-${{ steps.version.outputs.version }}
           path: |
