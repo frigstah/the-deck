@@ -154,6 +154,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         InputDevicesView.GroupDescriptions.Add(new PropertyGroupDescription(nameof(AudioDevice.CategoryLabel)));
 
         _engine.Broadcast.TargetStateChanged += OnTargetStateChanged;
+        _engine.Broadcast.ServerTypeDetected += OnServerTypeDetected;
         foreach (var entry in _engine.Log.Entries) LogEntries.Add(entry);
         _engine.Log.EntryAdded += (_, entry) => OnUi(() =>
         {
@@ -2622,6 +2623,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             nameof(GoLiveButtonText), nameof(GoLiveButtonBrush), nameof(GoLiveButtonTextBrush),
             nameof(GoLiveButtonBorderBrush), nameof(StateHeadlineUpper), nameof(CanGoLive),
             nameof(UptimeText), nameof(SilenceAlert));
+    });
+
+    /// <summary>
+    /// Connecting worked out what kind of server this is. Saved straight away rather than left in
+    /// memory: the point of detecting it is that it only ever has to happen once, and the editor and
+    /// the listener count both read the type off the saved profile.
+    /// </summary>
+    private void OnServerTypeDetected(object? sender, EventArgs e) => OnUi(() =>
+    {
+        SaveServers();
+        RaiseAll(nameof(SelectedServerSummary), nameof(SelectedServerShort), nameof(OutputChip),
+            nameof(ListenUrl));
     });
 
     /// <summary>Shown while a dropped-out device is being waited for (A6).</summary>

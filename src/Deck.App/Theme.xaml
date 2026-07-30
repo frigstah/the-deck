@@ -207,6 +207,9 @@
     <Style TargetType="ComboBoxItem">
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         <Setter Property="Padding" Value="8,6" />
+        <!-- The stock focus visual is a dotted rectangle inside the highlight, which on a themed
+             list reads as a rendering artefact. The highlight already says which row is current. -->
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBoxItem">
@@ -265,11 +268,15 @@
 
                         <TextBox x:Name="PART_EditableTextBox" Visibility="Collapsed" />
 
+                        <!-- The gap belongs on the popup, not as a margin on its content: a margin is
+                             inside the popup's own box, so it shifts the list down without moving the
+                             popup, and the shadow-free bottom edge then sits 2px proud of the list. -->
                         <Popup x:Name="PART_Popup" AllowsTransparency="True" Placement="Bottom"
+                               VerticalOffset="2"
                                IsOpen="{TemplateBinding IsDropDownOpen}" Focusable="False" PopupAnimation="Fade">
                             <Border Background="{DynamicResource SurfaceBrush}"
                                     BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                                    CornerRadius="0" Margin="0,2,0,0"
+                                    CornerRadius="0"
                                     MinWidth="{TemplateBinding ActualWidth}"
                                     MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                 <ScrollViewer>
@@ -781,6 +788,43 @@
         <Setter Property="Margin" Value="0,0,10,0" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="0">
+                        <Grid>
+                            <!--
+                                Never drawn. It is here to claim the width of the longest label the
+                                button ever carries, so going on air - which swaps "REC" for a running
+                                clock - does not widen it. Letting it size itself meant it grew by two
+                                characters at the moment it was used, which on a full row pushed it
+                                onto a second line: a control that jumps when you press it reads as
+                                broken. A hidden twin rather than a hard-coded width, so it stays
+                                right if the font, the padding or the label ever changes.
+                            -->
+                            <TextBlock Text="&#9679; 00:00" Visibility="Hidden"
+                                       Margin="{TemplateBinding Padding}" />
+
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Opacity" Value="0.85" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Chrome" Property="Opacity" Value="0.45" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!--
@@ -844,12 +888,31 @@
 
                         <TextBox x:Name="PART_EditableTextBox" Visibility="Collapsed" />
 
+                        <!--
+                            Placed against whatever the usage site put in Tag - the chip Border - so
+                            the list opens flush with the left and bottom edges of the thing that was
+                            clicked. Without it the target is the ComboBox, which inside a chip is a
+                            small inner element inset by the chip's 12,7 padding: the list then hangs
+                            off the text at a couple of odd offsets and reads as a misdraw.
+
+                            Tag left unset means the picker aligns to itself, which is what the two
+                            side-by-side quality pickers want: there the pressable thing is the value,
+                            not the chip they share.
+                        -->
                         <Popup x:Name="PART_Popup" AllowsTransparency="True" Placement="Bottom"
+                               PlacementTarget="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
+                               VerticalOffset="4"
                                IsOpen="{TemplateBinding IsDropDownOpen}" Focusable="False"
                                PopupAnimation="Fade">
+                            <!-- At least as wide as what it dropped from, so the list and the chip
+                                 share an edge instead of the list being arbitrarily wider. No target
+                                 to match means no minimum, and the list hugs its widest item rather
+                                 than overhanging the chip it came out of. -->
                             <Border Background="{DynamicResource SurfaceBrush}"
                                     BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                                    Margin="0,6,0,0" MinWidth="200"
+                                    MinWidth="{Binding PlacementTarget.ActualWidth,
+                                                       RelativeSource={RelativeSource AncestorType=Popup},
+                                                       FallbackValue=0}"
                                     MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                 <ScrollViewer>
                                     <ItemsPresenter />
