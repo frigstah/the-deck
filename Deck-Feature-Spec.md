@@ -106,6 +106,7 @@ Priority key: **P0** = v1.0 must-ship · **P1** = v1.1, strongly wanted · **P2*
 | C10 | Import / export server profiles (single file) | P1 | Rocket's "shareable project files" — great for multi-DJ stations |
 | C11 | Presets for common hosts (Radio Mast, RadioKing, Live365, Airtime, Shoutcast.com…) | P1 | Pick host → only asks for the fields that host actually needs |
 | C12 | Simultaneous multi-server streaming (primary + backup, or different bitrates) | P2 — **built** | Rocket paywalls this; keep it out of v1 to protect simplicity |
+| C13 | **Import servers from a BUTT config** | P1 — **built** | The switching cost is the server list, not the software: nobody retypes fifty addresses to try something new. Servers only — devices, DSP and MIDI stay behind. Same Import button as C10, format detected |
 
 ### 3.4 Encoding
 | # | Feature | Pri | Notes |

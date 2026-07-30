@@ -523,39 +523,100 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// One button for both kinds of file. Deck's own share file and a BUTT configuration are told
+    /// apart by looking at what was opened rather than by asking the user to know which is which -
+    /// somebody arriving from BUTT with a config their host emailed them should not have to work out
+    /// that it counts as a different sort of import.
+    /// </summary>
     private void OnImportServers(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Choose a shared server settings file",
-            Filter = "Deck server settings (*.json)|*.json|All files (*.*)|*.*",
+            Title = "Choose a server settings file",
+            Filter =
+                "Server settings from Deck or BUTT|*.json;*.cfg;*.conf;*.txt|" +
+                "Deck server settings (*.json)|*.json|" +
+                "BUTT configuration (*.cfg;*.conf;*.txt)|*.cfg;*.conf;*.txt|" +
+                "All files (*.*)|*.*",
         };
 
         if (dialog.ShowDialog(this) != true) return;
 
         try
         {
-            var added = _viewModel.ImportServers(File.ReadAllText(dialog.FileName));
+            var text = File.ReadAllText(dialog.FileName);
 
-            if (added == 0)
-            {
-                MessageBox.Show("That file did not contain any servers.", "The Deck", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            var missing = _viewModel.ServersMissingPassword;
-            var passwordNote = missing > 0
-                ? $"\n\n{missing} server(s) still need a password. Open each one with Edit and type it in."
-                : string.Empty;
-
-            MessageBox.Show($"Added {added} server(s).{passwordNote}", "The Deck", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (ButtImport.Looks(text)) ImportFromButt(text);
+            else ImportSharedServers(text);
         }
         catch (Exception ex)
         {
             MessageBox.Show(
-                $"Deck could not read that file. It may not be a Deck settings file.\n\n{ex.Message}",
+                $"Deck could not read that file. It may not be a server settings file.\n\n{ex.Message}",
                 "The Deck");
         }
+    }
+
+    private void ImportSharedServers(string text)
+    {
+        var added = _viewModel.ImportServers(text);
+
+        if (added == 0)
+        {
+            MessageBox.Show("That file did not contain any servers.", "The Deck", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        MessageBox.Show($"Added {added} server(s).{PasswordNote()}", "The Deck", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private void ImportFromButt(string text)
+    {
+        var (added, result) = _viewModel.ImportFromButt(text);
+
+        if (added == 0)
+        {
+            MessageBox.Show(
+                "That looks like a BUTT configuration, but there were no servers in it.",
+                "The Deck", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var message = $"Added {added} server(s) from BUTT.";
+
+        // Said out loud rather than left to be discovered. A SHOUTcast entry in BUTT does not record
+        // which SHOUTcast it is, so those servers arrive undecided - which is a normal state for
+        // Deck and an odd one to meet without explanation.
+        message += "\n\nBUTT stores your passwords in plain text and Deck does not, so they were " +
+                   "protected on the way in. Anything BUTT recorded as SHOUTcast will work out which " +
+                   "kind it is the first time you press Test or go on air.";
+
+        if (result.Skipped.Count > 0)
+        {
+            message += $"\n\nSkipped {result.Skipped.Count} entr(y/ies) with no address: " +
+                       string.Join(", ", result.Skipped.Take(6)) +
+                       (result.Skipped.Count > 6 ? "…" : string.Empty);
+        }
+
+        if (result.Duplicates.Count > 0)
+        {
+            message += $"\n\n{result.Duplicates.Count} of them point at the same place as another " +
+                       "under a different name. They were all imported — delete the ones you do not want.";
+        }
+
+        message += PasswordNote();
+
+        MessageBox.Show(message, "The Deck", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private string PasswordNote()
+    {
+        var missing = _viewModel.ServersMissingPassword;
+
+        return missing > 0
+            ? $"\n\n{missing} server(s) still need a password. Open each one with Edit and type it in."
+            : string.Empty;
     }
 
     private void OnListen(object sender, RoutedEventArgs e)
