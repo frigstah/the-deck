@@ -469,6 +469,15 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   when it is out of mind; the strip is for the case in between, which is most of a show. It is
   remembered between runs, because parking it along the top of a screen is a way of working rather than
   a passing choice.
+- **The installer had SIRS's identity, and that is not a cosmetic thing.** An `AppId` is the whole of a
+  product's identity to Windows, and the fork inherited SIRS's verbatim — so The Deck was not a new
+  program, it *was* SIRS. Inno looks that id up before showing the folder page, so it found SIRS's
+  installation, ignored `DefaultDirName` and offered to install The Deck into a folder called SIRS.
+  Accepting put `Deck.exe` and `SIRS.exe` side by side under one uninstaller, with SIRS's own files
+  orphaned in the folder and its entry in Add or remove programs replaced. The rebrand scan could not
+  have caught it twice over: it read only `src`, and the stray was not the word SIRS but a GUID. It
+  reaches the installer and the packaging script now, and names that GUID as a forbidden value —
+  because it is the one piece of the old product that copies across while reading as meaningless hex.
 - **Minimising leaves Deck on the taskbar.** It used to hide the window and leave only the notification
   icon, which was the right answer before the strip existed and is the wrong one now: the strip does
   that job properly, and hiding is harder to undo than it looks, because Windows 11 puts new
