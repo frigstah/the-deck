@@ -31,6 +31,22 @@ internal static class SettingsChecks
             Expect(!new AppSettings().MiniMode, "Deck should open as the deck until someone asks for the strip");
         });
 
+        failures += Check("a typed title outlives the session that typed it", () =>
+        {
+            // The show is called the same thing next week. Covered generically by the reflection
+            // check below as well, but by name here because this one is a promise to the user rather
+            // than a property of the serialiser: the title in the deck's footer is meant to still be
+            // there tomorrow morning.
+            var settings = new AppSettings { ManualTitle = "Breakfast with the Deck" };
+            Expect(RoundTrip(settings).ManualTitle == "Breakfast with the Deck",
+                "the title typed into the deck was gone after a restart");
+
+            // And a Deck nobody has typed into claims nothing. A default here would put words in
+            // front of listeners that the presenter never wrote.
+            Expect(new AppSettings().ManualTitle.Length == 0,
+                "a fresh Deck arrived with a title already set");
+        });
+
         failures += Check("every setting survives being written and read back", () =>
         {
             // Reflected over rather than listed, so a setting added later is covered without anyone

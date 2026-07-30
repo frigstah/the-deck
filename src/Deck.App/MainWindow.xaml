@@ -394,9 +394,38 @@
 
                         <StackPanel Orientation="Horizontal" Grid.Column="0">
                             <TextBlock Text="NOW PLAYING&#160;&#160;" Style="{StaticResource DeckFooterStyle}" />
-                            <TextBlock Text="{Binding NowPlayingLine}" Style="{StaticResource DeckFooterStyle}"
-                                       Foreground="{DynamicResource TextBrush}"
-                                       TextTrimming="CharacterEllipsis" MaxWidth="420" />
+
+                            <!--
+                                One place, three states: an invitation while there is no title, the
+                                title once there is one, and the box while it is being typed. Only
+                                ever one of them is up, so the row keeps its shape.
+
+                                The line carries HelpText rather than a Name, unlike the other two:
+                                a Name on a button whose content is already text replaces what a
+                                screen reader reads out, and it was announcing "title listeners see"
+                                in place of the title itself.
+                            -->
+                            <Button Content="Set" Click="OnEditNowPlayingTitle"
+                                    Style="{StaticResource DeckFooterActionStyle}"
+                                    ToolTip="Name this broadcast. Listeners see it as now playing, and Deck remembers it until you change it."
+                                    AutomationProperties.Name="Set the title listeners see"
+                                    Visibility="{Binding ShowNowPlayingSetChip, Converter={StaticResource BoolToVisibility}}" />
+
+                            <Button Content="{Binding NowPlayingLine}" Click="OnEditNowPlayingTitle"
+                                    Style="{StaticResource DeckFooterTitleStyle}" MaxWidth="420"
+                                    IsEnabled="{Binding CanTypeNowPlaying}"
+                                    ToolTip="{Binding NowPlayingLineTooltip}"
+                                    AutomationProperties.HelpText="The title listeners see. Press to change it."
+                                    Visibility="{Binding ShowNowPlayingLine, Converter={StaticResource BoolToVisibility}}" />
+
+                            <TextBox x:Name="NowPlayingQuickBox"
+                                     Text="{Binding NowPlayingInput, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource DeckFooterEditStyle}"
+                                     KeyDown="OnQuickTitleKeyDown"
+                                     LostKeyboardFocus="OnQuickTitleLostFocus"
+                                     ToolTip="Enter sets it. Esc leaves the title as it was."
+                                     AutomationProperties.Name="Title listeners see"
+                                     Visibility="{Binding EditingNowPlaying, Converter={StaticResource BoolToVisibility}}" />
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Grid.Column="1">

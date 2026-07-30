@@ -101,6 +101,19 @@ public sealed class AppSettings
     /// <summary>How the pieces of a track are combined into the line listeners see.</summary>
     public string TitleTemplate { get; set; } = Metadata.TitleTemplate.Default;
 
+    /// <summary>
+    /// The last title typed by hand, so it survives closing Deck (F1). A hand-typed title is
+    /// almost always the name of the show rather than the name of a track — it is meant to sit
+    /// there until somebody changes it, and a weekly programme should not have to be renamed every
+    /// week.
+    /// <para>
+    /// Only the manual box writes this. A line that arrived from a text file, from Windows, or from
+    /// an automation system is a fact about a track that has since finished, and restoring one of
+    /// those on the next launch would put a stale song in front of listeners.
+    /// </para>
+    /// </summary>
+    public string ManualTitle { get; set; } = string.Empty;
+
     /// <summary>Whether the local endpoint automation systems push titles to is listening.</summary>
     public bool MetadataEndpointEnabled { get; set; }
 

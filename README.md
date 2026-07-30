@@ -173,7 +173,7 @@ worth making: the alternative was a first screen that looks like a control panel
 | Testing | Six-stage connection test: find, connect, secure, identify, sign in, send audio |
 | Encoding | MP3, Ogg Opus, Ogg Vorbis and lossless Ogg FLAC, 32–320 kbps, quality presets plus full manual control |
 | Processing | Voice Enhance, automatic level control, bass/middle/treble, a preset-driven three-band compressor, always-on safety limiter |
-| Metadata | Manual now-playing, polled text file, the Windows media session, and a local endpoint your playout software can post to — including the Icecast admin form, unchanged |
+| Metadata | A title typed on the deck itself and remembered between runs, a polled text file, the Windows media session, and a local endpoint your playout software can post to — including the Icecast admin form, unchanged |
 | Title format | `{artist} - {title}` templates with a live preview, and a hold switch for adverts and jingles |
 | Recording | While broadcasting or standalone, in the stream's format, lossless FLAC or WAV; filename templates, auto-split by duration, stops itself before the disk fills |
 | Shell | Notification-area icon coloured by on-air state, global hotkeys, auto-connect on start, automatic on-air when sound appears |
@@ -296,6 +296,17 @@ worth making: the alternative was a first screen that looks like a control panel
   summary appeared twice on screen at once on the Servers pane.
 - **Screen-reader output.** The drawn meters report live values through UI Automation — confirmed
   against the running app, which read back "Loudest -27 decibels".
+- **The now-playing line, driven through the real UI.** Every state exercised on the running app by
+  automation rather than reasoned about: the "Set" chip invoked, the box arriving focused in the same
+  place and at the same height as the chip it replaced, a title typed and sent with Enter, the chip
+  gone and the settings file carrying the title within the same second. Then Deck was closed and
+  reopened and the title was still there. Pressing the title reopened the box with the title selected;
+  Escape and moving the focus away both left the title alone and the file untouched. Switching titles
+  to the Windows source locked the line — reported as disabled to automation, still legible — and left
+  the remembered title alone; switching back unlocked it. This is also how a screen-reader defect was
+  found: the line had an automation name, which *replaces* what gets read out for a button whose
+  content is already text, so it announced "title listeners see" instead of the title. It carries help
+  text instead now.
 - **Every control on a pane is reachable by a screen reader.** Walking the automation tree of the
   running app found that it was not: the rail reported seven tabs and *nothing inside any of them*,
   so every picker, slider, checkbox and button on all seven panes was invisible to assistive
@@ -432,6 +443,22 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
 - **The status strip appears only while setup is open.** The deck states the same facts in far larger
   type, so showing both would say everything twice on one screen. Exactly one of the two is always
   visible, so the answer to "am I live?" never leaves.
+- **The now-playing line is the one readout that is also a control, and the title outlives the run.**
+  Everything else on the deck reports and setup changes, which held right up against the one setting
+  that changes every time you use Deck rather than once when you set it up: what the show is called.
+  Making that the only reason to open setup mid-show was wrong. So the line is pressable — "Set" while
+  there is nothing, because "nothing set" reported the hole without saying who could fill it, and the
+  title itself once there is one, with chrome only under the pointer so at rest it still reads as the
+  fact it is. Enter sends it, Esc and clicking away leave it alone: what that box sends goes straight
+  out to listeners, so it takes a keypress and never a stray click. A typed title is then remembered
+  between runs — it is a show name, and a weekly programme should not have to be renamed every week.
+  Only typed ones: a line that came from a text file, from Windows or from an automation system is a
+  fact about a track that has since finished, and bringing one back on the next launch would put a
+  stale song in front of listeners. `--title` is not remembered either, for the same reason and one
+  more — it is a few hundred titles an evening, and keeping them would rewrite the settings file on
+  every track change. Under those sources the line locks — undimmed, because it is still
+  what listeners are seeing — since committing a title there would not merely be overwritten by the
+  next poll, it would switch the source to manual and quietly cut off the station's automation.
 - **One program, not the whole desktop.** The second source can be a single program - the backing-track
   player, and nothing else on the machine. That is what makes karaoke work: microphone on the main input,
   KaraFun on the second, two faders, one stream. Whole-desktop capture would take the notifications, the

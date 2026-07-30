@@ -1211,6 +1211,99 @@
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
+    <!--
+        The now-playing line, which is also the way to change it - the one thing on the deck that is
+        both a readout and a control. Chrome only under the pointer: at rest it has to read as the
+        fact it is, because a permanently outlined box here would be a second button beside Record
+        and the row would stop being a row of facts.
+
+        Its own template rather than the shared one, for the disabled state. The shared template
+        answers "cannot be pressed" by fading the whole chrome to 45%, which is right for a button
+        and wrong for this: while titles come from a file or from Windows the line cannot be typed
+        over, but it is still what listeners are seeing and it has to stay as legible as every other
+        readout. The missing hand cursor and the missing hover chrome are the whole tell.
+    -->
+    <Style x:Key="DeckFooterTitleStyle" TargetType="Button">
+        <Setter Property="FontFamily" Value="Consolas" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <!-- Kept at one pixel and made invisible rather than removed, so nothing moves on hover. -->
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="7,3" />
+        <!-- Cancels the padding, so the text starts exactly where the old TextBlock's did. -->
+        <Setter Property="Margin" Value="-8,0,0,0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource DeckFocusVisualStyle}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="0">
+                        <ContentPresenter Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <!-- Same reason as the shared button template: a ContentPresenter given
+                                 a string builds a TextBlock that takes the application-wide style
+                                 in preference to what it would have inherited. -->
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                    <Setter Property="Foreground"
+                                            Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True" />
+                                <Condition Property="IsEnabled" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource SurfaceBrush}" />
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+                        </MultiTrigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Cursor" Value="Arrow" />
+                            <!-- Out of the tab order too, or the keyboard offers a stop that does nothing. -->
+                            <Setter Property="Focusable" Value="False" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        The same thing wearing its chrome all the time, for when there is no title yet. This one is
+        an invitation rather than a fact, and an invitation nobody can see is not one - "nothing set"
+        reported the hole without saying who was allowed to fill it.
+    -->
+    <Style x:Key="DeckFooterActionStyle" TargetType="Button" BasedOn="{StaticResource DeckFooterTitleStyle}">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="Padding" Value="10,3" />
+        <Setter Property="Margin" Value="0" />
+    </Style>
+
+    <!-- The box the title gets typed into, sized to the footer rather than to a settings row: the
+         same height as the line it replaces, so the deck does not shuffle when it opens. -->
+    <Style x:Key="DeckFooterEditStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+        <Setter Property="FontFamily" Value="Consolas" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Padding" Value="6,3" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Width" Value="320" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
     <!-- ==================================================== setup panes
 
          The pane language, in one template. Every setting in the product is a row: what it is on the
