@@ -209,8 +209,65 @@ internal static class InputChecks
             Expect(started == 0, $"it asked to go on air {started} time(s) while already broadcasting");
         });
 
+        // ------------------------------------------------------------------ the name on the chip
+
+        // The deck's input chip shows a shortened device name, because left whole a device name is
+        // three times longer than anything else on the row and decides its width. What gets dropped
+        // matters: the chip has to still say which input this is.
+
+        failures += Check("the bracket is what gets dropped", () =>
+        {
+            Expect(Short("IN 1-8 (BEHRINGER X-AIR)") == "IN 1-8", "the channel range is the part worth keeping");
+            Expect(Short("Microphone (Yeti X)") == "Microphone", "got " + Short("Microphone (Yeti X)"));
+            Expect(Short("Line In (Focusrite Scarlett 2i2 USB)") == "Line In", "got " + Short("Line In (Focusrite Scarlett 2i2 USB)"));
+        });
+
+        failures += Check("a name with no bracket is left alone when it fits", () =>
+        {
+            Expect(Short("Stereo Mix") == "Stereo Mix", "got " + Short("Stereo Mix"));
+            Expect(Short("Aggregate Device") == "Aggregate Device", "got " + Short("Aggregate Device"));
+        });
+
+        failures += Check("a long name with no bracket is cut, on a word", () =>
+        {
+            const string long1 = "Analogue 1 + 2 Focusrite USB ASIO Driver";
+            var result = Short(long1);
+
+            Expect(result.Length <= 21, $"\"{result}\" is {result.Length} characters, too long for a chip");
+            Expect(result.EndsWith('…'), $"\"{result}\" does not say that it was cut");
+
+            // Cutting mid-word reads as a rendering fault rather than as an abbreviation.
+            var body = result.TrimEnd('…');
+            Expect(long1.StartsWith(body, StringComparison.Ordinal), $"\"{result}\" is not a prefix of the name");
+            Expect(!char.IsLetterOrDigit(long1[body.Length]), $"\"{result}\" was cut in the middle of a word");
+        });
+
+        failures += Check("nothing useful is ever reduced to nothing", () =>
+        {
+            Expect(Short(string.Empty) == string.Empty, "an empty name should stay empty");
+            Expect(Short("   ") == string.Empty, "whitespace should come back empty");
+
+            // A name that is only a bracket has nothing before it to keep, and cutting to nothing
+            // would leave the chip claiming there is no input when there is one.
+            Expect(Short("(Realtek Audio)").Length > 0, "a name that is only a bracket lost everything");
+        });
+
+        failures += Check("the trailing default marker never survives", () =>
+        {
+            // DisplayName appends " — default", and it must not eat the chip's width.
+            var device = new AudioDevice("id", "IN 1-8 (BEHRINGER X-AIR)", AudioDeviceKind.Input, IsSystemDefault: true);
+
+            Expect(device.DisplayName.Contains("default"), "the full name should still say it is the default");
+            Expect(!device.ShortName.Contains("default"), $"the chip says \"{device.ShortName}\"");
+            Expect(device.ShortName == "IN 1-8", $"the chip says \"{device.ShortName}\"");
+        });
+
         return failures;
     }
+
+    /// <summary>Reads the shortening through a real device, which is the only way the app uses it.</summary>
+    private static string Short(string name) =>
+        new AudioDevice("id", name, AudioDeviceKind.Input, IsSystemDefault: false).ShortName;
 
     private static void Expect(bool condition, string message)
     {
