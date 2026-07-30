@@ -23,6 +23,13 @@
     <Copyright>Copyright (C) 2026 Deck contributors. Licensed under GPL-3.0-or-later.</Copyright>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <!--
+      The taskbar, Alt-Tab, Explorer and the window itself. Nine hand-hinted sizes, written by
+      branding\IconGen from the same DeckMark the tray icon uses. WPF has no separate window icon
+      set here on purpose: a Window with no Icon of its own falls back to the executable's, which is
+      this, so there is one icon rather than two that can drift apart.
+    -->
+    <ApplicationIcon>Deck.ico</ApplicationIcon>
+    <!--
       WFAC010 asks for DPI to be set through the WinForms project property. This is a WPF app that
       only borrows WinForms for the tray icon, so the manifest stays the source of truth.
     -->

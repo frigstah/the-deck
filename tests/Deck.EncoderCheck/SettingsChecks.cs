@@ -100,7 +100,20 @@ internal static class SettingsChecks
                 var loaded = new SettingsStore(path).Load();
 
                 Expect(loaded is not null, "a damaged settings file stopped Deck loading at all");
-                Expect(loaded!.MinimiseToTray, "the defaults did not come back after a damaged file");
+
+                // A setting whose default is not zero or false, so that an object which never ran its
+                // initialisers would be caught. This read MinimiseToTray until that stopped defaulting
+                // to true; the assertion had to move rather than being quietly deleted.
+                Expect(loaded!.AutoAirStopAfterMinutes == 5,
+                    "the defaults did not come back after a damaged file: silence timeout is " +
+                    $"{loaded.AutoAirStopAfterMinutes}, expected 5");
+
+                // And the half of the file that did parse must not have survived. The truncated JSON
+                // above asks for MiniMode, so if Deck ever starts salvaging what it can out of a
+                // damaged file, it would come back as a strip with everything else at its default -
+                // which is a stranger state to be in than simply losing the preferences.
+                Expect(!loaded.MiniMode,
+                    "a value from a damaged file was kept while the rest fell back to defaults");
             }
             finally
             {

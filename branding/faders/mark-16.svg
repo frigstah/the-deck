@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" role="img" aria-label="The Deck">
+  <!-- Small cut: the slots hold at 45%. Dropped to hairlines they leave two offset bars,
+       which is the Levels route - two marks arriving at the same drawing fails both. -->
+  <g fill="var(--deck-ink, #16191C)">
+    <rect x="4.2" y="1.5" width="1.6" height="13" opacity=".45"/>
+    <rect x="10.2" y="1.5" width="1.6" height="13" opacity=".45"/>
+    <rect x="1.5" y="4.2" width="7" height="3"/>
+    <rect x="7.5" y="8.8" width="7" height="3"/>
+  </g>
+</svg>

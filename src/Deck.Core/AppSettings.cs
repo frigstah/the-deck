@@ -164,8 +164,24 @@ public sealed class AppSettings
     /// <summary>How long silence must last before Deck takes itself off air. Minutes, not seconds.</summary>
     public int AutoAirStopAfterMinutes { get; set; } = 5;
 
-    /// <summary>Keep Deck in the notification area instead of the taskbar when minimised (I4).</summary>
-    public bool MinimiseToTray { get; set; } = true;
+    /// <summary>
+    /// Hide the window from the taskbar when minimised, leaving only the icon by the clock (I4).
+    /// <para>
+    /// Off by default, which is a reversal. It defaulted to on when it was inherited, and two things
+    /// have since made that the wrong answer. Mini mode is the real answer to "get out of my way but
+    /// stay where I can see you", and it is better at it than a 16-pixel icon - so the feature that
+    /// justified hiding the window has been superseded. And hiding is harder to undo than it looks:
+    /// Windows 11 puts new notification icons behind the overflow chevron, so a minimised Deck can be
+    /// two clicks and a hunt away rather than one double-click, with an empty taskbar in between.
+    /// A window that vanishes when you minimise it is the oldest surprise in Windows software.
+    /// </para>
+    /// <para>
+    /// Nothing is lost by leaving it off: the notification icon is there whenever Deck is running,
+    /// with its on-air colour, whatever this is set to. This only decides whether the taskbar button
+    /// goes away as well.
+    /// </para>
+    /// </summary>
+    public bool MinimiseToTray { get; set; }
 
     /// <summary>
     /// Whether Deck is a thin strip rather than the whole deck.

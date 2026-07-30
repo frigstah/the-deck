@@ -123,20 +123,51 @@
                     </Style>
                 </Border.Style>
 
-                <TextBlock>
-                    <TextBlock.Style>
-                        <!-- White reads on the rail; on the window it would be invisible on light and
-                             too loud on dark, so off the rail it takes the window's own text colour. -->
-                        <Style TargetType="TextBlock" BasedOn="{StaticResource WordmarkStyle}">
-                            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsSetupOpen}" Value="True">
-                                    <Setter Property="Foreground" Value="White" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
+                <!--
+                    The lock-up: the mark, then the word. The mark is drawn geometry rather than a
+                    glyph from a font, so it is the same shape here as it is in the taskbar and the
+                    tray - all three come from DeckMark. The word stays as text on purpose: at
+                    thirteen points, hinted type is sharper than any outline of it would be, and the
+                    place an outlined wordmark earns its keep is the readme and the installer, where
+                    it is large.
+                -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                    <Path Data="{x:Static local:DeckMark.TitleBarGeometry}"
+                          Width="20" Height="20" Stretch="None"
+                          VerticalAlignment="Center" Margin="0,0,6,0"
+                          SnapsToDevicePixels="True">
+                        <Path.Style>
+                            <!-- Follows the wordmark: white on the rail, the window's own text colour
+                                 off it. Stated here as well as there because they are two elements
+                                 that have to agree. -->
+                            <Style TargetType="Path">
+                                <Setter Property="Fill" Value="{DynamicResource TextBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSetupOpen}" Value="True">
+                                        <Setter Property="Fill" Value="White" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Path.Style>
+                    </Path>
+
+                    <TextBlock>
+                        <TextBlock.Style>
+                            <!-- White reads on the rail; on the window it would be invisible on light
+                                 and too loud on dark, so off the rail it takes the window's own text
+                                 colour. -->
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource WordmarkStyle}">
+                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSetupOpen}" Value="True">
+                                        <Setter Property="Foreground" Value="White" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
             </Border>
 
             <!-- The buttons have to opt out of the caption, or Windows treats a click on them as a
@@ -1287,12 +1318,17 @@
                                            TextAlignment="Right" TextWrapping="Wrap" />
                             </local:SettingRow>
 
-                            <local:SettingRow Label="Keep Deck in the notification area" ContentWidth="38"
+                            <!-- The hint says how to get the window back, because that is the part
+                                 that catches people: an empty taskbar and an icon that Windows 11 may
+                                 have tucked behind the overflow chevron. And it says the icon is there
+                                 either way, so nobody leaves this on thinking it is what puts Deck by
+                                 the clock. -->
+                            <local:SettingRow Label="Minimising hides Deck from the taskbar" ContentWidth="38"
                                               ShowRule="False"
-                                              Hint="When minimised, Deck sits by the clock instead of on the taskbar.">
+                                              Hint="Double-click the Deck icon by the clock to bring it back. That icon is there whenever Deck is running, whether this is on or off.">
                                 <CheckBox Style="{StaticResource ToggleSwitchStyle}"
                                           IsChecked="{Binding MinimiseToTray}"
-                                          AutomationProperties.Name="Keep Deck in the notification area" />
+                                          AutomationProperties.Name="Minimising hides Deck from the taskbar" />
                             </local:SettingRow>
                         </StackPanel>
 

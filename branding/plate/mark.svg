@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="The Deck">
+  <!-- Plate: a D with its curve replaced by two 45-degree cuts, and a counter big enough
+       to hold the on-air lamp. -->
+  <path fill="var(--deck-ink, #16191C)" fill-rule="evenodd"
+        d="M8 8H40L52 20V44L40 56H8Z M20 20H36L40 24V40L36 44H20Z"/>
+  <rect x="24.5" y="26" width="11" height="12" fill="var(--deck-lamp, transparent)"/>
+</svg>

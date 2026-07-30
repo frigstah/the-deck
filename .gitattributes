@@ -14,4 +14,9 @@ LICENSE   text eol=lf
 
 *.png binary
 *.ico binary
+*.bmp binary
 *.zip binary
+
+# The mark's vector source, and the page that compares the routes it was chosen from.
+*.svg  text
+*.html text

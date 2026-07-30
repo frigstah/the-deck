@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="The Deck">
+  <!-- Carrier: one unbroken stroke describing a square wave, stepping up as it leaves the
+       frame. Not a sine - a sine is rounded, and there is not a rounded corner in this app. -->
+  <path d="M4 42H12V22H28V42H44V22H60" fill="none" stroke="var(--deck-ink, #16191C)"
+        stroke-width="7" stroke-linecap="butt"/>
+  <path d="M44 22H60" fill="none" stroke="var(--deck-accent, #2A6A70)"
+        stroke-width="7" stroke-linecap="butt"/>
+</svg>

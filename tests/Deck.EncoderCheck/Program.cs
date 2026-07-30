@@ -82,6 +82,11 @@ internal static class Program
         Console.WriteLine(chainFailures == 0 ? "PASS\n" : $"{chainFailures} case(s) FAILED\n");
         failures += chainFailures;
 
+        Console.WriteLine("--- The icon the product ships with ---");
+        var iconFailures = IconChecks.Run();
+        Console.WriteLine(iconFailures == 0 ? "PASS\n" : $"{iconFailures} case(s) FAILED\n");
+        failures += iconFailures;
+
         Console.WriteLine("--- Nothing still calls itself SIRS ---");
         var lineageFailures = LineageChecks.Run();
         Console.WriteLine(lineageFailures == 0 ? "PASS\n" : $"{lineageFailures} case(s) FAILED\n");

@@ -165,7 +165,7 @@ Priority key: **P0** = v1.0 must-ship · **P1** = v1.1, strongly wanted · **P2*
 | I1 | Single-window main UI, High-DPI correct | P0 | |
 | I2 | First-run wizard: pick input → sound check → add server → test → go live | P0 | The 3-minute promise |
 | I3 | Global hotkey for Connect/Disconnect and Mute | P1 | |
-| I4 | Minimize to tray with live status in the tray icon | P1 | |
+| I4 | Minimize to tray with live status in the tray icon | P1 | The icon and its on-air colour are always there. Hiding the window from the taskbar is now a switch that is **off** by default — I12 does that job better, and a window that vanishes when minimised is a surprise, made worse by Windows 11 hiding new tray icons behind the overflow chevron |
 | I5 | Dark / light theme following Windows | P1 | |
 | I6 | Keyboard navigation + screen-reader labels | P1 | Rocket does this; blind broadcasters are a real, underserved segment |
 | I7 | Portable mode (config next to the .exe) alongside the installer | P1 | BUTT users expect this |
