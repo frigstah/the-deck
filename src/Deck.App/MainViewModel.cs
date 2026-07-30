@@ -37,6 +37,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     private ServerProfile? _selectedServer;
     private string _statusMessage = string.Empty;
     private string _nowPlayingInput = string.Empty;
+    private bool _editingNowPlaying;
     private bool _suppressPersist = true;
     private bool _sendToMoreThanOneServer;
     private RelayCommand? _soundCheckCommand;
@@ -112,6 +113,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
                 _settings.MetadataPort, _settings.MetadataAllowOtherComputers, _settings.MetadataToken);
         }
 
+        // Last night's typed title comes back (F1) - but only if nothing else is now supplying
+        // titles, and only into memory. Nothing is on air yet, so nothing goes out; going live
+        // sends it, the same as if it had been typed a moment ago.
+        if (_engine.NowPlaying.Source == MetadataSource.Manual && _settings.ManualTitle.Length > 0)
+        {
+            _engine.NowPlaying.SetTitle(_settings.ManualTitle);
+            _nowPlayingInput = _engine.NowPlaying.Title;
+        }
+
         // Built here rather than in a field initialiser: it takes this view model as its surface,
         // and `this` is not available until the constructor body.
         _control = new ControlServer(this);
@@ -181,6 +191,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         {
             _nowPlayingInput = e.Title;
             RaiseAll(nameof(NowPlayingInput), nameof(NowPlayingStatus));
+            RaiseNowPlayingFooter();
         });
 
         _engine.Capture.Secondary.GainDb = _settings.SecondaryGainDb;
@@ -421,12 +432,85 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             : "Press to start recording.";
 
     /// <summary>
-    /// The line listeners are seeing, or nothing. Read-only here on purpose: the deck reports, and
-    /// the Track pane is where a title gets typed.
+    /// The line listeners are seeing, or nothing.
+    /// <para>
+    /// This one readout is also a control, which nothing else on the deck is. Naming the show is
+    /// the one setting that changes every time you use Deck rather than once when you set it up, so
+    /// making it the only reason to open setup mid-show was wrong. It is still the same title the
+    /// Track pane types, and the pane still holds everything about where titles come from.
+    /// </para>
     /// </summary>
     public string NowPlayingLine => _engine.NowPlaying.Title is { Length: > 0 } title
         ? title
         : "nothing set";
+
+    /// <summary>
+    /// Whether the deck may type over the title. Only when the title is the user's own to begin
+    /// with: under any other source the footer is a readout of something Deck does not own, and
+    /// committing a title there would not merely be overwritten by the next poll - it would switch
+    /// the source to manual and quietly cut off the station's automation.
+    /// </summary>
+    public bool CanTypeNowPlaying => _engine.NowPlaying.Source == MetadataSource.Manual;
+
+    /// <summary>The footer's box is up, in place of the title.</summary>
+    public bool EditingNowPlaying
+    {
+        get => _editingNowPlaying;
+        private set
+        {
+            if (Set(ref _editingNowPlaying, value)) RaiseNowPlayingFooter();
+        }
+    }
+
+    /// <summary>
+    /// An invitation, shown only when there is nothing to show and the deck is allowed to ask.
+    /// Better than the words "nothing set", which report a hole without saying who can fill it.
+    /// </summary>
+    public bool ShowNowPlayingSetChip => !EditingNowPlaying && CanTypeNowPlaying && NoTitleYet;
+
+    public bool ShowNowPlayingLine => !EditingNowPlaying && !ShowNowPlayingSetChip;
+
+    /// <summary>Null while the line is only a readout, so no tooltip promises a click that does nothing.</summary>
+    public string? NowPlayingLineTooltip => CanTypeNowPlaying && !NoTitleYet
+        ? "Click to change the title listeners see. Enter sets it; Esc leaves it alone."
+        : null;
+
+    private bool NoTitleYet => _engine.NowPlaying.Title.Length == 0;
+
+    /// <summary>Opens the footer's box on whatever the title is now, ready to be typed over.</summary>
+    public void BeginEditNowPlaying()
+    {
+        if (!CanTypeNowPlaying) return;
+
+        NowPlayingInput = _engine.NowPlaying.Title;
+        EditingNowPlaying = true;
+    }
+
+    /// <summary>Sends what was typed and closes the box.</summary>
+    public void CommitEditNowPlaying()
+    {
+        if (!EditingNowPlaying) return;
+
+        EditingNowPlaying = false;
+        UpdateNowPlaying();
+    }
+
+    /// <summary>
+    /// Closes the box and puts back the title that was there. What the deck's box sends goes out to
+    /// listeners the moment it is sent, so only Enter sends: clicking away, or pressing Esc, has to
+    /// be a way out rather than a way of half-naming a show in front of an audience.
+    /// </summary>
+    public void CancelEditNowPlaying()
+    {
+        if (!EditingNowPlaying) return;
+
+        NowPlayingInput = _engine.NowPlaying.Title;
+        EditingNowPlaying = false;
+    }
+
+    private void RaiseNowPlayingFooter() => RaiseAll(
+        nameof(NowPlayingLine), nameof(NowPlayingLineTooltip), nameof(CanTypeNowPlaying),
+        nameof(ShowNowPlayingSetChip), nameof(ShowNowPlayingLine));
 
     /// <summary>
     /// How full the send buffer is. Worth a corner of the deck because it is the earliest warning
@@ -436,10 +520,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         ? $"buffer {_engine.Broadcast.BufferFill:P0}"
         : string.Empty;
 
-    private void RaiseDeck() => RaiseAll(
-        nameof(InputChip), nameof(InputChipShort), nameof(InputChipTooltip),
-        nameof(RecordButtonLabel), nameof(RecordButtonTooltip), nameof(NowPlayingLine),
-        nameof(BufferText));
+    private void RaiseDeck()
+    {
+        RaiseAll(
+            nameof(InputChip), nameof(InputChipShort), nameof(InputChipTooltip),
+            nameof(RecordButtonLabel), nameof(RecordButtonTooltip), nameof(BufferText));
+
+        RaiseNowPlayingFooter();
+    }
 
     // ---------------------------------------------------------------- which pane is open
 
@@ -1882,13 +1970,28 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         RaiseMetadataState();
     }
 
-    public RelayCommand UpdateNowPlayingCommand => _updateNowPlayingCommand ??= new RelayCommand(UpdateNowPlaying);
+    // A lambda rather than the method itself: an optional parameter stops a method group converting
+    // to Action, and the pane's Send button is one of the callers that does want the title kept.
+    public RelayCommand UpdateNowPlayingCommand =>
+        _updateNowPlayingCommand ??= new RelayCommand(() => UpdateNowPlaying());
 
-    /// <summary>Pushes whatever is in the box. Shared with the remote control endpoint (I10).</summary>
-    private void UpdateNowPlaying()
+    /// <summary>
+    /// Pushes whatever is in the box. Shared with the remote control endpoint (I10), which is the
+    /// one caller that does not want the title kept - see <paramref name="remember"/>.
+    /// </summary>
+    private void UpdateNowPlaying(bool remember = true)
     {
         _engine.NowPlaying.UseManual();
         _engine.NowPlaying.SetTitle(NowPlayingInput);
+
+        // Remembered from here rather than from the service's TitleChanged, which every source
+        // fires: only a title somebody typed is theirs to keep (F1).
+        if (remember)
+        {
+            _settings.ManualTitle = _engine.NowPlaying.Title;
+            Persist();
+        }
+
         RaiseMetadataState();
     }
 
@@ -1904,9 +2007,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         RaiseMetadataState();
     }
 
-    private void RaiseMetadataState() => RaiseAll(
-        nameof(NowPlayingStatus), nameof(UsingTextFileMetadata), nameof(UsingMediaSession),
-        nameof(NowPlayingInput));
+    private void RaiseMetadataState()
+    {
+        RaiseAll(
+            nameof(NowPlayingStatus), nameof(UsingTextFileMetadata), nameof(UsingMediaSession),
+            nameof(NowPlayingInput));
+
+        // Changing where titles come from changes whether the deck's own line can be typed over.
+        RaiseNowPlayingFooter();
+    }
 
     // ---------------------------------------------------------------- recording
 
@@ -2101,7 +2210,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         }
 
         NowPlayingInput = title;
-        UpdateNowPlaying();
+
+        // Not remembered. A title arriving over the endpoint is almost always a track from playout
+        // software, one of a few hundred in an evening - keeping it would write the settings file on
+        // every track change and leave last night's last song as tomorrow's opening title. What the
+        // user typed themselves is a different thing, and that is what gets kept.
+        UpdateNowPlaying(remember: false);
 
         return ControlResult.Done($"Now playing: {_engine.NowPlaying.Title}");
     });

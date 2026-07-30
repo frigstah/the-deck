@@ -7,6 +7,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Shell;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using Deck.Core.Servers;
 using Deck.Core.Streaming;
@@ -576,6 +577,50 @@ public partial class MainWindow : Window
         if (e.Key != Key.Enter) return;
         _viewModel.UpdateNowPlayingCommand.Execute(null);
     }
+
+    /// <summary>
+    /// Opens the deck footer's own title box, on the "Set" chip or on the title itself.
+    /// <para>
+    /// Focus has to wait for a layout pass. The box comes in through a visibility binding, and until
+    /// the binding has been evaluated and the box arranged there is nothing there to focus - calling
+    /// Focus() in this handler simply returns false and the user is left typing into nothing.
+    /// </para>
+    /// </summary>
+    private void OnEditNowPlayingTitle(object sender, RoutedEventArgs e)
+    {
+        _viewModel.BeginEditNowPlaying();
+
+        Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
+        {
+            NowPlayingQuickBox.Focus();
+
+            // Selected rather than at the end: the common edit is a new show name over the old one.
+            NowPlayingQuickBox.SelectAll();
+        }));
+    }
+
+    private void OnQuickTitleKeyDown(object sender, KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Key.Enter:
+                _viewModel.CommitEditNowPlaying();
+                e.Handled = true;
+                break;
+
+            case Key.Escape:
+                _viewModel.CancelEditNowPlaying();
+                e.Handled = true;
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Clicking away closes the box and leaves the title alone. Deliberate: what this box sends goes
+    /// straight out to listeners, so it takes a keypress to send it and never a stray click.
+    /// </summary>
+    private void OnQuickTitleLostFocus(object sender, KeyboardFocusChangedEventArgs e) =>
+        _viewModel.CancelEditNowPlaying();
 
     private void OnChooseMetadataFile(object sender, RoutedEventArgs e)
     {

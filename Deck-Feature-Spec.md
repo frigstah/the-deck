@@ -132,7 +132,7 @@ Priority key: **P0** = v1.0 must-ship · **P1** = v1.1, strongly wanted · **P2*
 ### 3.6 Metadata (now playing)
 | # | Feature | Pri | Notes |
 |---|---|---|---|
-| F1 | Manual "Now playing" text box with an Update button | P0 | |
+| F1 | Manual "Now playing" text box with an Update button | P0 — **built** | Typed on the deck itself, not only in setup: "Set" while there is no title, the title once there is one, and remembered between runs — a hand-typed title is a show name, not a track |
 | F2 | Read from a text file, polled (the automation-system standard) | P0 | Universal interop with playout software |
 | F3 | Read from Windows media session (SMTC) — picks up Spotify, foobar2000, browsers | P1 | **This is the win**: BUTT can't do this on Windows |
 | F4 | Remote metadata via local HTTP/TCP endpoint | P2 — **built** | For automation systems |

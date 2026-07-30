@@ -201,6 +201,41 @@ internal static class MetadataChecks
             }
         });
 
+        // ---------------------------------------------------------------- a remembered title (F1)
+
+        failures += Check("a title restored from the settings file is cleaned first", () =>
+        {
+            // The remembered title comes back through SetTitle on the next launch, and settings.json
+            // is a text file a user can edit. Whatever is in it ends up in an HTTP query string and a
+            // stream header, so a line break or a novel in there must not reach the wire - the same
+            // guarantee a title typed into the box gets, because it is the same door.
+            using var service = new NowPlayingService();
+            var sent = new List<string>();
+            service.TitleChanged += (_, e) => sent.Add(e.Title);
+
+            service.SetTitle("  Late Show\r\nHost: someone  ");
+
+            // Not asserted character for character: a line break becomes a space and CRLF therefore
+            // becomes two, which is untidy and harmless. What matters is that the wire sees one line
+            // with no padding around it.
+            if (service.Title.Any(char.IsControl) || service.Title != service.Title.Trim())
+            {
+                throw new Exception($"a restored title came through as \"{service.Title}\"");
+            }
+
+            service.SetTitle(new string('x', 400));
+
+            if (service.Title.Length != 255)
+            {
+                throw new Exception($"a 400-character title came through at {service.Title.Length} characters");
+            }
+
+            if (sent.Count != 2)
+            {
+                throw new Exception($"the wire saw {sent.Count} titles, expected 2");
+            }
+        });
+
         return failures;
     }
 
