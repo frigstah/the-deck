@@ -1391,9 +1391,22 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     /// Adds servers from a shared file. Ids are regenerated on collision so importing a file that
     /// came from a copy of your own list adds servers rather than silently replacing them.
     /// </summary>
-    public int ImportServers(string json)
+    public int ImportServers(string json) => AddServers(ProfileStore.Import(json));
+
+    /// <summary>
+    /// Reads a BUTT configuration and adds the servers out of it (C13), leaving everything else in
+    /// the file alone. Returns what was found as well as what was added, because a file where most
+    /// entries were skipped is worth saying so about rather than reporting as a small success.
+    /// </summary>
+    public (int Added, ButtImportResult Result) ImportFromButt(string text)
     {
-        var added = ProfileStore.MergeInto(Servers, ProfileStore.Import(json));
+        var result = ButtImport.Read(text);
+        return (AddServers(result.Servers), result);
+    }
+
+    private int AddServers(List<ServerProfile> incoming)
+    {
+        var added = ProfileStore.MergeInto(Servers, incoming);
 
         if (added > 0)
         {

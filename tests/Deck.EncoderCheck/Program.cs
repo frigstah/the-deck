@@ -142,6 +142,11 @@ internal static class Program
         Console.WriteLine(sharingFailures == 0 ? "PASS\n" : $"{sharingFailures} case(s) FAILED\n");
         failures += sharingFailures;
 
+        Console.WriteLine("--- Importing from BUTT ---");
+        var buttFailures = ButtImportChecks.Run();
+        Console.WriteLine(buttFailures == 0 ? "PASS\n" : $"{buttFailures} case(s) FAILED\n");
+        failures += buttFailures;
+
         Console.WriteLine("--- Spectrum and phase ---");
         var spectrumFailures = SpectrumChecks.Run();
         Console.WriteLine(spectrumFailures == 0 ? "PASS\n" : $"{spectrumFailures} case(s) FAILED\n");

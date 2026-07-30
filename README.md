@@ -174,6 +174,7 @@ worth making: the alternative was a first screen that looks like a control panel
 | Servers | Named profiles, add/edit/duplicate/delete, DPAPI-encrypted passwords |
 | Setup | Paste-a-URL and paste-an-email parsing, automatic server-type detection, host presets |
 | Sharing | Export the server list to a file another DJ can import; passwords deliberately stay behind |
+| Coming from BUTT | Point the same Import button at a BUTT config and its servers come across — addresses, ports, mounts and passwords, protected on the way in. Only the servers: devices, DSP and MIDI stay where they are |
 | Protocols | Icecast HTTP PUT with automatic SOURCE fallback, SHOUTcast v1 and v2, TLS |
 | Several servers at once | A main plus a backup relay, or the same show at two bitrates; one dropping does not take the others off air |
 | Testing | Six-stage connection test: find, connect, secure, identify, sign in, send audio |
@@ -465,6 +466,19 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   every track change. Under those sources the line locks — undimmed, because it is still
   what listeners are seeing — since committing a title there would not merely be overwritten by the
   next poll, it would switch the source to manual and quietly cut off the station's automation.
+- **The switching cost is the server list, not the software.** Somebody with fifty stations saved in
+  BUTT is not going to retype fifty addresses, ports and passwords to try something else, and no
+  amount of design work on the rest of Deck answers that — so Deck reads their file. It is the same
+  Import button, which works out which kind of file it was given rather than making anyone know the
+  difference. Only the servers cross: a BUTT config also carries audio devices, DSP settings, window
+  positions and MIDI bindings, and the device indices mean nothing outside BUTT while silently
+  importing somebody's compressor into a different compressor would be worse than not importing it.
+  A SHOUTcast entry arrives undecided, because BUTT does not record *which* SHOUTcast and guessing
+  would invent a fact the server can be asked for. Passwords do come across, and get protected on the
+  way in — BUTT keeps them in the clear, so for anyone importing, the copy Deck holds is the safer
+  one. The real fifty-four server file this was built against is also what found the bug: two of the
+  stations had names differing only in capitals, and matching sections case-insensitively quietly
+  replaced an Icecast server with a copy of a SHOUTcast one.
 - **One program, not the whole desktop.** The second source can be a single program - the backing-track
   player, and nothing else on the machine. That is what makes karaoke work: microphone on the main input,
   KaraFun on the second, two faders, one stream. Whole-desktop capture would take the notifications, the
