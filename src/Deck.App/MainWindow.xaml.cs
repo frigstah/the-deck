@@ -3,8 +3,10 @@ using System.IO;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Shell;
 using Microsoft.Win32;
 using Deck.Core.Servers;
 using Deck.Core.Streaming;
@@ -18,9 +20,24 @@ public partial class MainWindow : Window
     private LogWindow? _logWindow;
     private TrayPresence? _tray;
 
+    /// <summary>
+    /// The deck's own limits and caption, read from the window rather than repeated here. Mini mode
+    /// replaces all three and has to be able to put them back exactly; a second copy of the numbers
+    /// would be a second place to change them.
+    /// </summary>
+    private readonly double _deckMinWidth;
+    private readonly double _deckMinHeight;
+    private readonly double _deckCaptionHeight;
+    private readonly WindowChrome _chrome;
+
     public MainWindow()
     {
         InitializeComponent();
+
+        _deckMinWidth = MinWidth;
+        _deckMinHeight = MinHeight;
+        _chrome = WindowChrome.GetWindowChrome(this);
+        _deckCaptionHeight = _chrome.CaptionHeight;
 
         _viewModel = new MainViewModel();
         DataContext = _viewModel;
@@ -134,6 +151,10 @@ public partial class MainWindow : Window
         {
             _viewModel.ToggleBroadcast();
         }
+
+        // Come back as whatever Deck was left as. Last, so the placement it remembers is the deck's
+        // real size on this screen rather than the size in the XAML.
+        if (_viewModel.Settings.MiniMode) SetMiniMode(true);
     }
 
     /// <summary>Minimising hides the window rather than leaving it on the taskbar (I4).</summary>
@@ -145,12 +166,144 @@ public partial class MainWindow : Window
         Hide();
     }
 
+    // ---------------------------------------------------------------- mini mode
+
+    /// <summary>
+    /// The strip's height, and it is fixed rather than a minimum. There is one row of content on it;
+    /// a taller strip would be the same row with space above and below, which is what the deck is
+    /// for. The width is free, and starts narrow so pressing Mini visibly produces a strip.
+    /// </summary>
+    private const double MiniHeight = 56;
+
+    /// <summary>
+    /// Wide enough that the meter is still a meter. The controls and the state block take a fixed
+    /// amount of the row and the meter gets what is left, so a narrower strip does not make Deck
+    /// smaller - it makes the one thing on the strip worth watching too small to read.
+    /// </summary>
+    private const double MiniWidth = 860;
+
+    /// <summary>Where the deck was, so the strip can put it back rather than guess at it.</summary>
+    private Rect _deckPlacement = Rect.Empty;
+
+    private bool _deckWasMaximised;
+
+    private void OnEnterMiniMode(object sender, RoutedEventArgs e) => SetMiniMode(true);
+
+    private void OnLeaveMiniMode(object sender, RoutedEventArgs e) => SetMiniMode(false);
+
+    private void SetMiniMode(bool mini)
+    {
+        if (_viewModel.IsMiniMode == mini) return;
+
+        if (mini) EnterMiniMode();
+        else LeaveMiniMode();
+    }
+
+    private void EnterMiniMode()
+    {
+        _deckWasMaximised = WindowState == WindowState.Maximized;
+
+        // Come out of maximised before reading the placement, or what gets remembered is the whole
+        // screen and the deck returns filling it when it was not filling it before.
+        if (_deckWasMaximised) WindowState = WindowState.Normal;
+
+        _deckPlacement = new Rect(
+            double.IsNaN(Left) ? 0 : Left,
+            double.IsNaN(Top) ? 0 : Top,
+            Width,
+            Height);
+
+        _viewModel.IsMiniMode = true;
+
+        // Setup cannot be open here - the only way in is a button on the deck - but if that ever
+        // changes, the panel has to go immediately rather than sliding for 220ms over a window that
+        // is about to be 56 pixels tall.
+        SetupOffset.BeginAnimation(TranslateTransform.YProperty, null);
+        SetupOffset.Y = 0;
+        SetupPanel.Visibility = Visibility.Collapsed;
+
+        MinHeight = MiniHeight;
+        MaxHeight = MiniHeight;
+        MinWidth = MiniWidth;
+        Height = MiniHeight;
+        Width = MiniWidth;
+
+        // The strip is the title bar now. Short of the bottom edge, so there is still a border to
+        // drag when the strip is the whole window.
+        _chrome.CaptionHeight = Math.Max(0, MiniHeight - _chrome.ResizeBorderThickness.Bottom);
+
+        // The reason to want a strip at all: it stays where you can see it while the screen belongs
+        // to whatever is playing the music.
+        Topmost = true;
+    }
+
+    private void LeaveMiniMode()
+    {
+        _viewModel.IsMiniMode = false;
+
+        Topmost = false;
+        _chrome.CaptionHeight = _deckCaptionHeight;
+
+        // Order matters. The ceiling has to come off before the height can grow past it, and the
+        // deck's own floor has to be back before its size is asked for.
+        MaxHeight = double.PositiveInfinity;
+        MinWidth = _deckMinWidth;
+        MinHeight = _deckMinHeight;
+
+        if (_deckPlacement.IsEmpty)
+        {
+            // Deck started as a strip and has never had a deck-sized placement to remember.
+            Width = _deckMinWidth;
+            Height = _deckMinHeight;
+        }
+        else
+        {
+            Left = _deckPlacement.X;
+            Top = _deckPlacement.Y;
+            Width = _deckPlacement.Width;
+            Height = _deckPlacement.Height;
+        }
+
+        if (_deckWasMaximised) WindowState = WindowState.Maximized;
+        _deckWasMaximised = false;
+    }
+
     // ---------------------------------------------------------------- the window's own title bar
 
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
         MaximiseBounds.Keep(this);
+
+        HwndSource.FromHwnd(new WindowInteropHelper(this).Handle)?.AddHook(OnWindowMessage);
+    }
+
+    private const int WmSysCommand = 0x0112;
+    private const int ScMaximise = 0xF030;
+
+    /// <summary>
+    /// Turns "maximise" into "give me the deck back" while Deck is a strip.
+    /// <para>
+    /// Double-clicking the caption is a maximise, and the strip is the caption - so the gesture
+    /// arrives whether or not it makes sense, and asking a 56-pixel strip to fill the screen is only
+    /// ever a way of asking for the deck. Answered here rather than in StateChanged, because letting
+    /// the maximise happen and undoing it afterwards moves the window to the maximised origin first
+    /// and the deck then comes back eight pixels off the corner of the screen. Measured, not
+    /// theorised: that is exactly what it did.
+    /// </para>
+    /// <para>
+    /// Only SC_MAXIMIZE. SC_RESTORE arrives when coming back from the notification area, and
+    /// swallowing that would strand the window.
+    /// </para>
+    /// </summary>
+    private IntPtr OnWindowMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg != WmSysCommand || !_viewModel.IsMiniMode) return IntPtr.Zero;
+        if ((wParam.ToInt32() & 0xFFF0) != ScMaximise) return IntPtr.Zero;
+
+        handled = true;
+        SetMiniMode(false);
+        return IntPtr.Zero;
     }
 
     private void OnMinimiseWindow(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;

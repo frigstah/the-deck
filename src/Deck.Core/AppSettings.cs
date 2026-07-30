@@ -167,6 +167,17 @@ public sealed class AppSettings
     /// <summary>Keep Deck in the notification area instead of the taskbar when minimised (I4).</summary>
     public bool MinimiseToTray { get; set; } = true;
 
+    /// <summary>
+    /// Whether Deck is a thin strip rather than the whole deck.
+    /// <para>
+    /// Remembered because it is a way of working, not a passing choice: someone who parks the strip
+    /// along the top of a screen while they run a playout program in the rest of it wants it there
+    /// again tomorrow. It is the third size Deck has, between the deck and the notification area,
+    /// and the only one where nothing but the show is on screen.
+    /// </para>
+    /// </summary>
+    public bool MiniMode { get; set; }
+
     public double SilenceAlertSeconds { get; set; } = 15;
 
     /// <summary>

@@ -112,7 +112,7 @@ src/Deck.Core/          No UI. Everything below is usable headless.
   BroadcastEngine.cs    Ties it together; owns the single audio callback
 
 src/Deck.App/           The deck, the setup panel, server editor, first-run wizard, tray, hotkeys
-  MainWindow.xaml       The deck in row 1, setup over the top of it, the strip below
+  MainWindow.xaml       The deck in row 1, setup and mini mode over the top of it, the strip below
   SettingRow.cs         One setting: label left, control right, hairline between. 54 of these.
   Theme.xaml            Both palettes and every style. Dark is applied over it in App.xaml.cs.
   LevelMeterControl.cs  The segmented meter, drawn; SpectrumControl.cs the 24-band spectrum
@@ -425,6 +425,13 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
 - **The status strip appears only while setup is open.** The deck states the same facts in far larger
   type, so showing both would say everything twice on one screen. Exactly one of the two is always
   visible, so the answer to "am I live?" never leaves.
+- **Three sizes, and the middle one is the strip.** Press Mini and Deck becomes a 56-pixel bar that
+  stays on top of other windows: the on-air block, the meter, the destination, record, go live, and the
+  way back. Nothing else, and no route to a setting — for that you need the deck, which is one press or
+  one double-click away. The deck is for when Deck is what you are doing; the notification area is for
+  when it is out of mind; the strip is for the case in between, which is most of a show. It is
+  remembered between runs, because parking it along the top of a screen is a way of working rather than
+  a passing choice.
 - **Setup has no header row.** It held the word SETUP, which the rail already says, and a close button,
   which belongs in the strip with the other things you press. Removing it freed exactly the height the
   rail needed to show all seven entries in a window this short — the difference between a rail you
