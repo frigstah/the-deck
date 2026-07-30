@@ -762,6 +762,22 @@
         <Setter Property="FontSize" Value="13" />
     </Style>
 
+    <!--
+        Record, sitting at the end of the chip row. Deliberately chip-shaped rather than
+        button-shaped: it is the same height and padding as the facts beside it so the row stays one
+        line of one material, and it earns its "this is pressable" from the hover state and the
+        cursor rather than from being taller than everything around it.
+    -->
+    <Style x:Key="DeckRecordButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="FontFamily" Value="Consolas" />
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="Padding" Value="12,7" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Margin" Value="0,0,10,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+
     <!-- The footer: now playing on the left, how the connection is holding up on the right. -->
     <Style x:Key="DeckFooterStyle" TargetType="TextBlock" BasedOn="{StaticResource ReadoutStyle}">
         <Setter Property="FontSize" Value="12" />
