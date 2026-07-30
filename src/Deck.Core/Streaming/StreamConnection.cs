@@ -48,6 +48,14 @@ public sealed class StreamConnection : IAsyncDisposable
     /// <summary>The most recent failure, phrased for the user. Survives into the Failed state.</summary>
     public string? LastError { get; private set; }
 
+    /// <summary>
+    /// What kind of failure <see cref="LastError"/> describes, kept alongside the words rather than
+    /// thrown away with the exception. The sinks work out the difference between a refused password,
+    /// a taken stream and a silent server and then used to flatten all three into one string, which
+    /// left the deck unable to say anything about a problem beyond quoting it.
+    /// </summary>
+    public StreamFailure? LastFailure { get; private set; }
+
     /// <summary>Anything unusual about how the connection was made, e.g. an adjusted port.</summary>
     public string? ConnectionNote { get; private set; }
 
@@ -122,6 +130,7 @@ public sealed class StreamConnection : IAsyncDisposable
         _maxQueuedBytes = Math.Max(16 * 1024, (int)(encoder.BitrateKbps * 1000 / 8 * BufferSeconds));
 
         LastError = null;
+        LastFailure = null;
         ConnectionNote = null;
         BytesSent = 0;
         ReconnectAttempts = 0;
@@ -219,6 +228,7 @@ public sealed class StreamConnection : IAsyncDisposable
                 attempt = 0;
                 _liveSinceTicks = Stopwatch.GetTimestamp();
                 LastError = null;
+                LastFailure = null;
                 Transition(StreamState.Live, sink.ConnectionNote);
 
                 // Ogg needs its identification pages at the head of every connection, so they are
@@ -237,10 +247,11 @@ public sealed class StreamConnection : IAsyncDisposable
             catch (StreamException ex)
             {
                 LastError = Explain(ex);
+                LastFailure = ex.Failure;
 
                 // A wrong password will never come right on its own, so stop rather than hammering
                 // the server and burying the real reason under retry messages.
-                if (ex.Failure == StreamFailure.Authentication)
+                if (!ex.Failure.WorthRetrying())
                 {
                     Transition(StreamState.Failed, LastError);
                     break;
@@ -251,6 +262,7 @@ public sealed class StreamConnection : IAsyncDisposable
             catch (Exception ex)
             {
                 LastError = $"Unexpected problem with the connection: {ex.Message}";
+                LastFailure = StreamFailure.Protocol;
                 Transition(StreamState.Reconnecting, LastError);
             }
             finally
@@ -315,9 +327,12 @@ public sealed class StreamConnection : IAsyncDisposable
 
         var sent = BytesSent < 1024 ? $"{BytesSent} bytes" : $"{BytesSent / 1024} KB";
 
+        // The family, not the two versions by name. Listing them meant a server that knows only that
+        // it is SHOUTcast - which is most of a list imported from another encoder - fell through to
+        // the generic advice and lost the bitrate line, which is the usual answer.
         var whatToCheck = _profile?.ServerType switch
         {
-            ServerType.ShoutcastV1 or ServerType.ShoutcastV2 =>
+            { } type when type.IsShoutcast() =>
                 $"A SHOUTcast server that drops a broadcast this quickly is usually refusing the audio " +
                 $"rather than the connection. Check that the quality Deck is sending ({_encoder?.BitrateKbps} kbps " +
                 $"{_encoder?.Codec.DisplayName()}) is what this stream is set up for - a bitrate above what the " +

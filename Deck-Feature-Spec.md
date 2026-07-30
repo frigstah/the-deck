@@ -154,7 +154,7 @@ Priority key: **P0** = v1.0 must-ship · **P1** = v1.1, strongly wanted · **P2*
 |---|---|---|---|
 | H1 | Auto-reconnect with fast backoff (1s, 2s, 5s, 10s…) — no artificial delay | P0 | Direct dig at Rocket's 20s free-tier penalty |
 | H2 | Buffered send with configurable buffer; keeps encoding during short outages | P0 | |
-| H3 | Connection state machine surfaced clearly: Idle / Testing / Connecting / **LIVE** / Reconnecting / Failed | P0 | Big, unmistakable LIVE indicator |
+| H3 | Connection state machine surfaced clearly: Idle / Testing / Connecting / **LIVE** / Reconnecting / Failed, and a failure says which failure it is, in full | P0 — **rebuilt** | Big, unmistakable LIVE indicator. The state alone is not enough: a refused password, a stream somebody else is already on, and a server that is not answering are three different evenings. The kind is carried up beside the words, so the deck leads with a verdict and then gives the whole explanation — untrimmed, in its own block, and equally for Icecast and both SHOUTcasts |
 | H4 | Listener count display where the server reports it | P1 — **rebuilt** | "Where the server reports it" turned out to be the whole difficulty. A shared host can remove Icecast's status templates, so `status-json.xsl` — the one endpoint this asked — answers 404 on a perfectly healthy server. Now three are tried, ending with the mount's own admin stats using the broadcast password, and a count that cannot be had says so instead of leaving an empty space |
 | H5 | Session log (connect/disconnect/errors) viewable in-app + written to file | P1 | Essential for supporting users remotely |
 | H6 | Auto-connect on app start | P1 | |

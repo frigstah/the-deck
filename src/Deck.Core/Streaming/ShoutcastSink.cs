@@ -71,7 +71,13 @@ public sealed class ShoutcastSink(ServerProfile profile, EncoderSettings encoder
             {
                 // Authentication failures are conclusive - a different port will not fix a wrong
                 // password, and retrying would only muddle the error the user sees.
-                lastFailure = ex;
+                //
+                // Everything else keeps whichever answer says more. The second port is a guess, and
+                // when it is wrong it fails with "nothing is listening" - which was then reported as
+                // the reason, burying an actual reply from the port the user entered. Somebody whose
+                // stream was already taken got told their server could not be reached, and went
+                // looking at their connection instead of at the encoder still running upstairs.
+                lastFailure = Better(lastFailure, ex);
                 await DisposeConnectionAsync().ConfigureAwait(false);
             }
         }
@@ -79,6 +85,20 @@ public sealed class ShoutcastSink(ServerProfile profile, EncoderSettings encoder
         throw lastFailure ?? new StreamException(
             StreamFailure.Network,
             $"Could not reach {_profile.Host} on port {_profile.Port} or {_profile.Port + 1}.");
+    }
+
+    /// <summary>
+    /// The more informative of two failures. A server that answered - even to refuse - knows more
+    /// about what is wrong than a port that nothing was listening on, so anything beats
+    /// <see cref="StreamFailure.Network"/>; between two of the same kind the earlier one wins,
+    /// because that is the port the user actually entered.
+    /// </summary>
+    private static StreamException Better(StreamException? existing, StreamException candidate)
+    {
+        if (existing is null) return candidate;
+        if (existing.Failure != StreamFailure.Network) return existing;
+
+        return candidate.Failure == StreamFailure.Network ? existing : candidate;
     }
 
     private async Task TryConnectAsync(int port, CancellationToken cancellationToken)

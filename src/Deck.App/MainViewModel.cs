@@ -1609,6 +1609,61 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         set => Set(ref _statusMessage, value);
     }
 
+    // ------------------------------------------------- why the broadcast is not going out (H3)
+
+    /// <summary>
+    /// The connection problem, if there is one, in full.
+    /// <para>
+    /// Its own block on the deck rather than a line in the footer, and that is the whole point of it.
+    /// The sinks work hard to say something useful - which field is wrong, what to go and change -
+    /// and every word of it was arriving in a footer readout capped at 320 pixels with an ellipsis on
+    /// the end, in the same grey as the byte counter. The diagnosis survived; the remedy, which is
+    /// the half worth reading, was cut off mid-sentence with nowhere to see the rest. A broadcaster
+    /// whose show is not going out should not have to hunt for the reason, or already know that the
+    /// log window exists.
+    /// </para>
+    /// </summary>
+    private BroadcastProblem? _problem;
+
+    public bool ShowConnectionProblem => _problem is not null;
+
+    /// <summary>The failure in a few words - what is read first, and often all that is needed.</summary>
+    public string ConnectionProblemHeadline => _problem is null
+        ? string.Empty
+        : _engine.Broadcast.IsMultiTarget ? $"{_problem.Server}: {_problem.Headline}" : _problem.Headline;
+
+    /// <summary>The full explanation. Wraps; never trimmed.</summary>
+    public string ConnectionProblemDetail => _problem?.Detail ?? string.Empty;
+
+    /// <summary>
+    /// Whether Deck is still working on it. A password Deck has given up on and a server it is still
+    /// calling every few seconds ask completely different things of the person reading this: one
+    /// needs them to go and fix something, the other only needs them to wait.
+    /// </summary>
+    public string ConnectionProblemAction => _problem is null
+        ? string.Empty
+        : _problem.StillTrying
+            ? "Deck is still trying, and will go on air by itself the moment the server takes it."
+            : "Deck has stopped trying. Fix this and press Go live again.";
+
+    /// <summary>
+    /// Red only where waiting cannot help. A reconnect in progress is a warning, not a failure -
+    /// colouring it the same as a dead password would cry wolf every time a network hiccups.
+    /// </summary>
+    public Brush ConnectionProblemBrush => _problem is { StillTrying: true }
+        ? (Brush)AppResource("WarnBrush")
+        : (Brush)AppResource("BadBrush");
+
+    private void RefreshConnectionProblem()
+    {
+        _problem = _engine.Broadcast.Problem;
+
+        RaiseAll(
+            nameof(ShowConnectionProblem), nameof(ConnectionProblemHeadline),
+            nameof(ConnectionProblemDetail), nameof(ConnectionProblemAction),
+            nameof(ConnectionProblemBrush));
+    }
+
     // ---------------------------------------------------------------- listeners and log
 
     public ObservableCollection<LogEntry> LogEntries { get; } = [];
@@ -2935,9 +2990,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         // reads as though the whole show has dropped.
         var prefix = _engine.Broadcast.IsMultiTarget ? $"{e.Target.Name}: " : string.Empty;
 
-        if (!string.IsNullOrWhiteSpace(e.Message)) StatusMessage = prefix + e.Message;
+        // Failures go to the problem block, which has room for them; the footer keeps the notes worth
+        // a glance and no more - a port Deck moved to, a file it saved. Sending both to one line meant
+        // an explanation written to be read competed for space with an aside, and lost.
+        var problem = e.State is Core.Streaming.StreamState.Failed or Core.Streaming.StreamState.Reconnecting;
+
+        if (!problem && !string.IsNullOrWhiteSpace(e.Message)) StatusMessage = prefix + e.Message;
         else if (StreamState == Core.Streaming.StreamState.Live) StatusMessage = string.Empty;
 
+        RefreshConnectionProblem();
         RefreshTargetStatus();
 
         RaiseAll(
