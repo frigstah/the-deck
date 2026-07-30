@@ -31,7 +31,7 @@
 ; under one uninstaller, with SIRS's own files orphaned inside it and its entry in Add or remove
 ; programs quietly replaced. Two products cannot share an AppId; that is what it is for.
 ;
-; Changing it means an alpha installed under the old id is not recognised by this installer and has to
+; Changing it means a build installed under the old id is not recognised by this installer and has to
 ; be removed by hand. That was the right trade at this stage and would not be later.
 AppId={{04CE5577-3EEC-4029-8E37-920BB4F18475}
 AppName=The Deck

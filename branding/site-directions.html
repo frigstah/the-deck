@@ -1,0 +1,987 @@
+<title>The Deck — four directions for the site</title>
+
+<style>
+  /* ============================================================ page shell
+     The shell follows the reader's theme. The four direction panels do not —
+     each one commits to its own ground, because committing is the thing being
+     decided. */
+  :root {
+    --ink: #15181B;
+    --ground: #F4F5F3;
+    --surface: #FFFFFF;
+    --line: #DCDED9;
+    --text: #1B1F23;
+    --muted: #666D73;
+    --accent: #2A6A70;
+    --live: #C93F36;
+
+    --mono: Consolas, "Cascadia Mono", ui-monospace, monospace;
+    --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+    --body: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+
+    --measure: 66ch;
+    --gap: clamp(1rem, 2.5vw, 2rem);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #15181B;
+      --surface: #1C2024;
+      --line: #2C3238;
+      --text: #E7E9E7;
+      --muted: #939BA2;
+      --accent: #5FB6B4;
+      --live: #E8574C;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #15181B;
+    --surface: #1C2024;
+    --line: #2C3238;
+    --text: #E7E9E7;
+    --muted: #939BA2;
+    --accent: #5FB6B4;
+    --live: #E8574C;
+  }
+
+  :root[data-theme="light"] {
+    --ground: #F4F5F3;
+    --surface: #FFFFFF;
+    --line: #DCDED9;
+    --text: #1B1F23;
+    --muted: #666D73;
+    --accent: #2A6A70;
+    --live: #C93F36;
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+    padding: clamp(1.5rem, 4vw, 4rem) var(--gap) 6rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 4rem; }
+
+  h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; font-weight: 600; }
+  h1 { font-size: clamp(1.9rem, 4.2vw, 2.9rem); line-height: 1.1; letter-spacing: -0.015em; }
+  h2 { font-size: clamp(1.25rem, 2.4vw, 1.6rem); line-height: 1.2; }
+  h3 { font-size: 1.05rem; line-height: 1.3; }
+  p { margin: 0 0 1rem; max-width: var(--measure); }
+  p:last-child { margin-bottom: 0; }
+  strong { font-weight: 600; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .rule { border: 0; border-top: 1px solid var(--line); margin: 0; }
+
+  /* ============================================================ masthead */
+  .masthead { display: flex; flex-direction: column; gap: 1.25rem; }
+  .lockup { display: flex; align-items: center; gap: 0.9rem; }
+  .lockup svg { width: 40px; height: 40px; flex: none; }
+  .lockup .word {
+    font-family: var(--display);
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .lede { font-size: 1.05rem; color: var(--muted); max-width: 60ch; }
+
+  /* ============================================================ the system */
+  .system { display: flex; flex-direction: column; gap: 1.5rem; }
+  .system-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
+    gap: 1.5rem;
+  }
+  .card {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+  .card h3 { margin-bottom: 0.1rem; }
+  .card p { font-size: 0.92rem; color: var(--muted); }
+
+  .swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+  .swatch {
+    width: 34px; height: 34px;
+    border: 1px solid rgba(128, 128, 128, 0.28);
+    position: relative;
+  }
+  .swatch::after {
+    content: attr(data-hex);
+    position: absolute;
+    inset: auto 50% -1.35rem auto;
+    transform: translateX(50%);
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    color: var(--muted);
+    opacity: 0;
+    transition: opacity 120ms;
+    white-space: nowrap;
+  }
+  .swatch:hover::after { opacity: 1; }
+  .swatch-row { margin-bottom: 1.4rem; }
+  .swatch-row:last-child { margin-bottom: 0; }
+  .swatch-label {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 0.45rem;
+  }
+
+  .specimen { display: flex; flex-direction: column; gap: 0.6rem; }
+  .specimen div { line-height: 1.15; }
+  .sp-display { font-family: var(--display); font-size: 1.6rem; font-weight: 600; }
+  .sp-body { font-family: var(--body); font-size: 1rem; line-height: 1.5; color: var(--muted); }
+  .sp-mono { font-family: var(--mono); font-size: 0.85rem; letter-spacing: 0.04em; }
+
+  ul.rules { margin: 0; padding-left: 1.1rem; max-width: var(--measure); }
+  ul.rules li { margin-bottom: 0.45rem; font-size: 0.95rem; }
+  ul.rules li:last-child { margin-bottom: 0; }
+
+  /* ============================================================ directions */
+  .directions { display: flex; flex-direction: column; gap: 3.5rem; }
+
+  .direction { display: flex; flex-direction: column; gap: 1.1rem; }
+  .direction-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.65rem 1rem; }
+  .direction-head .num {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .direction-head h2 { letter-spacing: 0.01em; }
+
+  .spec {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.4rem;
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    color: var(--muted);
+    padding-bottom: 0.2rem;
+  }
+  .spec b { font-weight: 400; color: var(--text); }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .chip i {
+    width: 11px; height: 11px;
+    border: 1px solid rgba(128, 128, 128, 0.35);
+    display: inline-block;
+  }
+
+  /* The frame every hero renders inside. Fixed aspect so the four are
+     compared on composition rather than on how much room each was given. */
+  .stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 8.4;
+    min-height: 260px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    container-type: inline-size;
+  }
+  .stage * { box-sizing: border-box; }
+
+  .risk {
+    font-size: 0.92rem;
+    color: var(--muted);
+    border-left: 2px solid var(--line);
+    padding-left: 0.9rem;
+    max-width: var(--measure);
+  }
+  .risk b { color: var(--text); font-weight: 600; }
+
+  /* ---------- shared hero furniture ---------- */
+  .hero { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  .meter { display: block; width: 100%; }
+
+  /* ---------- 1 · RACK ---------- */
+  .rack {
+    background: #15181B;
+    color: #E7E9E7;
+    padding: 4cqw 4.5cqw;
+    gap: 3cqw;
+  }
+  .rack .kicker {
+    font-family: var(--mono);
+    font-size: 1.5cqw;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #939BA2;
+  }
+  .rack .panel {
+    flex: 1;
+    background: #1C2024;
+    border: 1px solid #2C3238;
+    padding: 3cqw;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2.4cqw 3cqw;
+    align-content: center;
+  }
+  .rack .state { display: flex; align-items: center; gap: 1.4cqw; }
+  .rack .lamp {
+    width: 1.9cqw; height: 1.9cqw;
+    border-radius: 50%;
+    background: #E8574C;
+    box-shadow: 0 0 2.2cqw rgba(232, 87, 76, 0.55);
+  }
+  .rack .state span {
+    font-family: var(--display);
+    font-size: 4.4cqw;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .rack .clock {
+    font-family: var(--mono);
+    font-size: 3.4cqw;
+    color: #E7E9E7;
+    align-self: center;
+    justify-self: end;
+  }
+  .rack .meterwrap { grid-column: 1 / -1; }
+  .rack .chiprow { grid-column: 1 / -1; display: flex; gap: 1.2cqw; flex-wrap: wrap; }
+  .rack .rchip {
+    border: 1px solid #2C3238;
+    background: #15181B;
+    padding: 0.8cqw 1.4cqw;
+    font-family: var(--mono);
+    font-size: 1.35cqw;
+    color: #939BA2;
+  }
+  .rack .rchip b { color: #E7E9E7; font-weight: 400; }
+  .rack .go {
+    margin-left: auto;
+    background: #5FB6B4;
+    color: #10211F;
+    border: 0;
+    padding: 0.8cqw 2.4cqw;
+    font-family: var(--mono);
+    font-size: 1.35cqw;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+
+  /* ---------- 2 · SIGNAL ---------- */
+  .signal {
+    background: #0F1215;
+    color: #E7E9E7;
+    padding: 6cqw 6cqw 0;
+    justify-content: space-between;
+  }
+  .signal h4 {
+    margin: 0;
+    font-family: var(--display);
+    font-size: 6.4cqw;
+    font-weight: 600;
+    line-height: 1.02;
+    letter-spacing: -0.028em;
+    max-width: 15ch;
+  }
+  .signal h4 em { font-style: normal; color: #5FB6B4; }
+  .signal .foot {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 3cqw;
+    padding-bottom: 4cqw;
+  }
+  .signal .foot p {
+    margin: 0;
+    font-size: 1.5cqw;
+    line-height: 1.55;
+    color: #939BA2;
+    max-width: 34ch;
+  }
+  .signal .readout {
+    font-family: var(--mono);
+    font-size: 1.5cqw;
+    color: #5FB6B4;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+  .signal .trace { position: absolute; left: 0; right: 0; bottom: 0; }
+
+  /* ---------- 3 · ON AIR ---------- */
+  .onair {
+    background: #15181B;
+    color: #E7E9E7;
+    justify-content: center;
+    padding: 0 5cqw;
+    gap: 2.4cqw;
+  }
+  .onair .ident {
+    font-family: Bahnschrift, "DIN Alternate", "Segoe UI Variable Display", sans-serif;
+    font-stretch: condensed;
+    font-weight: 700;
+    font-size: 15cqw;
+    line-height: 0.86;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: #E8574C;
+    display: flex;
+    align-items: center;
+    gap: 2.6cqw;
+  }
+  .onair .ident .bulb {
+    width: 4.4cqw; height: 4.4cqw;
+    border-radius: 50%;
+    background: #E8574C;
+    box-shadow: 0 0 5cqw rgba(232, 87, 76, 0.6);
+    flex: none;
+  }
+  .onair .sub {
+    font-family: var(--mono);
+    font-size: 1.6cqw;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #939BA2;
+  }
+  .onair .meterwrap { margin-top: 1.4cqw; }
+
+  /* ---------- 4 · BENCH ---------- */
+  .bench {
+    background: #F4F5F3;
+    color: #1B1F23;
+    flex-direction: row;
+    padding: 5cqw;
+    gap: 4cqw;
+    align-items: center;
+  }
+  .bench .col { flex: 1 1 42%; display: flex; flex-direction: column; gap: 1.6cqw; }
+  .bench h4 {
+    margin: 0;
+    font-family: Georgia, "Iowan Old Style", serif;
+    font-size: 4.2cqw;
+    line-height: 1.14;
+    font-weight: 400;
+    letter-spacing: -0.012em;
+  }
+  .bench p {
+    margin: 0;
+    font-family: Georgia, "Iowan Old Style", serif;
+    font-size: 1.55cqw;
+    line-height: 1.6;
+    color: #43494E;
+    max-width: 32ch;
+  }
+  .bench .get {
+    align-self: flex-start;
+    border: 1px solid #2A6A70;
+    color: #2A6A70;
+    padding: 0.9cqw 2cqw;
+    font-family: var(--mono);
+    font-size: 1.3cqw;
+    letter-spacing: 0.06em;
+  }
+  .bench .figure { flex: 1 1 58%; position: relative; }
+  .bench .figcap {
+    font-family: var(--mono);
+    font-size: 1.1cqw;
+    color: #666D73;
+    letter-spacing: 0.05em;
+    margin-top: 1cqw;
+    display: block;
+  }
+  .bench .callout {
+    position: absolute;
+    font-family: var(--mono);
+    font-size: 1.05cqw;
+    color: #43494E;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .bench .callout::before {
+    content: "";
+    position: absolute;
+    background: #9AA3A8;
+  }
+  .bench .c-work { left: 20%; top: -3.4cqw; }
+  .bench .c-work::before { left: 0.6cqw; top: 1.7cqw; width: 1px; height: 2.4cqw; }
+  .bench .c-clip { right: 0; top: -3.4cqw; text-align: right; }
+  .bench .c-clip::before { right: 0.6cqw; top: 1.7cqw; width: 1px; height: 2.4cqw; }
+
+  /* ============================================================ closing */
+  .closing { display: flex; flex-direction: column; gap: 1rem; }
+  .askbox {
+    border: 1px solid var(--accent);
+    padding: 1.25rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .askbox .eyebrow { color: var(--accent); }
+
+  .notes { font-size: 0.88rem; color: var(--muted); }
+  .notes p { max-width: var(--measure); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration: 0.01ms !important; }
+  }
+
+  @media (max-width: 620px) {
+    .bench { flex-direction: column; align-items: stretch; }
+    .stage { aspect-ratio: 16 / 11; }
+  }
+</style>
+
+<div class="page">
+
+  <!-- ===================================================== masthead -->
+  <header class="masthead">
+    <div class="lockup">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <path fill="currentColor" fill-rule="evenodd"
+              d="M8 8H40L52 20V44L40 56H8Z M20 20H36L40 24V40L36 44H20Z"/>
+        <rect x="24.5" y="26" width="11" height="12" fill="var(--live)"/>
+      </svg>
+      <span class="word">The Deck</span>
+    </div>
+
+    <h1>Four directions for the site, and the system underneath all four.</h1>
+
+    <p class="lede">
+      The palette, the meter and the mark are already decided — they came out of the product and
+      they are not up for a vote. What is up for a vote is the <em>stance</em>: what the first
+      screen is, and what it asks of somebody who has never heard of this. Pick one, or tell me
+      which halves to cross.
+    </p>
+  </header>
+
+  <hr class="rule">
+
+  <!-- ===================================================== the system -->
+  <section class="system">
+    <div>
+      <span class="eyebrow">Fixed — the same in every direction</span>
+      <h2 style="margin-top:0.5rem">The system</h2>
+    </div>
+
+    <p>
+      Every colour below is lifted from <code style="font-family:var(--mono);font-size:0.9em">Theme.xaml</code>
+      and the dark overrides in <code style="font-family:var(--mono);font-size:0.9em">App.xaml.cs</code>.
+      Not sampled by eye — copied. A site that invents its own petrol is a site that stops matching
+      the product the first time either one moves.
+    </p>
+
+    <div class="system-grid">
+
+      <div class="card">
+        <h3>Colour</h3>
+        <div class="swatch-row">
+          <span class="swatch-label">Dark — the lead</span>
+          <div class="swatches">
+            <div class="swatch" style="background:#15181B" data-hex="#15181B"></div>
+            <div class="swatch" style="background:#0F1215" data-hex="#0F1215"></div>
+            <div class="swatch" style="background:#1C2024" data-hex="#1C2024"></div>
+            <div class="swatch" style="background:#2C3238" data-hex="#2C3238"></div>
+            <div class="swatch" style="background:#E7E9E7" data-hex="#E7E9E7"></div>
+            <div class="swatch" style="background:#939BA2" data-hex="#939BA2"></div>
+            <div class="swatch" style="background:#5FB6B4" data-hex="#5FB6B4"></div>
+            <div class="swatch" style="background:#E8574C" data-hex="#E8574C"></div>
+          </div>
+        </div>
+        <div class="swatch-row">
+          <span class="swatch-label">Light — designed, not inverted</span>
+          <div class="swatches">
+            <div class="swatch" style="background:#F4F5F3" data-hex="#F4F5F3"></div>
+            <div class="swatch" style="background:#FFFFFF" data-hex="#FFFFFF"></div>
+            <div class="swatch" style="background:#DCDED9" data-hex="#DCDED9"></div>
+            <div class="swatch" style="background:#1B1F23" data-hex="#1B1F23"></div>
+            <div class="swatch" style="background:#666D73" data-hex="#666D73"></div>
+            <div class="swatch" style="background:#2A6A70" data-hex="#2A6A70"></div>
+            <div class="swatch" style="background:#C93F36" data-hex="#C93F36"></div>
+          </div>
+        </div>
+        <p>
+          The neutrals lean very slightly cool-green in both themes, which is what keeps petrol from
+          looking like a sticker on top of grey. Red is the on-air colour and nothing else — using
+          it for a button would spend the one signal the product cannot afford to blunt.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Type</h3>
+        <div class="specimen">
+          <div class="sp-display">Go on air in one press</div>
+          <div class="sp-body">A body face for the two paragraphs anyone actually reads.</div>
+          <div class="sp-mono">NOW PLAYING&nbsp;&nbsp;−14.2 dB&nbsp;&nbsp;7 LISTENERS</div>
+        </div>
+        <p>
+          Three roles, and the third is not decoration: every number in the product is monospaced so
+          digits do not shuffle sideways as they change. The site inherits that — any figure quoted
+          on the page is set in the readout face, not the body face.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Shape and motion</h3>
+        <ul class="rules">
+          <li><strong>Nothing is rounded.</strong> The product has exactly one rounded thing — the verdict pill — and that is what makes it read as a badge.</li>
+          <li><strong>Hairlines, not shadows.</strong> One pixel of border is the whole vocabulary of separation.</li>
+          <li><strong>The meter is real.</strong> Same segment count rule, same −60&nbsp;dB floor, same 0.65 curve, same zone thresholds as the app draws.</li>
+          <li><strong>Reduced motion stops it.</strong> Same argument as setup's slide: the meter settles and holds.</li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <!-- ===================================================== directions -->
+  <section class="directions">
+
+    <div>
+      <span class="eyebrow">Choose one</span>
+      <h2 style="margin-top:0.5rem">Four stances</h2>
+      <p style="margin-top:0.75rem">
+        Each frame below is live — the meters are running the product's own curve against a
+        speech-shaped signal, so you are judging the movement as well as the still.
+      </p>
+    </div>
+
+    <!-- ---------- 1 · RACK ---------- -->
+    <article class="direction">
+      <div class="direction-head">
+        <span class="num">01</span>
+        <h2>Rack</h2>
+      </div>
+      <div class="spec">
+        <span class="chip"><i style="background:#15181B"></i> ground <b>#15181B</b></span>
+        <span class="chip"><i style="background:#5FB6B4"></i> accent <b>#5FB6B4</b></span>
+        <span>display <b>Segoe UI Variable Display</b></span>
+        <span>readout <b>Consolas</b></span>
+      </div>
+
+      <p>
+        The page <em>is</em> the equipment. The first screen hands you a working instrument panel at
+        full width — on-air block, meter, the chip row, the button — and the words sit above it in a
+        whisper. It says what the product is by showing it working, which is the shortest possible
+        route from a stranger to "oh, that's a mixer for going live".
+      </p>
+
+      <div class="stage">
+        <div class="hero rack">
+          <div class="kicker">Free broadcast encoder for Windows</div>
+          <div class="panel">
+            <div class="state"><span class="lamp"></span><span>ON AIR</span></div>
+            <div class="clock">00:41:07</div>
+            <div class="meterwrap"><canvas class="meter" data-meter="dark" data-seed="0.4" height="34"></canvas></div>
+            <div class="chiprow">
+              <span class="rchip">INPUT&nbsp; <b>Scarlett 2i2</b></span>
+              <span class="rchip">SERVER&nbsp; <b>Bench Radio</b></span>
+              <span class="rchip">QUALITY&nbsp; <b>MP3 256</b></span>
+              <span class="rchip">REC</span>
+              <button class="go" type="button" tabindex="-1">OFF AIR</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="risk">
+        <b>What it risks:</b> reading as a screenshot rather than a designed page — and a panel this
+        faithful is a promise the rest of the site has to keep.
+      </p>
+    </article>
+
+    <!-- ---------- 2 · SIGNAL ---------- -->
+    <article class="direction">
+      <div class="direction-head">
+        <span class="num">02</span>
+        <h2>Signal</h2>
+      </div>
+      <div class="spec">
+        <span class="chip"><i style="background:#0F1215"></i> ground <b>#0F1215</b></span>
+        <span class="chip"><i style="background:#5FB6B4"></i> accent <b>#5FB6B4</b></span>
+        <span>display <b>Segoe UI Variable Display, very large</b></span>
+        <span>readout <b>Consolas</b></span>
+      </div>
+
+      <p>
+        The meter stops being a component and becomes the page's spine: one continuous level trace
+        runs the full width under the headline and carries on between sections as you scroll, so the
+        thing tying the page together is the signal itself. Almost nothing else is coloured. This is
+        the most restrained of the four and the one that would look least like every other bit of
+        free software.
+      </p>
+
+      <div class="stage">
+        <div class="hero signal">
+          <h4>Your voice, on air, in <em>one press</em>.</h4>
+          <div class="foot">
+            <p>
+              A free encoder for Windows that does not hold anything back, ask for an account, or
+              charge for the bitrate you already pay to send.
+            </p>
+            <span class="readout">−7.4 dB &nbsp;·&nbsp; 00:41:07</span>
+          </div>
+          <canvas class="trace meter" data-meter="trace" data-seed="1.7" height="120"></canvas>
+        </div>
+      </div>
+
+      <p class="risk">
+        <b>What it risks:</b> restraint reads as emptiness if the copy is not carrying its weight —
+        this direction puts the most pressure on that one headline.
+      </p>
+    </article>
+
+    <!-- ---------- 3 · ON AIR ---------- -->
+    <article class="direction">
+      <div class="direction-head">
+        <span class="num">03</span>
+        <h2>On Air</h2>
+      </div>
+      <div class="spec">
+        <span class="chip"><i style="background:#15181B"></i> ground <b>#15181B</b></span>
+        <span class="chip"><i style="background:#E8574C"></i> hero <b>#E8574C</b></span>
+        <span class="chip"><i style="background:#5FB6B4"></i> rest <b>#5FB6B4</b></span>
+        <span>display <b>Bahnschrift Condensed</b></span>
+      </div>
+
+      <p>
+        The oldest symbol in the business, at the scale of a station ident. The page opens with the
+        lamp dark and lights it once, then hands the rest of the site back to petrol. Condensed
+        capitals, high contrast, no apology — this is the direction somebody screenshots.
+      </p>
+
+      <div class="stage">
+        <div class="hero onair">
+          <div class="ident"><span class="bulb"></span>ON AIR</div>
+          <div class="sub">The Deck &nbsp;·&nbsp; free encoder for Windows</div>
+          <div class="meterwrap"><canvas class="meter" data-meter="dark" data-seed="2.9" height="26"></canvas></div>
+        </div>
+      </div>
+
+      <p class="risk">
+        <b>What it risks:</b> red is the product's alert colour. Spending it on the hero teaches the
+        eye that red is just branding, and the day a stream drops that is the signal you wanted
+        loudest. I would only take this one with the red confined to the first screen.
+      </p>
+    </article>
+
+    <!-- ---------- 4 · BENCH ---------- -->
+    <article class="direction">
+      <div class="direction-head">
+        <span class="num">04</span>
+        <h2>Bench</h2>
+      </div>
+      <div class="spec">
+        <span class="chip"><i style="background:#F4F5F3"></i> ground <b>#F4F5F3</b></span>
+        <span class="chip"><i style="background:#2A6A70"></i> accent <b>#2A6A70</b></span>
+        <span>display <b>Georgia</b></span>
+        <span>annotation <b>Consolas</b></span>
+      </div>
+
+      <p>
+        Light-first, which nobody expects from broadcast software, and the meter is drawn as a
+        figure from a manual with its zones labelled. It leads with explanation rather than impact:
+        here is the instrument, here is what the numbers mean, here is where you should be sitting.
+        It is the direction that best matches "free and unhobbled" — it treats you as somebody who
+        wants to understand the thing, not be sold it.
+      </p>
+
+      <div class="stage">
+        <div class="hero bench">
+          <div class="col">
+            <h4>An encoder that explains itself.</h4>
+            <p>
+              Every number on screen is one you can act on. The meter tells you where to sit, not
+              just how loud you are — and nothing is locked behind a licence.
+            </p>
+            <span class="get">DOWNLOAD FOR WINDOWS</span>
+          </div>
+          <div class="figure">
+            <span class="callout c-work">−24 to −4 dB · where you work</span>
+            <span class="callout c-clip">0 dB · clipping</span>
+            <canvas class="meter" data-meter="light" data-seed="4.1" height="40"></canvas>
+            <span class="figcap">FIG. 1 — INPUT LEVEL, −60 dB FLOOR</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="risk">
+        <b>What it risks:</b> quiet. A manual page does not grab anybody scrolling past a link, and
+        it under-sells how good the product looks running.
+      </p>
+    </article>
+
+  </section>
+
+  <hr class="rule">
+
+  <!-- ===================================================== closing -->
+  <section class="closing">
+    <h2>What I need from you</h2>
+
+    <div class="askbox">
+      <span class="eyebrow">One decision, one sentence</span>
+      <p style="margin:0">
+        <strong>Which direction</strong> — and <strong>the first line</strong>. Every headline above
+        is a placeholder I wrote to fill the space. The claim about what The Deck is <em>for</em> is
+        yours: who is standing at the microphone, and what were they using before.
+      </p>
+    </div>
+
+    <p>
+      Once those two are settled the rest is build: GitHub Pages out of this repo, real screenshots
+      of the three sizes, the download pointed at <code style="font-family:var(--mono);font-size:0.9em">/releases/latest</code>
+      so it never goes stale, and a line saying plainly that this is alpha.
+    </p>
+
+    <div class="notes">
+      <hr class="rule" style="margin-bottom:1.25rem">
+      <p>
+        <strong>On the typefaces.</strong> Everything above renders in faces that ship with Windows,
+        because that is what the product uses and what you are looking at this on. A public site
+        needs its own — self-hosted, not a CDN — so whichever direction wins, its display face
+        becomes a licensing decision rather than a design one. The readout face stays a monospace
+        stack either way; that one genuinely does not need to be exotic.
+      </p>
+      <p>
+        <strong>On the meters.</strong> They are not decoration standing in for the real thing. Each
+        canvas runs <code style="font-family:var(--mono);font-size:0.9em">DbToMeterScale</code> —
+        the same −60&nbsp;dB floor and 0.65 exponent the app uses so the −20 to 0 region gets more
+        width — with the same segment-count rule, the same 2-pixel gaps and the same four zone
+        colours. The signal driving them is synthetic and speech-shaped: no audio file, no autoplay
+        to fight, and no microphone permission asked of somebody who just clicked a link.
+      </p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  (function () {
+    "use strict";
+
+    // ---------------------------------------------------------------- the meter
+    // Ported straight from AudioMath + LevelMeterControl so the movement on this
+    // page is the movement in the product.
+    var FLOOR = -60;
+
+    function dbToScale(db) {
+      if (db <= FLOOR) return 0;
+      if (db >= 0) return 1;
+      return Math.pow((db - FLOOR) / -FLOOR, 0.65);
+    }
+
+    function scaleToDb(s) {
+      if (s <= 0) return FLOOR;
+      if (s >= 1) return 0;
+      return Math.pow(s, 1 / 0.65) * -FLOOR + FLOOR;
+    }
+
+    var ZONES = {
+      dark: {
+        lit:   ["#DD5A4F", "#D7A64A", "#3F9E76", "#6E7A78"],
+        unlit: ["#351F1D", "#332C1C", "#1E332B", "#262B2E"]
+      },
+      light: {
+        lit:   ["#BE3A2E", "#C08820", "#2E8B62", "#B8C1BE"],
+        unlit: ["#F0D6D2", "#EFE1C2", "#D6E8DE", "#F1F2EF"]
+      }
+    };
+
+    // Same thresholds as LevelMeterControl.LitBrush: clip, loud, good, quiet.
+    function zoneIndex(db) {
+      if (db >= -1) return 0;
+      if (db >= -4) return 1;
+      if (db >= -24) return 2;
+      return 3;
+    }
+
+    function drawSegments(ctx, w, h, peakDb, palette) {
+      var count = Math.min(64, Math.max(10, Math.round(w / 9)));
+      var slot = w / count;
+      var gap = slot > 6 ? 2 : 1;
+      var segW = Math.max(1, slot - gap);
+      var reached = dbToScale(peakDb);
+
+      for (var i = 0; i < count; i++) {
+        // The middle of the segment decides its colour and whether it is lit, so
+        // a segment never lights in a colour borrowed from the zone next door.
+        var position = (i + 0.5) / count;
+        var db = scaleToDb(position);
+        var set = position <= reached ? palette.lit : palette.unlit;
+        ctx.fillStyle = set[zoneIndex(db)];
+        ctx.fillRect(i * slot, 0, segW, h);
+      }
+    }
+
+    function drawHold(ctx, w, h, holdDb, palette) {
+      var fraction = dbToScale(holdDb);
+      if (fraction <= 0) return;
+      var x = Math.round(fraction * w) + 0.5;
+      ctx.strokeStyle = palette.lit[zoneIndex(holdDb)];
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+    }
+
+    // A trace rather than segments: the same level, drawn as a filled envelope.
+    function drawTrace(ctx, w, h, history, accent) {
+      ctx.clearRect(0, 0, w, h);
+      if (history.length < 2) return;
+
+      var step = w / (history.length - 1);
+
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+      for (var i = 0; i < history.length; i++) {
+        var y = h - dbToScale(history[i]) * h * 0.92;
+        ctx.lineTo(i * step, y);
+      }
+      ctx.lineTo(w, h);
+      ctx.closePath();
+      ctx.fillStyle = "rgba(95, 182, 180, 0.10)";
+      ctx.fill();
+
+      ctx.beginPath();
+      for (var j = 0; j < history.length; j++) {
+        var ty = h - dbToScale(history[j]) * h * 0.92;
+        if (j === 0) ctx.moveTo(0, ty);
+        else ctx.lineTo(j * step, ty);
+      }
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // ---------------------------------------------------------------- the signal
+    // Speech-shaped and synthetic: phrases with pauses between them, syllables
+    // inside the phrases, sitting in the region the product coaches you toward.
+    function speech(t, seed) {
+      var phrase = 0.5 + 0.5 * Math.sin(t * 0.33 + seed * 3.1);
+      var speaking = phrase > 0.30 ? 1 : 0.05;
+      var syllable = 0.58 + 0.42 * Math.abs(Math.sin(t * 5.7 + seed * 2.3));
+      var breath = 0.82 + 0.18 * Math.sin(t * 1.9 + seed);
+      var jitter = 0.94 + 0.06 * Math.sin(t * 19.7 + seed * 7);
+      var amp = speaking * syllable * breath * jitter * Math.pow(phrase, 0.35);
+      return Math.min(-2.2, FLOOR + 56 * amp);
+    }
+
+    // ---------------------------------------------------------------- wiring
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+    var meters = [];
+
+    document.querySelectorAll("canvas[data-meter]").forEach(function (canvas) {
+      meters.push({
+        canvas: canvas,
+        ctx: canvas.getContext("2d"),
+        kind: canvas.getAttribute("data-meter"),
+        seed: parseFloat(canvas.getAttribute("data-seed")) || 0,
+        hold: FLOOR,
+        history: []
+      });
+    });
+
+    function resize() {
+      var dpr = window.devicePixelRatio || 1;
+      meters.forEach(function (m) {
+        var rect = m.canvas.getBoundingClientRect();
+        if (rect.width < 1) return;
+        var cssHeight = parseFloat(m.canvas.getAttribute("height")) || 30;
+        m.canvas.style.height = cssHeight + "px";
+        m.canvas.width = Math.round(rect.width * dpr);
+        m.canvas.height = Math.round(cssHeight * dpr);
+        m.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        m.w = rect.width;
+        m.h = cssHeight;
+      });
+    }
+
+    function paint(time) {
+      var t = time / 1000;
+
+      meters.forEach(function (m) {
+        if (!m.w) return;
+
+        var db = reduce.matches ? -12.5 : speech(t, m.seed);
+
+        // Peak hold, falling back the way the product's does.
+        if (db > m.hold) m.hold = db;
+        else m.hold = Math.max(db, m.hold - 0.22);
+
+        if (m.kind === "trace") {
+          var points = Math.max(60, Math.round(m.w / 3));
+          if (reduce.matches) {
+            if (m.history.length !== points) {
+              m.history = [];
+              for (var i = 0; i < points; i++) m.history.push(speech(i * 0.06, m.seed));
+            }
+          } else {
+            m.history.push(db);
+            while (m.history.length > points) m.history.shift();
+          }
+          drawTrace(m.ctx, m.w, m.h, m.history, "#5FB6B4");
+          return;
+        }
+
+        var palette = ZONES[m.kind] || ZONES.dark;
+        m.ctx.clearRect(0, 0, m.w, m.h);
+        drawSegments(m.ctx, m.w, m.h, db, palette);
+        drawHold(m.ctx, m.w, m.h, m.hold, palette);
+      });
+
+    }
+
+    // The loop is self-healing on purpose. A page opened in a background tab is
+    // laid out lazily, so the first measure comes back as zero and rAF does not
+    // fire at all - one-shot sizing at load leaves every meter stuck at the
+    // canvas default, stretched and blank, until something happens to resize the
+    // window. Observing each canvas and repainting on visibility covers both.
+    var frameId = 0;
+
+    function schedule() {
+      if (frameId) return;
+      if (reduce.matches || document.visibilityState === "hidden") return;
+      frameId = requestAnimationFrame(loop);
+    }
+
+    function loop(time) {
+      frameId = 0;
+      paint(time);
+      schedule();
+    }
+
+    function refresh() {
+      resize();
+      paint(performance.now());
+      schedule();
+    }
+
+    refresh();
+    window.addEventListener("resize", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    reduce.addEventListener("change", refresh);
+
+    if (window.ResizeObserver) {
+      var observer = new ResizeObserver(refresh);
+      meters.forEach(function (m) { observer.observe(m.canvas); });
+    }
+  })();
+</script>

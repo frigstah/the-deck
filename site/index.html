@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Deck — free broadcast encoder for Windows</title>
+<meta name="description" content="A full deck when you need it. A thin strip when you don't. Free, GPL-licensed broadcast encoder for Windows: Icecast and SHOUTcast, several servers at once, TLS, recording, and nothing held back.">
+<meta name="color-scheme" content="dark">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="The Deck — free broadcast encoder for Windows">
+<meta property="og:description" content="A full deck when you need it. A thin strip when you don't. No paid tier, no bitrate cap, no account.">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%235FB6B4' fill-rule='evenodd' d='M8 8H40L52 20V44L40 56H8Z M20 20H36L40 24V40L36 44H20Z'/%3E%3C/svg%3E">
+
+<style>
+  /* ================================================================== tokens
+     Every value here is copied out of the product - Theme.xaml for the light
+     palette, the dark overrides in App.xaml.cs for this one. Not sampled by eye.
+     A site that invents its own petrol stops matching the app the first time
+     either of them moves.
+
+     The page commits to the dark theme rather than following the reader's.
+     That is the Rack direction: this is equipment, and equipment is dark. */
+  :root {
+    --ground: #15181B;
+    --deep: #0F1215;
+    --surface: #1C2024;
+    --line: #2C3238;
+    --text: #E7E9E7;
+    --muted: #939BA2;
+    --accent: #5FB6B4;
+    --on-accent: #10211F;
+    --live: #E8574C;
+
+    --meter-quiet: #6E7A78;
+    --meter-good: #3F9E76;
+    --meter-loud: #D7A64A;
+    --meter-clip: #DD5A4F;
+
+    --mono: Consolas, "Cascadia Mono", "SF Mono", ui-monospace, monospace;
+    --display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --body: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+    --measure: 62ch;
+    --pad: clamp(1.25rem, 5vw, 3rem);
+    --shell: 1120px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .shell { max-width: var(--shell); margin: 0 auto; padding: 0 var(--pad); }
+
+  h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap: balance; }
+  h1 { font-size: clamp(2.1rem, 5.4vw, 3.9rem); line-height: 1.05; letter-spacing: -0.022em; }
+  h2 { font-size: clamp(1.5rem, 3vw, 2.1rem); line-height: 1.15; letter-spacing: -0.012em; }
+  h3 { font-size: 1.02rem; line-height: 1.35; }
+  p { margin: 0 0 1rem; max-width: var(--measure); }
+  p:last-child { margin-bottom: 0; }
+  a { color: var(--accent); }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  section { padding: clamp(3.5rem, 9vw, 6.5rem) 0; border-top: 1px solid var(--line); }
+
+  /* ================================================================== header */
+  header.bar {
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(21, 24, 27, 0.86);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .bar .shell {
+    display: flex; align-items: center; gap: 1rem;
+    height: 60px;
+  }
+  .lockup { display: flex; align-items: center; gap: 0.7rem; text-decoration: none; color: var(--text); }
+  .lockup svg { width: 26px; height: 26px; color: var(--accent); flex: none; }
+  .lockup span { font-family: var(--display); font-weight: 600; font-size: 1rem; letter-spacing: 0.01em; }
+  .bar nav { margin-left: auto; display: flex; align-items: center; gap: clamp(0.75rem, 3vw, 1.75rem); }
+  .bar nav a {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .bar nav a:hover, .bar nav a:focus-visible { color: var(--text); }
+
+  /* ================================================================== hero */
+  .hero { padding-top: clamp(3rem, 8vw, 5.5rem); border-top: 0; }
+  .hero h1 { margin: 1rem 0 1.25rem; max-width: 19ch; }
+  .hero .lede { font-size: clamp(1rem, 1.6vw, 1.14rem); color: var(--muted); max-width: 56ch; }
+
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.85rem; margin-top: 2rem; }
+  .btn {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.86rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    text-decoration: none;
+    padding: 0.85rem 1.7rem;
+    border: 1px solid var(--accent);
+  }
+  .btn-primary { background: var(--accent); color: var(--on-accent); font-weight: 700; }
+  .btn-primary:hover, .btn-primary:focus-visible { background: #6FC6C4; }
+  .btn-ghost { color: var(--accent); background: transparent; }
+  .btn-ghost:hover, .btn-ghost:focus-visible { background: rgba(95, 182, 180, 0.10); }
+  .meta {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin: 0.9rem 0 0;
+    max-width: none;
+  }
+
+  /* ================================================================== the panel
+     The deck, at its own proportions. Sized in container query units so every
+     part of it scales together the way the real window does. */
+  .panelwrap { margin-top: clamp(2.5rem, 6vw, 4rem); container-type: inline-size; }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 3.2cqw;
+    display: flex;
+    flex-direction: column;
+    gap: 2.6cqw;
+  }
+  .panel-top { display: flex; align-items: center; gap: 2.4cqw; flex-wrap: wrap; }
+  .state { display: flex; align-items: center; gap: 1.4cqw; }
+  .lamp {
+    width: 1.5cqw; height: 1.5cqw; min-width: 9px; min-height: 9px;
+    border-radius: 50%;
+    background: var(--live);
+    box-shadow: 0 0 1.8cqw rgba(232, 87, 76, 0.55);
+    flex: none;
+  }
+  .state-text {
+    font-family: var(--display);
+    font-size: clamp(1.35rem, 3.6cqw, 2.6rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .clock {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: clamp(1.1rem, 2.9cqw, 2rem);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .meterblock { display: flex; flex-direction: column; gap: 0.6cqw; }
+  canvas.meter { display: block; width: 100%; }
+  .scale {
+    display: flex; justify-content: space-between;
+    font-family: var(--mono);
+    font-size: clamp(0.56rem, 1.05cqw, 0.72rem);
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .chiprow { display: flex; flex-wrap: wrap; gap: 1.1cqw; align-items: center; }
+  .chip {
+    border: 1px solid var(--line);
+    background: var(--ground);
+    padding: 0.75cqw 1.25cqw;
+    font-family: var(--mono);
+    font-size: clamp(0.6rem, 1.15cqw, 0.78rem);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .chip b { color: var(--text); font-weight: 400; }
+  .chip.rec { color: var(--live); }
+  .go {
+    margin-left: auto;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    padding: 0.75cqw 2cqw;
+    font-family: var(--mono);
+    font-size: clamp(0.6rem, 1.15cqw, 0.78rem);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  .panel-foot {
+    display: flex; flex-wrap: wrap; gap: 0.6cqw 2.4cqw;
+    border-top: 1px solid var(--line);
+    padding-top: 1.8cqw;
+    font-family: var(--mono);
+    font-size: clamp(0.6rem, 1.1cqw, 0.76rem);
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .panel-foot b { color: var(--text); font-weight: 400; }
+  .panel-foot .right { margin-left: auto; }
+
+  /* ================================================================== strip */
+  .strip-stage {
+    margin-top: 2.5rem;
+    background: var(--deep);
+    border: 1px solid var(--line);
+    padding: clamp(1.5rem, 5vw, 3.5rem) clamp(0.75rem, 3vw, 2rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  /* A suggestion of the windows it floats over, not a fake desktop. */
+  .strip-stage::before {
+    content: "";
+    position: absolute;
+    inset: 12% 6% -20% 6%;
+    background:
+      repeating-linear-gradient(180deg, rgba(255,255,255,0.028) 0 1px, transparent 1px 22px);
+    border: 1px solid rgba(255, 255, 255, 0.045);
+  }
+  .strip {
+    position: relative;
+    width: 100%;
+    max-width: 940px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 12px;
+    container-type: inline-size;
+  }
+  .strip .mark { width: 34px; height: 34px; color: var(--accent); flex: none; }
+  .strip .sign {
+    border: 1px solid var(--live);
+    color: var(--live);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    padding: 0 10px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+  .strip canvas { flex: 1 1 auto; min-width: 40px; height: 18px; }
+  .strip .schip {
+    border: 1px solid var(--line);
+    background: var(--ground);
+    height: 32px;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .strip .sgo {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    padding: 0 18px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  @media (max-width: 780px) {
+    .strip .schip.optional { display: none; }
+  }
+  @media (max-width: 520px) {
+    .strip { height: auto; flex-wrap: wrap; padding: 10px 12px; gap: 8px; }
+    .strip canvas { flex-basis: 100%; }
+  }
+
+  /* ================================================================== lists */
+  .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 2rem 2.5rem; }
+  .split.tight { gap: 1.75rem 2.5rem; }
+  .feature h3 { margin-bottom: 0.4rem; }
+  .feature p { font-size: 0.95rem; color: var(--muted); max-width: 46ch; }
+
+  .heading-block { margin-bottom: 2.5rem; }
+  .heading-block h2 { margin: 0.75rem 0 1rem; }
+  .heading-block p { color: var(--muted); }
+
+  /* ================================================================== download */
+  .grabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 2rem; }
+  .grab {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    padding: 1.4rem;
+    display: flex; flex-direction: column; gap: 0.6rem;
+  }
+  .grab h3 { font-family: var(--mono); font-size: 0.82rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--accent); }
+  .grab p { font-size: 0.92rem; color: var(--muted); margin: 0; }
+  .grab a { margin-top: auto; padding-top: 0.5rem; font-family: var(--mono); font-size: 0.82rem; letter-spacing: 0.05em; }
+
+  .fineprint { font-size: 0.9rem; color: var(--muted); }
+  .fineprint code { font-family: var(--mono); font-size: 0.88em; color: var(--text); }
+
+  /* ================================================================== footer */
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 2.5rem 0 4rem;
+    font-size: 0.88rem;
+    color: var(--muted);
+  }
+  footer .shell { display: flex; flex-wrap: wrap; gap: 1rem 2rem; align-items: baseline; }
+  footer p { margin: 0; max-width: 52ch; }
+  footer .links { margin-left: auto; display: flex; gap: 1.25rem; font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="shell">
+    <a class="lockup" href="#top">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <path fill="currentColor" fill-rule="evenodd" d="M8 8H40L52 20V44L40 56H8Z M20 20H36L40 24V40L36 44H20Z"/>
+      </svg>
+      <span>The Deck</span>
+    </a>
+    <nav>
+      <a href="#what">What it does</a>
+      <a href="#free">Why it's free</a>
+      <a href="#download">Download</a>
+      <a href="https://github.com/frigstah/the-deck">Source</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============================================================ hero -->
+  <section class="hero">
+    <div class="shell">
+      <p class="eyebrow">Free broadcast encoder for Windows</p>
+
+      <h1>A full deck when you need it. A thin strip when you don't.</h1>
+
+      <p class="lede">
+        Deck puts your microphone on an Icecast or SHOUTcast server, with the meter, the mixer, the
+        recorder and every destination on one screen. Everything is unlocked. There is no account.
+      </p>
+
+      <div class="actions">
+        <a class="btn btn-primary" id="download-primary" href="https://github.com/frigstah/the-deck/releases">Download for Windows</a>
+        <a class="btn btn-ghost" href="https://github.com/frigstah/the-deck">View the source</a>
+      </div>
+      <p class="meta" id="release-meta">Windows 10 and 11 · 64-bit · nothing else to install</p>
+
+      <div class="panelwrap">
+        <div class="panel">
+          <div class="panel-top">
+            <div class="state"><span class="lamp"></span><span class="state-text">ON AIR</span></div>
+            <span class="clock" id="uptime">00:41:07</span>
+          </div>
+
+          <div class="meterblock">
+            <canvas class="meter" data-meter="segments" data-seed="0.4" data-height="36" aria-hidden="true"></canvas>
+            <div class="scale" aria-hidden="true">
+              <span>−60</span><span>−40</span><span>−24</span><span>−12</span><span>−6</span><span>0</span>
+            </div>
+          </div>
+
+          <div class="chiprow">
+            <span class="chip">INPUT&nbsp; <b>Scarlett 2i2</b></span>
+            <span class="chip">SERVER&nbsp; <b>Main + backup</b></span>
+            <span class="chip">QUALITY&nbsp; <b>MP3 256</b></span>
+            <span class="chip rec">● 12:04</span>
+            <span class="go">OFF AIR</span>
+          </div>
+
+          <div class="panel-foot">
+            <span>NOW PLAYING&nbsp; <b>Breakfast on the Deck</b></span>
+            <span class="right">buffer 4%</span>
+            <span>7 listeners</span>
+            <span>sent 214 MB</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ strip -->
+  <section id="strip">
+    <div class="shell">
+      <div class="heading-block">
+        <p class="eyebrow">Mini mode</p>
+        <h2>Then it gets out of the way.</h2>
+        <p>
+          Press Mini and Deck becomes a 56-pixel bar that stays on top of your other windows: whose
+          strip it is, whether you're on air and who's listening, the meter, where it's going, record,
+          and the way back. Nothing else — and no route to a setting, because during a show you
+          shouldn't need one.
+        </p>
+        <p>
+          It's remembered between runs. Parking it along the top of a screen is a way of working, not
+          a passing choice.
+        </p>
+      </div>
+
+      <div class="strip-stage">
+        <div class="strip">
+          <svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
+            <path fill="currentColor" fill-rule="evenodd" d="M8 8H40L52 20V44L40 56H8Z M20 20H36L40 24V40L36 44H20Z"/>
+          </svg>
+          <span class="sign">ON AIR WITH 7 LISTENERS</span>
+          <canvas data-meter="segments" data-seed="3.2" data-height="18" aria-hidden="true"></canvas>
+          <span class="schip optional">Main + backup</span>
+          <span class="schip">REC</span>
+          <span class="schip optional">◀ Deck</span>
+          <span class="sgo">GO LIVE</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ what -->
+  <section id="what">
+    <div class="shell">
+      <div class="heading-block">
+        <p class="eyebrow">What it does</p>
+        <h2>Everything a station needs, on the first screen or one press away.</h2>
+      </div>
+
+      <div class="split">
+        <div class="feature">
+          <h3>Sound in</h3>
+          <p>
+            Any Windows input or ASIO interface, a second fader for music under your voice, and
+            capture from a single program — so the backing-track player goes out and your
+            notifications don't. Voice enhance, automatic levels, bass/middle/treble, a preset
+            compressor, and a limiter that is always on.
+          </p>
+        </div>
+
+        <div class="feature">
+          <h3>Sound out</h3>
+          <p>
+            Icecast and SHOUTcast v1 and v2, over TLS. MP3, Ogg Opus, Ogg Vorbis and lossless FLAC
+            from 32 to 320 kbps. Several servers at once — a main and a backup relay, or the same
+            show at two bitrates — and one of them dropping does not take the others off air.
+          </p>
+        </div>
+
+        <div class="feature">
+          <h3>Knowing it's working</h3>
+          <p>
+            A segmented meter that tells you where to sit rather than just how loud you are, loudness
+            measured against broadcast targets, live listener counts, and a six-stage connection test
+            that says which stage failed in words rather than returning a code.
+          </p>
+        </div>
+
+        <div class="feature">
+          <h3>Now playing</h3>
+          <p>
+            Type a title on the deck and Deck remembers it until you change it. Or read the file your
+            playout software writes, follow whatever Windows is playing, or take titles over a local
+            endpoint your automation can post to — including the Icecast admin form, unchanged.
+          </p>
+        </div>
+
+        <div class="feature">
+          <h3>Recording</h3>
+          <p>
+            While you broadcast or on its own, in the stream's format, lossless FLAC or WAV. Filename
+            templates, automatic splitting by duration, and it stops itself before the disk fills
+            rather than after.
+          </p>
+        </div>
+
+        <div class="feature">
+          <h3>Hands off</h3>
+          <p>
+            Global hotkeys, a MIDI controller assigned by pressing Learn and moving the fader, a local
+            endpoint and command line other programs can drive, and automatic on-air when sound
+            appears.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ free -->
+  <section id="free">
+    <div class="shell">
+      <div class="heading-block">
+        <p class="eyebrow">Free. Unhobbled. No account.</p>
+        <h2>The features other encoders charge for are the ones this exists to give away.</h2>
+        <p>
+          The commercial encoder this was built to answer puts multi-server streaming, SSL and fast
+          reconnect behind a licence. Those are not premium features. They are what stops a show going
+          off air, and a station that cannot afford a licence is exactly the station that needs them.
+        </p>
+        <p>
+          So there is no paid tier, no bitrate cap, no watermark, no account, and no telemetry. Deck
+          is licensed under the <strong>GPL v3</strong> — copyleft on purpose, so nobody can take this
+          work, close it, and sell back the tiers it was written to make unnecessary. The update check
+          is opt-in and never installs anything on its own.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ download -->
+  <section id="download">
+    <div class="shell">
+      <div class="heading-block">
+        <p class="eyebrow">Download</p>
+        <h2>One file, and nothing else to install.</h2>
+      </div>
+
+      <div class="grabs">
+        <div class="grab">
+          <h3>Installer</h3>
+          <p>Per-user, so it needs no administrator rights. Updates itself in place if you let it.</p>
+          <a href="https://github.com/frigstah/the-deck/releases" id="download-setup">Deck setup for Windows →</a>
+        </div>
+        <div class="grab">
+          <h3>Portable</h3>
+          <p>Unzip and run. Keeps its settings beside itself, so it lives happily on a USB stick.</p>
+          <a href="https://github.com/frigstah/the-deck/releases" id="download-portable">Portable zip →</a>
+        </div>
+        <div class="grab">
+          <h3>Source</h3>
+          <p>C# and .NET 8. Build it yourself, read what it does, or send a patch.</p>
+          <a href="https://github.com/frigstah/the-deck">GitHub →</a>
+        </div>
+      </div>
+
+      <p class="fineprint">
+        Windows 10 or 11, 64-bit. No .NET runtime needed — it is in the download. Capturing a single
+        program needs Windows build 20348 or later; below that Deck does not offer it rather than
+        failing when you go on air.
+      </p>
+      <p class="fineprint">
+        Windows will warn that it does not recognise the program, because these builds are not
+        code-signed. Every release publishes SHA-256 checksums, and the built-in updater verifies them
+        for itself and refuses anything that does not match.
+      </p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="shell">
+    <p>
+      <strong style="color: var(--text)">This is a beta.</strong> The features are finished and every
+      build passes the check suite before it is published, but releases go out automatically from
+      <code style="font-family: var(--mono)">main</code> without a release review.
+    </p>
+    <div class="links">
+      <a href="https://github.com/frigstah/the-deck">GitHub</a>
+      <a href="https://github.com/frigstah/the-deck/releases">Releases</a>
+      <a href="https://github.com/frigstah/the-deck/blob/main/LICENSE">GPL v3</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var REPO = "frigstah/the-deck";
+
+  /* ================================================================ the meter
+     Ported from AudioMath and LevelMeterControl so the movement on this page is
+     the movement in the product: the same -60 dB floor, the same 0.65 curve that
+     gives the -20..0 region more width, the same segment-count rule and gaps,
+     and the same four zone colours. */
+  var FLOOR = -60;
+
+  function dbToScale(db) {
+    if (db <= FLOOR) return 0;
+    if (db >= 0) return 1;
+    return Math.pow((db - FLOOR) / -FLOOR, 0.65);
+  }
+
+  function scaleToDb(s) {
+    if (s <= 0) return FLOOR;
+    if (s >= 1) return 0;
+    return Math.pow(s, 1 / 0.65) * -FLOOR + FLOOR;
+  }
+
+  var LIT = ["#DD5A4F", "#D7A64A", "#3F9E76", "#6E7A78"];
+  var UNLIT = ["#351F1D", "#332C1C", "#1E332B", "#262B2E"];
+
+  // Same thresholds as LevelMeterControl.LitBrush: clip, loud, good, quiet.
+  function zone(db) {
+    if (db >= -1) return 0;
+    if (db >= -4) return 1;
+    if (db >= -24) return 2;
+    return 3;
+  }
+
+  function drawMeter(ctx, w, h, peakDb, holdDb) {
+    var count = Math.min(64, Math.max(10, Math.round(w / 9)));
+    var slot = w / count;
+    var gap = slot > 6 ? 2 : 1;
+    var segW = Math.max(1, slot - gap);
+    var reached = dbToScale(peakDb);
+
+    ctx.clearRect(0, 0, w, h);
+
+    for (var i = 0; i < count; i++) {
+      // The middle of the segment decides its colour and whether it is lit, so a
+      // segment never lights in a colour borrowed from the zone next door.
+      var position = (i + 0.5) / count;
+      ctx.fillStyle = (position <= reached ? LIT : UNLIT)[zone(scaleToDb(position))];
+      ctx.fillRect(i * slot, 0, segW, h);
+    }
+
+    var fraction = dbToScale(holdDb);
+    if (fraction > 0) {
+      var x = Math.round(fraction * w) + 0.5;
+      ctx.strokeStyle = LIT[zone(holdDb)];
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+    }
+  }
+
+  /* ================================================================ the signal
+     Synthetic and speech-shaped: phrases with pauses between them, syllables
+     inside the phrases, sitting where the product coaches you to sit. No audio
+     file to download, no autoplay policy to fight, and no microphone permission
+     asked of somebody who has only just arrived. */
+  function speech(t, seed) {
+    var phrase = 0.5 + 0.5 * Math.sin(t * 0.33 + seed * 3.1);
+    var speaking = phrase > 0.30 ? 1 : 0.05;
+    var syllable = 0.58 + 0.42 * Math.abs(Math.sin(t * 5.7 + seed * 2.3));
+    var breath = 0.82 + 0.18 * Math.sin(t * 1.9 + seed);
+    var jitter = 0.94 + 0.06 * Math.sin(t * 19.7 + seed * 7);
+    var amp = speaking * syllable * breath * jitter * Math.pow(phrase, 0.35);
+    return Math.min(-2.2, FLOOR + 56 * amp);
+  }
+
+  /* ================================================================ wiring */
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+  var meters = [];
+
+  Array.prototype.forEach.call(document.querySelectorAll("canvas[data-meter]"), function (canvas) {
+    meters.push({
+      canvas: canvas,
+      ctx: canvas.getContext("2d"),
+      seed: parseFloat(canvas.getAttribute("data-seed")) || 0,
+      cssHeight: parseFloat(canvas.getAttribute("data-height")) || 0,
+      hold: FLOOR,
+      w: 0,
+      h: 0
+    });
+  });
+
+  function measure() {
+    var dpr = window.devicePixelRatio || 1;
+    meters.forEach(function (m) {
+      var rect = m.canvas.getBoundingClientRect();
+      if (rect.width < 1) return;
+      var h = m.cssHeight || rect.height || 20;
+      if (m.cssHeight) m.canvas.style.height = h + "px";
+      m.w = rect.width;
+      m.h = h;
+      m.canvas.width = Math.round(rect.width * dpr);
+      m.canvas.height = Math.round(h * dpr);
+      m.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    });
+  }
+
+  function paint(time) {
+    var t = time / 1000;
+    meters.forEach(function (m) {
+      if (!m.w) return;
+      var db = reduce.matches ? -12.5 : speech(t, m.seed);
+      if (db > m.hold) m.hold = db;
+      else m.hold = Math.max(db, m.hold - 0.22);
+      drawMeter(m.ctx, m.w, m.h, db, m.hold);
+    });
+  }
+
+  // Self-healing: a page opened in a background tab is laid out lazily, so the
+  // first measure comes back as zero and rAF never fires. Sizing once at load
+  // would leave every meter blank until something resized the window.
+  var frameId = 0;
+
+  function schedule() {
+    if (frameId || reduce.matches || document.visibilityState === "hidden") return;
+    frameId = requestAnimationFrame(loop);
+  }
+
+  function loop(time) {
+    frameId = 0;
+    paint(time);
+    schedule();
+  }
+
+  function refresh() {
+    measure();
+    paint(typeof performance !== "undefined" ? performance.now() : Date.now());
+    schedule();
+  }
+
+  refresh();
+  window.addEventListener("resize", refresh);
+  document.addEventListener("visibilitychange", refresh);
+  if (reduce.addEventListener) reduce.addEventListener("change", refresh);
+  if (window.ResizeObserver) {
+    var observer = new ResizeObserver(refresh);
+    meters.forEach(function (m) { observer.observe(m.canvas); });
+  }
+
+  /* ================================================================ the clock
+     The panel is a picture of a show in progress, so its clock should run. */
+  var clock = document.getElementById("uptime");
+  if (clock && !reduce.matches) {
+    var started = 41 * 60 + 7;
+    setInterval(function () {
+      started += 1;
+      var h = Math.floor(started / 3600);
+      var m = Math.floor((started % 3600) / 60);
+      var s = started % 60;
+      clock.textContent = [h, m, s].map(function (n) {
+        return n < 10 ? "0" + n : "" + n;
+      }).join(":");
+    }, 1000);
+  }
+
+  /* ================================================================ the release
+     Filled in from the API rather than written into the page, so the version and
+     the file size cannot go stale. Every link already points at the releases page
+     before this runs, so a rate limit, an outage or a blocked request costs the
+     visitor nothing but the exact filename. */
+  function bytes(n) {
+    return Math.round(n / (1024 * 1024)) + " MB";
+  }
+
+  function findAsset(assets, suffix) {
+    for (var i = 0; i < assets.length; i++) {
+      if (assets[i].name.slice(-suffix.length) === suffix) return assets[i];
+    }
+    return null;
+  }
+
+  // Highest version wins, rather than whichever the API hands back first. GitHub orders releases by
+  // the date of the tagged commit, not by when they were published, so position is not a safe proxy
+  // for newest - and the list endpoint is cached, so it can lag a minute or two behind reality.
+  function newest(list) {
+    var best = null;
+    var bestKey = -1;
+
+    (list || []).forEach(function (release) {
+      var parts = String(release.tag_name || "").replace(/^v/, "").split(".");
+      if (parts.length !== 4) return;
+
+      var key = 0;
+      for (var i = 0; i < 4; i++) {
+        var n = parseInt(parts[i], 10);
+        if (isNaN(n)) return;
+        key = (key * 100000) + n;
+      }
+
+      if (key > bestKey) { bestKey = key; best = release; }
+    });
+
+    return best;
+  }
+
+  try {
+    fetch("https://api.github.com/repos/" + REPO + "/releases?per_page=10", {
+      headers: { "Accept": "application/vnd.github+json" }
+    })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (list) {
+        var release = newest(list);
+        if (!release || !release.assets) return;
+
+        var setup = findAsset(release.assets, "-setup.exe");
+        var portable = findAsset(release.assets, "-portable-win-x64.zip");
+
+        if (setup) {
+          ["download-primary", "download-setup"].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.href = setup.browser_download_url;
+          });
+        }
+
+        var portableLink = document.getElementById("download-portable");
+        if (portable && portableLink) portableLink.href = portable.browser_download_url;
+
+        var meta = document.getElementById("release-meta");
+        if (meta) {
+          var version = (release.tag_name || "").replace(/^v/, "");
+          meta.textContent =
+            (version ? version + " beta · " : "") +
+            (setup ? bytes(setup.size) + " · " : "") +
+            "Windows 10 and 11 · 64-bit · nothing else to install";
+        }
+      })
+      .catch(function () { /* the static links already work */ });
+  } catch (e) { /* no fetch, no problem */ }
+})();
+</script>
+</body>
+</html>

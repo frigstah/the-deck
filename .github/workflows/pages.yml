@@ -1,0 +1,51 @@
+# Publishes site/ to GitHub Pages.
+#
+# There is no build step and there should not be one: the site is a single self-contained page, so
+# what is committed is byte-for-byte what gets served, and it can be opened straight off disk to
+# check a change. A toolchain here would buy nothing and would be one more thing to keep alive.
+#
+# Only runs when the site actually changes. Every push to main already builds and publishes a
+# release, and there is no reason for a code commit to redeploy an unchanged page.
+#
+# Needs Pages switched on once, by hand: Settings -> Pages -> Source: GitHub Actions.
+
+name: Site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  # Deployments are allowed to finish. Cancelling one mid-flight can leave the site
+  # serving half of the previous deploy.
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
