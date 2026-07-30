@@ -1026,10 +1026,14 @@
                             rather than being swallowed by the text.
 
                             A Grid rather than a StackPanel so the value gets whatever width is left
-                            after the label. In a StackPanel the presenter measures at the width its
-                            text wants and is then clipped by the chip's MaxWidth, which cuts a long
-                            server name off mid-word with no ellipsis and reads as a rendering fault
-                            rather than as "there is more of this".
+                            after the label. In a StackPanel the value measures at the width its text
+                            wants and is then clipped by the chip's MaxWidth, which cuts a long name
+                            off mid-word with no ellipsis and reads as a rendering fault rather than as
+                            "there is more of this".
+
+                            Both colours are stated rather than inherited, because an implicit
+                            TextBlock style in this file sets Foreground and an implicit style setter
+                            beats inheritance.
                         -->
                         <Grid IsHitTestVisible="False" Margin="{TemplateBinding Padding}">
                             <Grid.ColumnDefinitions>
@@ -1037,18 +1041,30 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
-                            <!-- The chip's name, from Tag. Its colour is set here and not left to
-                                 inherit, because an implicit TextBlock style in this file sets
-                                 Foreground and an implicit style setter beats inheritance. -->
+                            <!-- The chip's name, from Tag. A caption: it says which of the three this
+                                 is, and then gets out of the way of the answer. -->
                             <TextBlock x:Name="Label" VerticalAlignment="Center"
                                        Text="{TemplateBinding Tag}"
-                                       Foreground="{DynamicResource TextBrush}" />
+                                       Foreground="{DynamicResource MutedTextBrush}" />
 
-                            <ContentPresenter x:Name="Selection" Grid.Column="1" Margin="10,0,0,0"
-                                              VerticalAlignment="Center"
+                            <!-- The answer, and the thing worth reading: brighter than the label and
+                                 bold, so a glance down the row picks out the values and not the words
+                                 that introduce them. -->
+                            <TextBlock x:Name="Value" Grid.Column="1" Margin="10,0,0,0"
+                                       VerticalAlignment="Center" FontWeight="Bold"
+                                       TextTrimming="CharacterEllipsis"
+                                       Text="{Binding Path=(local:DeckChip.ValueText),
+                                                      RelativeSource={RelativeSource TemplatedParent}}"
+                                       Foreground="{TemplateBinding Foreground}" />
+
+                            <!-- Kept so the control still has the part the ComboBox expects to find,
+                                 but never shown: the chip draws its own value above, from the view
+                                 model, because the closed chip and the open list say different things
+                                 about the same selection. -->
+                            <ContentPresenter x:Name="Selection" Grid.Column="1"
+                                              Visibility="Collapsed"
                                               Content="{TemplateBinding SelectionBoxItem}"
-                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" />
                         </Grid>
 
                         <TextBox x:Name="PART_EditableTextBox" Visibility="Collapsed" />
@@ -1083,17 +1099,18 @@
                                     Value="{DynamicResource AccentBrush}" />
                         </Trigger>
 
-                        <!-- The chip carries only its own name, and stays one fixed width whatever is
-                             chosen. See DeckChip.ShowsValue. -->
-                        <Trigger Property="local:DeckChip.ShowsValue" Value="False">
-                            <Setter TargetName="Selection" Property="Visibility" Value="Collapsed" />
+                        <!-- Nothing to say yet: the label stops being a caption for an absent value
+                             and the gap before it goes with it. -->
+                        <Trigger Property="local:DeckChip.ValueText" Value="{x:Null}">
+                            <Setter TargetName="Value" Property="Visibility" Value="Collapsed" />
+                            <Setter TargetName="Label" Property="Foreground"
+                                    Value="{DynamicResource TextBrush}" />
                         </Trigger>
 
-                        <!-- With a value beside it the label is a caption, and steps back so the value
-                             reads first. Alone, it is the thing being read. -->
-                        <Trigger Property="local:DeckChip.ShowsValue" Value="True">
+                        <Trigger Property="local:DeckChip.ValueText" Value="">
+                            <Setter TargetName="Value" Property="Visibility" Value="Collapsed" />
                             <Setter TargetName="Label" Property="Foreground"
-                                    Value="{DynamicResource MutedTextBrush}" />
+                                    Value="{DynamicResource TextBrush}" />
                         </Trigger>
 
                         <!--
@@ -1107,8 +1124,8 @@
                             value stays put and legible: a locked chip is still stating a fact.
 
                             Last in the list on purpose - for equal targets the last active trigger
-                            wins, so this beats the caption colouring above whichever way ShowsValue
-                            happens to be set.
+                            wins, so this beats the label colouring above whether or not the chip has
+                            a value to show.
                         -->
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="Chrome" Property="Background"

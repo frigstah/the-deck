@@ -239,6 +239,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     public string InputChip => _selectedInput?.Name ?? "no input";
 
     /// <summary>
+    /// The input as the chip says it: short enough that a device name does not decide the width of
+    /// the whole row. See <see cref="AudioDevice.ShortName"/> for what gets dropped and why.
+    /// </summary>
+    public string InputChipShort => _selectedInput?.ShortName ?? "none";
+
+    /// <summary>
     /// What the input chip no longer says on its face. The chip reads "Input" so the row keeps one
     /// fixed width, which means the hover is now the quickest way to answer "which input is this?" -
     /// so it leads with the answer and mentions what the chip does second.
@@ -340,10 +346,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         }), TaskScheduler.Default);
     }
 
-    public string OutputChip => string.IsNullOrWhiteSpace(BroadcastTargetText)
-        ? SelectedServerShort
-        : BroadcastTargetText;
-
     /// <summary>
     /// The deck's record control.
     /// <para>
@@ -391,8 +393,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         : string.Empty;
 
     private void RaiseDeck() => RaiseAll(
-        nameof(InputChip), nameof(InputChipTooltip), nameof(OutputChip), nameof(RecordButtonLabel),
-        nameof(RecordButtonTooltip), nameof(NowPlayingLine), nameof(BufferText));
+        nameof(InputChip), nameof(InputChipShort), nameof(InputChipTooltip),
+        nameof(RecordButtonLabel), nameof(RecordButtonTooltip), nameof(NowPlayingLine),
+        nameof(BufferText));
 
     // ---------------------------------------------------------------- which pane is open
 
@@ -1097,7 +1100,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             RaiseAll(nameof(SelectedServerSummary), nameof(CanGoLive), nameof(QualitySummary),
                 nameof(ListenUrl), nameof(SelectedServerShort),
                 nameof(BroadcastTargetText), nameof(QualityShort),
-                nameof(OutputChip), nameof(SelectedQualityOption),
+                nameof(SelectedQualityOption),
                 nameof(CanChangeQuality));
 
             if (wasLive) RestartShowAfterChange();
@@ -2654,7 +2657,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     private void OnServerTypeDetected(object? sender, EventArgs e) => OnUi(() =>
     {
         SaveServers();
-        RaiseAll(nameof(SelectedServerSummary), nameof(SelectedServerShort), nameof(OutputChip),
+        RaiseAll(nameof(SelectedServerSummary), nameof(SelectedServerShort),
             nameof(ListenUrl));
     });
 

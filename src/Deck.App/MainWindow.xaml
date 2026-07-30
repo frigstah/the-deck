@@ -250,19 +250,18 @@
                             grouping into microphones and loopback sources - so swapping between a
                             venue's desk feed and a laptop microphone is one click from the deck.
 
-                            It says "Input" and not which input, which is the one place this row gives
-                            something up. Device names are far longer than anything else here - "IN 1-8
-                            (BEHRINGER X-AIR) - default" - so this chip alone decided the width of the
-                            row, and anything growing anywhere reflowed it onto a second line. A fixed
-                            word is a fixed width. Which input is chosen is one click away, ticked in
-                            the list, in the tooltip, and spelled out on the Sound pane.
+                            It says which input, but shortened: Windows names an endpoint "IN 1-8
+                            (BEHRINGER X-AIR)" and the part before the bracket is both what a person
+                            would say out loud and a third of the length. Left whole, this chip alone
+                            decided the width of the row. The full name is in the tooltip, in the list,
+                            and on the Sound pane.
 
                             Every chip below is one control: the chip and the picker are the same
                             element, so all of it is the click target and the popup needs no help
-                            finding its edges. Tag is the label.
+                            finding its edges. Tag is the caption, ValueText is the answer.
                         -->
                         <ComboBox Style="{StaticResource DeckChipComboStyle}" Tag="Input"
-                                  local:DeckChip.ShowsValue="False"
+                                  local:DeckChip.ValueText="{Binding InputChipShort}"
                                   ItemsSource="{Binding InputDevicesView}"
                                   SelectedItem="{Binding SelectedInput}"
                                   ItemTemplate="{StaticResource DeviceItemTemplate}"
@@ -279,7 +278,8 @@
                             between venues reaches for most: each venue has its own stream, and
                             without this every change meant opening setup and finding the Servers pane.
                         -->
-                        <ComboBox Style="{StaticResource DeckChipComboStyle}" Tag="OUT"
+                        <ComboBox Style="{StaticResource DeckChipComboStyle}" Tag="Server"
+                                  local:DeckChip.ValueText="{Binding SelectedServerShort}"
                                   ItemsSource="{Binding Servers}"
                                   SelectedItem="{Binding SelectedServer}"
                                   ItemTemplate="{StaticResource NameItemTemplate}"
@@ -298,7 +298,7 @@
                             lossless, since FLAC has no bitrate to choose.
                         -->
                         <ComboBox Style="{StaticResource DeckChipComboStyle}" Tag="Quality"
-                                  local:DeckChip.ShowsValue="False"
+                                  local:DeckChip.ValueText="{Binding SelectedQualityOption}"
                                   Visibility="{Binding CanChangeQuality, Converter={StaticResource BoolToVisibility}}"
                                   ItemsSource="{Binding QualityOptions}"
                                   SelectedItem="{Binding SelectedQualityOption}"
