@@ -318,7 +318,7 @@ public partial class MainWindow : Window
         var dialog = new SaveFileDialog
         {
             Title = "Save your server settings",
-            FileName = "sirs-servers.json",
+            FileName = "deck-servers.json",
             Filter = "Deck server settings (*.json)|*.json|All files (*.*)|*.*",
             AddExtension = true,
         };
