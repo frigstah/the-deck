@@ -33,9 +33,14 @@ internal static class LoopbackCheck
             return 1;
         }
 
-        if (all.Count != inputs.Count + loopbacks.Count)
+        var programs = AudioProcesses.Playing();
+        var asio = AsioCapture.Devices();
+
+        if (all.Count != inputs.Count + loopbacks.Count + programs.Count + asio.Count)
         {
-            Console.WriteLine("FAIL: combined list does not match its parts\n");
+            Console.WriteLine(
+                $"FAIL: combined list has {all.Count}, its parts have " +
+                $"{inputs.Count} inputs + {loopbacks.Count} loopback + {programs.Count} programs + {asio.Count} ASIO\n");
             return 1;
         }
 

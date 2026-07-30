@@ -76,6 +76,7 @@ Priority key: **P0** = v1.0 must-ship · **P1** = v1.1, strongly wanted · **P2*
 | A6 | Device hot-plug handling: auto-recover if USB mic is unplugged/replugged | P1 | Common real-world failure; BUTT handles this poorly |
 | A7 | Mono/stereo and channel-pair selection for multi-channel interfaces | P2 — **built** | |
 | A8 | ASIO input | P3 — **built** | NAudio reaches ASIO through the COM interfaces drivers already expose, so no Steinberg SDK is redistributed. Verified against real hardware |
+| A9 | Capture one program on its own, as a second source to mix with the microphone | — **built** | Not in the original list; it is what makes karaoke work. Whole-desktop loopback (A4) takes the backing track, the notifications, the other window and Deck's own monitoring, so mixing a microphone with a backing track meant broadcasting the whole desktop or wiring the two together outside Deck. Windows' Application Loopback API hands over one process's render stream; hand-written COM interop, Windows build 20348 or later, and not offered at all below that. Verified against real hardware, including the user's own karaoke program |
 
 ### 3.2 Sound test & monitoring — *the flagship area*
 | # | Feature | Pri | Notes |

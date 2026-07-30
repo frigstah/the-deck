@@ -13,12 +13,18 @@ public static class AudioDevices
     public static IReadOnlyList<AudioDevice> LoopbackSources() => Enumerate(DataFlow.Render, AudioDeviceKind.Loopback);
 
     /// <summary>
-    /// Everything Deck can broadcast from: real inputs first, then the loopback sources (A4), then
-    /// any ASIO drivers (A8). Microphones lead because that is what most people are here for, and
-    /// ASIO comes last because on almost every machine that list is empty.
+    /// Everything Deck can broadcast from: real inputs first, then the loopback sources (A4), then the
+    /// programs currently making a noise (A9), then any ASIO drivers (A8). Microphones lead because
+    /// that is what most people are here for, and ASIO comes last because on almost every machine that
+    /// list is empty.
+    /// <para>
+    /// Programs sit next to whole-desktop loopback because they answer the same question in a narrower
+    /// way, and because the pair of them is the karaoke setup: microphone on the main input, the
+    /// backing-track program on the second.
+    /// </para>
     /// </summary>
     public static IReadOnlyList<AudioDevice> AllInputSources() =>
-        [.. Inputs(), .. LoopbackSources(), .. AsioCapture.Devices()];
+        [.. Inputs(), .. LoopbackSources(), .. AudioProcesses.Playing(), .. AsioCapture.Devices()];
 
     private static IReadOnlyList<AudioDevice> Enumerate(DataFlow flow, AudioDeviceKind kind)
     {

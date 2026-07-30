@@ -100,6 +100,18 @@ public sealed class AudioSource : IDisposable
                 capture = new AsioCapture(
                     AsioCapture.DriverNameFrom(deviceId ?? string.Empty), streamFormat.SampleRate);
             }
+            else if (kind == AudioDeviceKind.Process)
+            {
+                // Nor does a program: what is stored is its name, and the process it is running as has
+                // to be found again now, because the one from yesterday is gone (A9).
+                var programName = ProcessLoopbackCapture.ProgramNameFrom(deviceId ?? string.Empty);
+                var processId = AudioProcesses.ResolveProcessId(programName)
+                    ?? throw new AudioDeviceUnavailableException(
+                        $"{programName} does not seem to be running, so Deck cannot take its sound. " +
+                        "Start it, then choose it again.");
+
+                capture = new ProcessLoopbackCapture(processId, programName, streamFormat.SampleRate);
+            }
             else
             {
                 var lookupKind = kind == AudioDeviceKind.Loopback ? AudioDeviceKind.Output : kind;

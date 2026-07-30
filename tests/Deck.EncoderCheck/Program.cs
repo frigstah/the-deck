@@ -20,14 +20,23 @@ internal static class Program
     {
         var failures = 0;
 
+        // A helper for the process-capture check: this executable, re-run to be a program that plays a
+        // tone, so there is something to capture that is unmistakably not us.
+        var tone = Array.IndexOf(args, "--tone");
+        if (tone >= 0 && tone + 1 < args.Length && int.TryParse(args[tone + 1], out var hertz))
+        {
+            return ProcessCaptureCheck.PlayTone(hertz);
+        }
+
         // Needs audio hardware and briefly makes real sound, so these are opt-in.
         if (args.Contains("--loopback") || args.Contains("--mixer") ||
-            args.Contains("--recovery") || args.Contains("--metadata"))
+            args.Contains("--recovery") || args.Contains("--metadata") || args.Contains("--process"))
         {
             if (args.Contains("--loopback")) failures += LoopbackCheck.Run();
             if (args.Contains("--mixer")) failures += LoopbackCheck.RunMixer();
             if (args.Contains("--recovery")) failures += RecoveryCheck.Run();
             if (args.Contains("--metadata")) failures += MediaSessionCheck.Run();
+            if (args.Contains("--process")) failures += ProcessCaptureCheck.Run();
 
             Console.WriteLine(failures == 0 ? "Audio device checks passed." : "Audio device checks FAILED.");
             return failures == 0 ? 0 : 1;

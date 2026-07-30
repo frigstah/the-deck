@@ -13,6 +13,9 @@ public enum AudioDeviceKind
 
     /// <summary>A professional interface reached through its own ASIO driver rather than Windows (A8).</summary>
     Asio,
+
+    /// <summary>One program's own sound, captured on its own rather than with the whole desktop (A9).</summary>
+    Process,
 }
 
 /// <summary>A selectable audio endpoint, described in the words a user would recognise.</summary>
@@ -73,6 +76,7 @@ public sealed record AudioDevice(
         AudioDeviceKind.Loopback => "Sound playing on this PC",
         AudioDeviceKind.Input => "Microphones and line inputs",
         AudioDeviceKind.Asio => "Professional interfaces (ASIO)",
+        AudioDeviceKind.Process => "One program on this PC",
         _ => "Speakers and headphones",
     };
 

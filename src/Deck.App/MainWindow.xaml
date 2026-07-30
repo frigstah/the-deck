@@ -695,7 +695,7 @@
 
                             <local:SettingRow Label="Add a second source" ContentWidth="38"
                                               ShowRule="{Binding SecondarySourceEnabled}"
-                                              Hint="Play music from any app underneath your microphone, or talk over a guest.">
+                                              Hint="Sing over a backing track, play music underneath your microphone, or talk over a guest. Pick one program and Deck takes that program and nothing else - not the whole desktop, and not its own monitoring coming back around.">
                                 <CheckBox Style="{StaticResource ToggleSwitchStyle}"
                                           IsChecked="{Binding SecondarySourceEnabled}"
                                           AutomationProperties.Name="Add a second sound source" />
@@ -703,14 +703,27 @@
 
                             <StackPanel Visibility="{Binding SecondarySourceEnabled, Converter={StaticResource BoolToVisibility}}">
                                 <local:SettingRow Label="Second input" ContentWidth="330" ShowRule="False">
-                                    <ComboBox ItemsSource="{Binding InputDevicesView}"
-                                              SelectedItem="{Binding SelectedSecondaryInput}"
-                                              ItemTemplate="{StaticResource DeviceItemTemplate}"
-                                              AutomationProperties.Name="Second sound source">
-                                        <ComboBox.GroupStyle>
-                                            <StaticResource ResourceKey="DeviceGroupStyle" />
-                                        </ComboBox.GroupStyle>
-                                    </ComboBox>
+                                    <!-- Its own Refresh, unlike the main input's. Programs come and go far
+                                         more than sound cards do: a program is in this list only while
+                                         Windows says it is playing, so starting the backing-track player
+                                         after Deck needs a way to look again from here. -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <ComboBox ItemsSource="{Binding InputDevicesView}"
+                                                  SelectedItem="{Binding SelectedSecondaryInput}"
+                                                  ItemTemplate="{StaticResource DeviceItemTemplate}"
+                                                  AutomationProperties.Name="Second sound source">
+                                            <ComboBox.GroupStyle>
+                                                <StaticResource ResourceKey="DeviceGroupStyle" />
+                                            </ComboBox.GroupStyle>
+                                        </ComboBox>
+                                        <Button Grid.Column="1" Content="Refresh" Click="OnRefreshDevices"
+                                                Style="{StaticResource RowButtonStyle}"
+                                                ToolTip="Look again for programs that are playing now." />
+                                    </Grid>
                                 </local:SettingRow>
 
                                 <!--
