@@ -63,6 +63,11 @@ internal static class Program
         Console.WriteLine(listenerFailures == 0 ? "PASS\n" : $"{listenerFailures} case(s) FAILED\n");
         failures += listenerFailures;
 
+        Console.WriteLine("--- Working out the server type ---");
+        var serverTypeFailures = ServerTypeChecks.Run();
+        Console.WriteLine(serverTypeFailures == 0 ? "PASS\n" : $"{serverTypeFailures} case(s) FAILED\n");
+        failures += serverTypeFailures;
+
         Console.WriteLine("--- Now playing ---");
         var metadataFailures = MetadataChecks.Run();
         Console.WriteLine(metadataFailures == 0 ? "PASS\n" : $"{metadataFailures} case(s) FAILED\n");

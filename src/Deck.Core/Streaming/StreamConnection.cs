@@ -106,6 +106,12 @@ public sealed class StreamConnection : IAsyncDisposable
 
     public event EventHandler<StreamStateChangedEventArgs>? StateChanged;
 
+    /// <summary>
+    /// Raised when connecting worked out the server's type and wrote it onto the profile, so whoever
+    /// owns the server list can save it. Without this the detection would be redone on every run.
+    /// </summary>
+    public event EventHandler? ServerTypeDetected;
+
     public void Start(ServerProfile profile, EncoderSettings encoder, byte[] streamHeader)
     {
         if (State.IsBroadcasting()) throw new InvalidOperationException("Already broadcasting.");
@@ -194,7 +200,13 @@ public sealed class StreamConnection : IAsyncDisposable
             {
                 Transition(attempt == 0 ? StreamState.Connecting : StreamState.Reconnecting, null);
 
-                sink = SinkFactory.Create(_profile!, _encoder!);
+                bool detected;
+                (sink, detected) = await SinkResolver
+                    .CreateAsync(_profile!, _encoder!, cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (detected) ServerTypeDetected?.Invoke(this, EventArgs.Empty);
+
                 await sink.ConnectAsync(cancellationToken).ConfigureAwait(false);
 
                 ConnectionNote = sink.ConnectionNote;

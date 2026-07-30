@@ -250,16 +250,23 @@
                             The padlock sits outside the chip rather than in the dropdown, because it
                             guards the chip: something you set once at the start of a show and then
                             want to see the state of at a glance.
+
+                            Its MaxWidth is the tightest on the row on purpose. Device names are far
+                            longer than anything else here - "IN 1-8 (BEHRINGER X-AIR) - default" - and
+                            left to itself this chip took enough of the row that the record button had
+                            nowhere to sit at the default window size. The full name is a hover away,
+                            and the Sound pane spells it out.
                         -->
-                        <Border Style="{StaticResource DeckChipStyle}" Margin="0,0,2,0">
+                        <Border x:Name="InputChipBorder" Style="{StaticResource DeckChipStyle}" Margin="0,0,2,0">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="IN&#160;&#160;" Style="{StaticResource DeckChipLabelStyle}" />
                                 <ComboBox Style="{StaticResource DeckChipComboStyle}"
+                                          Tag="{Binding ElementName=InputChipBorder}"
                                           ItemsSource="{Binding InputDevicesView}"
                                           SelectedItem="{Binding SelectedInput}"
                                           ItemTemplate="{StaticResource DeviceItemTemplate}"
                                           IsEnabled="{Binding InputLocked, Converter={StaticResource InverseBoolean}}"
-                                          MaxWidth="230"
+                                          MaxWidth="186"
                                           AutomationProperties.Name="Input"
                                           ToolTip="Swap the input without opening setup.">
                                     <ComboBox.GroupStyle>
@@ -280,10 +287,11 @@
                             between venues reaches for most: each venue has its own stream, and
                             without this every change meant opening setup and finding the Servers pane.
                         -->
-                        <Border Style="{StaticResource DeckChipStyle}">
+                        <Border x:Name="ServerChipBorder" Style="{StaticResource DeckChipStyle}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="OUT&#160;&#160;" Style="{StaticResource DeckChipLabelStyle}" />
                                 <ComboBox Style="{StaticResource DeckChipComboStyle}"
+                                          Tag="{Binding ElementName=ServerChipBorder}"
                                           ItemsSource="{Binding Servers}"
                                           SelectedItem="{Binding SelectedServer}"
                                           ItemTemplate="{StaticResource NameItemTemplate}"

@@ -39,6 +39,12 @@ public sealed class BroadcastSet : IAsyncDisposable
 
     public event EventHandler<TargetStateChangedEventArgs>? TargetStateChanged;
 
+    /// <summary>
+    /// Raised when connecting worked out a server's type, so the server list can be written back to
+    /// disk with the answer in it.
+    /// </summary>
+    public event EventHandler? ServerTypeDetected;
+
     /// <summary>The single capture format that feeds every target, before their own conversion.</summary>
     public static AudioFormat CaptureFormatFor(IEnumerable<ServerProfile> profiles)
     {
@@ -63,6 +69,8 @@ public sealed class BroadcastSet : IAsyncDisposable
                 var target = new BroadcastTarget(profiles[i], captureFormat, isPrimary: i == 0);
                 target.Connection.StateChanged += (_, e) =>
                     TargetStateChanged?.Invoke(this, new TargetStateChangedEventArgs(target, e));
+
+                target.Connection.ServerTypeDetected += (_, _) => ServerTypeDetected?.Invoke(this, EventArgs.Empty);
 
                 targets[i] = target;
             }
