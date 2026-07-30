@@ -438,43 +438,96 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" MinWidth="90" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <!-- Same square block as the status strip, so "am I live?" is answered by the
-                         same shape and colour wherever Deck happens to be showing it. -->
-                    <Border Grid.Column="0" Background="{Binding StateBrush}" Padding="10,4"
-                            VerticalAlignment="Center">
-                        <TextBlock Text="{Binding StateHeadlineUpper}" Foreground="White"
-                                   FontFamily="Consolas" FontWeight="Bold" FontSize="11.5" />
+                    <!--
+                        The mark, and the only place in the product it is drawn large. The strip is the
+                        one thing that floats over other programs with no title bar and no wordmark, so
+                        it is the one place that has to say whose strip it is.
+
+                        In the accent rather than the text colour, which is not timidity. The loudest
+                        thing on this row has to stay the state block - it is the reason the strip
+                        exists - and a 48-pixel near-white letter beside it would win that argument.
+                        Petrol reads as branding and steps back.
+
+                        Deliberately not inside the hit-test-visible panel below, so dragging the mark
+                        moves the window like the rest of the strip.
+                    -->
+                    <Path Grid.Column="0" Data="{x:Static local:DeckMark.MiniStripGeometry}"
+                          Width="48" Height="48" Stretch="None"
+                          VerticalAlignment="Center" Margin="0,0,12,0"
+                          SnapsToDevicePixels="True"
+                          Fill="{DynamicResource AccentBrush}"
+                          ToolTip="The Deck" />
+
+                    <!--
+                        Same square block as the status strip, so "am I live?" is answered by the same
+                        shape and colour wherever Deck happens to be showing it.
+
+                        On the strip it answers a second question too - "ON AIR WITH 18 LISTENERS" -
+                        because the strip has no readout row to put a count in, and those are the two
+                        things you look up for during a show. The deck keeps them separate, since it has
+                        somewhere to say the number and saying it twice on one screen would be worse.
+                    -->
+                    <Border Grid.Column="1" Background="{Binding StateBrush}" Padding="10,4"
+                            VerticalAlignment="Center" ToolTip="{Binding ListenerTooltip}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding StateHeadlineUpper}" Foreground="White"
+                                       FontFamily="Consolas" FontWeight="Bold" FontSize="11.5" />
+
+                            <!-- Collapsed when there is no count, so the block is just "ON AIR" rather
+                                 than admitting to a gap. -->
+                            <Grid Visibility="{Binding MiniListenerSuffix, Converter={StaticResource TextToVisibility}}">
+                                <!--
+                                    Never drawn. It claims the width of the longest tail this block can
+                                    carry, so the block stops resizing as people tune in and out - the
+                                    meter takes whatever width is left on this row, so without this it
+                                    would shift sideways every time the number changed. Same trick as the
+                                    record button, and for the same reason.
+                                -->
+                                <TextBlock Text="{Binding MiniListenerReserve}" Visibility="Hidden"
+                                           FontFamily="Consolas" FontWeight="Bold" FontSize="11.5"
+                                           Margin="7,0,0,0" />
+                                <TextBlock Text="{Binding MiniListenerSuffix}" Foreground="White"
+                                           HorizontalAlignment="Left"
+                                           FontFamily="Consolas" FontWeight="Bold" FontSize="11.5"
+                                           Margin="7,0,0,0" />
+                            </Grid>
+                        </StackPanel>
                     </Border>
 
-                    <TextBlock Grid.Column="1" Text="{Binding UptimeText}"
+                    <TextBlock Grid.Column="2" Text="{Binding UptimeText}"
                                Style="{StaticResource StatusValueStyle}" Margin="12,0,0,0"
                                Visibility="{Binding IsLive, Converter={StaticResource BoolToVisibility}}" />
 
                     <!-- Short, and no scale: at this height the numbers under it would be unreadable,
                          and the zone colours are what the meter is for at a glance. -->
-                    <local:LevelMeterControl Grid.Column="2" Height="20" Margin="16,0,16,0"
+                    <local:LevelMeterControl Grid.Column="3" Height="20" Margin="16,0,16,0"
                                              VerticalAlignment="Center" ShowScale="False"
                                              PeakDbLeft="{Binding PeakDbLeft}"
                                              PeakDbRight="{Binding PeakDbRight}"
                                              HoldDb="{Binding WindowPeakDb}" />
 
                     <!-- Dead air is the one thing the strip must never be too small to say. -->
-                    <TextBlock Grid.Column="3" Text="{Binding SilenceAlert}"
+                    <TextBlock Grid.Column="4" Text="{Binding SilenceAlert}"
                                Foreground="{DynamicResource BadBrush}"
                                FontFamily="Consolas" FontWeight="Bold" FontSize="11.5"
                                VerticalAlignment="Center" Margin="0,0,14,0"
                                Visibility="{Binding SilenceAlert, Converter={StaticResource TextToVisibility}}" />
 
-                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center"
+                    <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center"
                                 WindowChrome.IsHitTestVisibleInChrome="True">
                         <!-- The one picker worth keeping: a singer moving between venues changes
                              where the sound goes far more often than anything else. -->
+                        <!-- These three are one height, set here rather than left to each control's
+                             own padding: they come from three different styles and sized themselves
+                             to 31, 31 and 32, which on a row this tight reads as a fault. -->
                         <ComboBox Style="{StaticResource DeckChipComboStyle}" Tag="Server"
+                                  Height="{StaticResource MiniControlHeight}"
                                   local:DeckChip.ValueText="{Binding SelectedServerShort}"
                                   ItemsSource="{Binding Servers}"
                                   SelectedItem="{Binding SelectedServer}"
@@ -486,18 +539,24 @@
 
                         <Button Content="{Binding RecordButtonLabel}" Click="OnToggleRecording"
                                 Style="{StaticResource DeckRecordButtonStyle}"
+                                Height="{StaticResource MiniControlHeight}"
                                 ToolTip="{Binding RecordButtonTooltip}"
                                 AutomationProperties.Name="Record" />
 
+                        <!-- The one control on the strip that is a different size, because it is the
+                             one control that is a different kind of thing. Bold for the same reason:
+                             everything else here reports or switches, this one puts a station on air. -->
                         <Button Content="{Binding GoLiveButtonText}" Click="OnToggleBroadcast"
                                 Style="{StaticResource StripButtonStyle}" MinWidth="130"
-                                Margin="10,0,0,0"
+                                Height="{StaticResource MiniActionHeight}"
+                                FontWeight="Bold" Margin="10,0,0,0"
                                 Background="{Binding GoLiveButtonBrush}"
                                 Foreground="{Binding GoLiveButtonTextBrush}"
                                 BorderBrush="{Binding GoLiveButtonBorderBrush}" />
 
                         <Button Content="Deck" Click="OnLeaveMiniMode" Margin="10,0,0,0"
                                 Style="{StaticResource StripButtonStyle}"
+                                Height="{StaticResource MiniControlHeight}"
                                 AutomationProperties.Name="Full deck"
                                 ToolTip="Back to the whole deck." />
 
@@ -1439,11 +1498,28 @@
                         <StackPanel Style="{StaticResource SettingGroupStyle}" Margin="0,14,0,0">
                             <TextBlock Text="A P P E A R A N C E" Style="{StaticResource GroupHeadingStyle}" />
 
-                            <local:SettingRow Label="Palette" ContentWidth="330" ShowRule="False"
+                            <local:SettingRow Label="Palette" ContentWidth="330"
                                               Hint="{Binding ThemeHint}">
                                 <ComboBox ItemsSource="{Binding ThemeOptions}"
                                           SelectedItem="{Binding SelectedTheme}"
                                           AutomationProperties.Name="Palette" />
+                            </local:SettingRow>
+
+                            <local:SettingRow Label="Setup panel" ContentWidth="330"
+                                              Hint="{Binding SetupMotionHint}">
+                                <ComboBox ItemsSource="{Binding SetupMotionOptions}"
+                                          SelectedItem="{Binding SelectedSetupMotion}"
+                                          AutomationProperties.Name="Setup panel movement" />
+                            </local:SettingRow>
+
+                            <!-- Here rather than with the on-air settings, because it changes what is
+                                 on a screen and not what happens to a broadcast. -->
+                            <local:SettingRow Label="Show listeners on the mini strip" ContentWidth="38"
+                                              ShowRule="False"
+                                              Hint="{Binding ListenersOnStripHint}">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding ShowListenersOnStrip}"
+                                          AutomationProperties.Name="Show listeners on the mini strip" />
                             </local:SettingRow>
                         </StackPanel>
 

@@ -130,6 +130,11 @@ public sealed class BroadcastEngine : IDisposable
     /// </summary>
     private readonly HashSet<Guid> _listenersExplained = [];
 
+    /// <summary>
+    /// Only while something is actually on air. Deck deliberately does not ask a server about its
+    /// audience while idle: the count is not shown off air, so polling would be traffic to somebody's
+    /// server every fifteen seconds in exchange for nothing.
+    /// </summary>
     private async Task PollListenersAsync()
     {
         var live = Broadcast.Targets.Where(t => t.State == StreamState.Live).ToList();

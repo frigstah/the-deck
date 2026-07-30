@@ -217,6 +217,12 @@ public static class Strings
             [StringId.ListenerMany] = "{0} listeners",
             [StringId.ListenerUnknown] = "no listener count",
 
+            // The mini strip's state block, which is the only place the two facts are said as one
+            // sentence: it has no readouts to put a listener count in, so it goes in the sign.
+            // A template rather than a concatenation, because "with" does not come second in every
+            // language and neither does the number.
+            [StringId.StateWithListeners] = "with {0}",
+
             // ---- updates (I9)
             [StringId.UpdateUpToDate] = "Deck is up to date.",
             [StringId.UpdateAvailable] = "Deck {0} is available. You are running {1}.",
@@ -260,6 +266,7 @@ public static class StringId
     public const string ListenerOne = "listeners.one";
     public const string ListenerMany = "listeners.many";
     public const string ListenerUnknown = "listeners.unknown";
+    public const string StateWithListeners = "state.withListeners";
 
     public const string UpdateUpToDate = "update.upToDate";
     public const string UpdateAvailable = "update.available";

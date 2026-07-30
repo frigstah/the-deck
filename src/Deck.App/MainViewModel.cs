@@ -165,7 +165,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         });
 
         _engine.ListenerCountChanged += (_, _) =>
-            OnUi(() => RaiseAll(nameof(ListenerText), nameof(ListenerTooltip)));
+            OnUi(() => RaiseAll(nameof(ListenerText), nameof(ListenerTooltip), nameof(MiniListenerSuffix)));
 
         _engine.Capture.CaptureFailed += OnCaptureFailed;
         _engine.DeviceRecovered += (_, e) => OnUi(() =>
@@ -617,6 +617,26 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     public string LevelCoachingHint => ShowLevelCoaching
         ? "Deck tells you whether your level is right. Turn this off once you would rather just read the meter."
         : "Off. The meter and the numbers are still there — only the verdict is hidden.";
+
+    /// <summary>
+    /// Whether the strip's on-air sign carries the listener count as well as the state (I12).
+    /// </summary>
+    public bool ShowListenersOnStrip
+    {
+        get => _settings.ShowListenersOnStrip;
+        set
+        {
+            if (_settings.ShowListenersOnStrip == value) return;
+
+            _settings.ShowListenersOnStrip = value;
+            Persist();
+            RaiseAll(nameof(ShowListenersOnStrip), nameof(ListenersOnStripHint), nameof(MiniListenerSuffix));
+        }
+    }
+
+    public string ListenersOnStripHint => ShowListenersOnStrip
+        ? "The strip reads \"ON AIR WITH 7 LISTENERS\". Turn this off if the strip is somewhere other people can see it."
+        : "Off. The strip reads \"ON AIR\". The count is still on the deck while you are live.";
 
     public Brush AdviceBrush => SeverityBrush(_engine.Capture.InputMeter.Advice.Severity());
 
@@ -1521,6 +1541,48 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     /// <summary>Where the number came from, or why there is not one. Never the only place it is said.</summary>
     public string ListenerTooltip => _engine.ListenerDetail ?? string.Empty;
 
+    /// <summary>
+    /// The listener count as a tail on the mini strip's state block, so it reads "ON AIR WITH 18
+    /// LISTENERS" - one sign answering both questions.
+    /// <para>
+    /// The strip is the only place this belongs. The deck already says the count in the readout row
+    /// beside the meter, and putting it in the headline there as well would state one fact twice on one
+    /// screen; the strip has no readouts at all, which is exactly why it needs it in the sign.
+    /// </para>
+    /// <para>
+    /// Live only, and empty unless the number is actually known. "ON AIR WITH NO LISTENER COUNT" would
+    /// be a worse sign than "ON AIR", and a count carried through a reconnect is a number from before
+    /// the drop - so <see cref="IsLive"/> rather than IsBroadcasting.
+    /// </para>
+    /// <para>
+    /// It was briefly shown off air too, on the argument that people waiting on a server's fallback
+    /// mount are worth knowing about before you start. Reverted: it made Deck poll somebody's server
+    /// every fifteen seconds while doing nothing, and "OFF AIR WITH 12 LISTENERS" invites the reading
+    /// that twelve people are listening to a broadcast that is not happening.
+    /// </para>
+    /// </summary>
+    public string MiniListenerSuffix =>
+        ShowListenersOnStrip && IsLive && _engine.ListenerCount is not null
+            ? Strings.Get(StringId.StateWithListeners, ListenerText).ToUpperInvariant()
+            : string.Empty;
+
+    /// <summary>
+    /// The widest tail the strip will ever draw, for a hidden twin to claim the width with.
+    /// <para>
+    /// Without it the state block resizes every time the count changes, and since the meter takes
+    /// whatever width is left, the meter would shift sideways a few pixels each time somebody tuned in
+    /// or out - the same fault the record button's hidden twin exists to prevent, and the same one that
+    /// once had the meter visibly breathing with the audio it was measuring. Built from the same
+    /// template as the real thing so it stays right in any language.
+    /// </para>
+    /// <para>
+    /// Three digits. A station that gets its thousandth listener widens the block once, which is a
+    /// problem worth having.
+    /// </para>
+    /// </summary>
+    public string MiniListenerReserve =>
+        Strings.Get(StringId.StateWithListeners, Strings.Get(StringId.ListenerMany, 999)).ToUpperInvariant();
+
     public void ToggleBroadcast()
     {
         if (StreamState.IsBroadcasting())
@@ -2415,6 +2477,48 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         ? "Deck changes with the Windows light and dark setting, as soon as you change it."
         : "Deck stays on this palette whatever Windows is set to.";
 
+    /// <summary>
+    /// Whether setup slides. Same three states as the palette, and in the same order: the one that is
+    /// right for most people first, then the two answers for whom it is wrong.
+    /// </summary>
+    private static readonly (string Label, SetupMotion Motion)[] Motions =
+    [
+        ("Follow Windows", SetupMotion.System),
+        ("Always slide", SetupMotion.Always),
+        ("Never slide", SetupMotion.Never),
+    ];
+
+    public IReadOnlyList<string> SetupMotionOptions => Motions.Select(m => m.Label).ToList();
+
+    public string SelectedSetupMotion
+    {
+        get => Motions.First(m => m.Motion == _settings.SetupMotion).Label;
+        set
+        {
+            var match = Motions.FirstOrDefault(m => m.Label == value);
+            if (match.Label is null || match.Motion == _settings.SetupMotion) return;
+
+            _settings.SetupMotion = match.Motion;
+            Persist();
+            RaiseAll(nameof(SelectedSetupMotion), nameof(SetupMotionHint));
+        }
+    }
+
+    /// <summary>
+    /// Says what Windows is currently set to when Deck is following it, because otherwise "Follow
+    /// Windows" gives no clue why setup does or does not move - which is the whole reason this setting
+    /// exists.
+    /// </summary>
+    public string SetupMotionHint => _settings.SetupMotion switch
+    {
+        SetupMotion.Always => "Setup slides in and out whatever Windows is set to.",
+        SetupMotion.Never => "Setup appears and disappears with no movement.",
+        _ => System.Windows.SystemParameters.ClientAreaAnimation
+            ? "Windows has animation effects on, so setup slides."
+            : "Windows has animation effects turned off, so setup appears without moving. "
+              + "Choose \"Always slide\" if you want the movement anyway.",
+    };
+
     /// <summary>Writes a starting file for someone who wants to translate Deck.</summary>
     public string ExportLanguageTemplate(string code, string name) => Strings.ExportTemplate(code, name);
 
@@ -2714,8 +2818,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             nameof(GoLiveButtonBorderBrush), nameof(StateHeadlineUpper), nameof(CanGoLive),
             nameof(UptimeText), nameof(SilenceAlert),
             // The listener readout only exists while on air, so going off has to clear it rather than
-            // waiting for the next poll to notice.
-            nameof(ListenerText), nameof(ListenerTooltip));
+            // waiting for the next poll to notice. The strip's version of it says the state as well, so
+            // it has to be told here rather than only when a count arrives.
+            nameof(ListenerText), nameof(ListenerTooltip), nameof(MiniListenerSuffix));
 
         RaiseChipLock();
     });
