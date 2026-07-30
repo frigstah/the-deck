@@ -121,12 +121,17 @@
         does not apply DisplayMemberPath. Every picker therefore states its template explicitly
         rather than relying on the item's ToString.
     -->
+    <!-- Trimmed, because these are also the closed state of the deck's chips, where the space is
+         whatever is left on the row. Trimming only bites when the text is actually constrained, so
+         the dropdown itself still shows every name in full. Without it a long device name was cut
+         off mid-word with no ellipsis, which reads as a rendering fault rather than as "there is
+         more of this". -->
     <DataTemplate x:Key="DeviceItemTemplate">
-        <TextBlock Text="{Binding DisplayName}" />
+        <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
     </DataTemplate>
 
     <DataTemplate x:Key="NameItemTemplate">
-        <TextBlock Text="{Binding Name}" />
+        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
     </DataTemplate>
 
     <!-- Section heading inside a grouped picker, e.g. "Sound playing on this PC". -->
@@ -776,6 +781,128 @@
         <Setter Property="Margin" Value="0,0,10,0" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Cursor" Value="Hand" />
+    </Style>
+
+    <!--
+        A picker that lives inside a deck chip, so a chip can be changed without opening setup.
+
+        Borderless and transparent, because the chip around it already provides the border and the
+        fill - the alternative was a box inside a box. It keeps the base picker's faded popup, its
+        keyboard handling and its selection binding; only the closed state is restyled.
+    -->
+    <Style x:Key="DeckChipComboStyle" TargetType="ComboBox">
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="FontFamily" Value="Consolas" />
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="MaxDropDownHeight" Value="320" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBox">
+                    <Grid>
+                        <ToggleButton x:Name="Toggle" Focusable="False" ClickMode="Press"
+                                      Background="Transparent"
+                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <!-- Transparent, not null: a null background takes no hit test,
+                                         and the whole point is that the chip is clickable. -->
+                                    <Border Background="Transparent" />
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+
+                        <!--
+                            A Grid rather than a horizontal StackPanel, so the value gets the width
+                            that is left and the chevron keeps its own. In a StackPanel the presenter
+                            measures at whatever the text wants and is then clipped by the chip's
+                            MaxWidth - which cuts a long device name off mid-word with no ellipsis,
+                            and reads as a rendering fault rather than as "there is more of this".
+                        -->
+                        <Grid IsHitTestVisible="False">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <ContentPresenter x:Name="Selection" VerticalAlignment="Center"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+
+                            <!-- A chevron, so the chip reads as something that opens. Muted, because
+                                 the value beside it is the thing worth reading. -->
+                            <Path x:Name="Arrow" Grid.Column="1" VerticalAlignment="Center"
+                                  Margin="7,1,0,0" Data="M 0 0 L 3.5 3.5 L 7 0 Z"
+                                  Fill="{DynamicResource MutedTextBrush}" />
+                        </Grid>
+
+                        <TextBox x:Name="PART_EditableTextBox" Visibility="Collapsed" />
+
+                        <Popup x:Name="PART_Popup" AllowsTransparency="True" Placement="Bottom"
+                               IsOpen="{TemplateBinding IsDropDownOpen}" Focusable="False"
+                               PopupAnimation="Fade">
+                            <Border Background="{DynamicResource SurfaceBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                    Margin="0,6,0,0" MinWidth="200"
+                                    MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                <ScrollViewer>
+                                    <ItemsPresenter />
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Arrow" Property="Fill" Value="{DynamicResource AccentBrush}" />
+                        </Trigger>
+                        <!-- Locked, or nothing to choose from. Both read as "not now" rather than
+                             disappearing, so the chip still states the fact. -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Arrow" Property="Visibility" Value="Collapsed" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        The padlock beside the input chip. Small, quiet, and off to one side: it is a guard against
+        changing the input by accident mid-show, not a feature anyone came for. Glyphs from the system
+        icon font, so they are the shapes Windows users already read as locked and unlocked.
+    -->
+    <Style x:Key="DeckLockStyle" TargetType="ToggleButton">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Chrome" Background="Transparent" Padding="5,4" Margin="4,0,0,0">
+                        <TextBlock x:Name="Glyph" Text="&#xE785;" FontFamily="Segoe MDL2 Assets"
+                                   FontSize="12" Foreground="{DynamicResource MutedTextBrush}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Glyph" Property="Text" Value="&#xE72E;" />
+                            <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource WarnBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource NeutralSoftBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource NeutralSoftBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- The footer: now playing on the left, how the connection is holding up on the right. -->

@@ -231,11 +231,86 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     public RelayCommand CloseSetupCommand => _closeSetupCommand ??= new RelayCommand(() => IsSetupOpen = false);
 
     /// <summary>
-    /// The signal path along the bottom of the deck, as facts rather than controls. Each is something
-    /// you would otherwise have to open setup to check, which is the one thing the deck exists to
-    /// avoid.
+    /// The signal path along the bottom of the deck. It began as facts you would otherwise open setup
+    /// to check; the input, the destination and the quality are now also the fastest way to change
+    /// them, because a singer moving between venues does that far more often than anything in setup.
     /// </summary>
     public string InputChip => _selectedInput?.Name ?? "no input";
+
+    /// <summary>
+    /// Stops the deck's input picker being changed by accident. Persisted, because the whole value of
+    /// it is being still locked when you sit down to the next show.
+    /// </summary>
+    public bool InputLocked
+    {
+        get => _settings.InputLocked;
+        set
+        {
+            if (_settings.InputLocked == value) return;
+
+            _settings.InputLocked = value;
+            Persist();
+            RaiseAll(nameof(InputLocked), nameof(InputLockTooltip));
+        }
+    }
+
+    public string InputLockTooltip => InputLocked
+        ? "The input is locked. Click to allow changing it."
+        : "Click to lock the input, so it cannot be changed by accident during a show.";
+
+    /// <summary>
+    /// Changes the destination or the quality while a show is running, by taking it off air and
+    /// putting it back on the new one.
+    /// <para>
+    /// There is no way to do this without a gap. A server change is a new connection and a quality
+    /// change is a new encoder, so either way the stream stops and starts - which is why the engine
+    /// only has Start and Stop rather than a swap. Rather than hide that, the deck asks: off air it
+    /// changes silently, on air it says what it is about to cost.
+    /// </para>
+    /// <para>
+    /// Returns false when the user declines, so the caller can put the picker back.
+    /// </para>
+    /// </summary>
+    private bool ConfirmDisruptionWhileLive(string what)
+    {
+        if (!StreamState.IsBroadcasting()) return true;
+
+        var answer = MessageBox.Show(
+            $"You are on air. Changing {what} has to stop the stream and start it again, so " +
+            "listeners will hear a few seconds of silence.\n\nChange it anyway?",
+            "The Deck",
+            System.Windows.MessageBoxButton.OKCancel,
+            System.Windows.MessageBoxImage.Warning,
+            System.Windows.MessageBoxResult.Cancel);
+
+        return answer == System.Windows.MessageBoxResult.OK;
+    }
+
+    /// <summary>Takes the show off air and puts it straight back, on whatever is now selected.</summary>
+    private void RestartShowAfterChange()
+    {
+        if (!StreamState.IsBroadcasting()) return;
+
+        _engine.Log.Info("Restarting the show on the new settings.");
+
+        // Sequenced rather than fired together: GoLive opens the new connection, and doing that
+        // before the old one has let go of its socket is how you end up connected twice.
+        _ = _engine.StopBroadcastAsync().ContinueWith(_ => OnUi(() =>
+        {
+            var profiles = ActiveProfiles();
+            if (profiles.Count == 0) return;
+
+            try
+            {
+                _engine.GoLive(profiles);
+                RefreshTargetStatus();
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = ex.Message;
+            }
+        }), TaskScheduler.Default);
+    }
 
     public string OutputChip => string.IsNullOrWhiteSpace(BroadcastTargetText)
         ? SelectedServerShort
@@ -974,6 +1049,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         get => _selectedServer;
         set
         {
+            if (ReferenceEquals(_selectedServer, value)) return;
+
+            // Asked before the change is made, not after, so declining leaves the picker where it
+            // was rather than snapping back from somewhere it briefly went.
+            if (!ConfirmDisruptionWhileLive("which server the show goes to"))
+            {
+                Raise(nameof(SelectedServer));
+                return;
+            }
+
+            var wasLive = StreamState.IsBroadcasting();
+
             if (!Set(ref _selectedServer, value)) return;
 
             _settings.SelectedServerId = value?.Id;
@@ -981,7 +1068,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             RebuildExtraTargets();
             RaiseAll(nameof(SelectedServerSummary), nameof(CanGoLive), nameof(QualitySummary),
                 nameof(ListenUrl), nameof(SelectedServerShort),
-                nameof(BroadcastTargetText), nameof(QualityShort));
+                nameof(BroadcastTargetText), nameof(QualityShort),
+                nameof(OutputChip), nameof(SelectedBitrateLabel), nameof(SelectedSampleRateLabel),
+                nameof(CanChangeQuality));
+
+            if (wasLive) RestartShowAfterChange();
         }
     }
 
@@ -990,6 +1081,102 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     public string QualitySummary => _selectedServer is null
         ? string.Empty
         : $"{_selectedServer.Encoder.Summary} — {QualityPreset.BandwidthPerListener(_selectedServer.Encoder)}";
+
+    // ---------------------------------------------------------------- quality, from the deck
+
+    /// <summary>
+    /// The three bitrates anyone actually picks between. 128 is what every host accepts, 192 is the
+    /// usual compromise, 320 is as good as MP3 gets - and the full 32-320 range is still in the
+    /// server editor for the rare case that needs something else.
+    /// </summary>
+    public IReadOnlyList<string> BitrateLabels { get; } = ["128k", "192k", "320k"];
+
+    /// <summary>
+    /// The two rates that matter. 44.1 is CD and what most hosts expect; 48 is what every interface
+    /// and every video tool runs at, so it avoids a resample if that is where the audio comes from.
+    /// </summary>
+    public IReadOnlyList<string> SampleRateLabels { get; } = ["44.1 kHz", "48 kHz"];
+
+    /// <summary>Lossless has no bitrate to choose, and with no server there is nothing to change.</summary>
+    public bool CanChangeQuality => _selectedServer is not null && !_selectedServer.Encoder.Codec.IsLossless();
+
+    /// <summary>The other case: a server exists but its codec has no bitrate, so state it and stop.</summary>
+    public bool ShowLosslessChip => _selectedServer is not null && _selectedServer.Encoder.Codec.IsLossless();
+
+    /// <summary>Just the codec name — "MP3", "OPUS" — since the numbers beside it are now pickers.</summary>
+    public string CodecShort => _selectedServer?.Encoder.Codec.DisplayName().ToUpperInvariant() ?? string.Empty;
+
+    public string SelectedBitrateLabel
+    {
+        get => _selectedServer is null ? BitrateLabels[0] : $"{_selectedServer.Encoder.BitrateKbps}k";
+        set
+        {
+            if (_selectedServer is null) return;
+            if (!int.TryParse(value.TrimEnd('k'), out var kbps)) return;
+            if (_selectedServer.Encoder.BitrateKbps == kbps) return;
+
+            if (!ConfirmDisruptionWhileLive("the bitrate"))
+            {
+                Raise(nameof(SelectedBitrateLabel));
+                return;
+            }
+
+            ApplyEncoderChange(_selectedServer.Encoder with { BitrateKbps = kbps });
+        }
+    }
+
+    public string SelectedSampleRateLabel
+    {
+        get => _selectedServer is null
+            ? SampleRateLabels[0]
+            : _selectedServer.Encoder.SampleRate == 48000 ? "48 kHz" : "44.1 kHz";
+        set
+        {
+            if (_selectedServer is null) return;
+
+            var rate = value.StartsWith("48", StringComparison.Ordinal) ? 48000 : 44100;
+            if (_selectedServer.Encoder.SampleRate == rate) return;
+
+            if (!ConfirmDisruptionWhileLive("the sample rate"))
+            {
+                Raise(nameof(SelectedSampleRateLabel));
+                return;
+            }
+
+            ApplyEncoderChange(_selectedServer.Encoder with { SampleRate = rate });
+        }
+    }
+
+    /// <summary>
+    /// Writes new encoder settings onto the selected server and restarts whatever is using them.
+    /// <para>
+    /// Normalised on the way in, because not every codec accepts every rate - Opus has its own list -
+    /// and a rate the encoder will refuse should be corrected here rather than thrown at the user
+    /// when they next go live.
+    /// </para>
+    /// <para>
+    /// Worth being clear that this edits the <em>server</em>, not just this show. The quality belongs
+    /// to the destination, so choosing 320k from the deck is the same act as choosing it in the
+    /// server editor, and it persists.
+    /// </para>
+    /// </summary>
+    private void ApplyEncoderChange(EncoderSettings settings)
+    {
+        if (_selectedServer is null) return;
+
+        var wasLive = StreamState.IsBroadcasting();
+
+        _selectedServer.Encoder = settings.Normalised();
+        SaveServers();
+
+        // Capture runs at the encoder's rate, so a rate change means restarting the input too.
+        if (!wasLive) StartAudio();
+
+        RaiseAll(nameof(QualitySummary), nameof(QualityShort), nameof(SelectedBitrateLabel),
+            nameof(SelectedSampleRateLabel), nameof(SelectedServerSummary));
+
+        if (wasLive) RestartShowAfterChange();
+    }
 
     public string? ListenUrl => _selectedServer is null || string.IsNullOrWhiteSpace(_selectedServer.Host)
         ? null
