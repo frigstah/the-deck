@@ -74,7 +74,7 @@ public sealed class UpdateInstaller
     {
         try
         {
-            var probe = Path.Combine(InstallDirectory, $".sirs-write-test-{Guid.NewGuid():N}");
+            var probe = Path.Combine(InstallDirectory, $".deck-write-test-{Guid.NewGuid():N}");
             File.WriteAllText(probe, "x");
             File.Delete(probe);
 

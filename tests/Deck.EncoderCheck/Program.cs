@@ -63,6 +63,11 @@ internal static class Program
         Console.WriteLine(listenerFailures == 0 ? "PASS\n" : $"{listenerFailures} case(s) FAILED\n");
         failures += listenerFailures;
 
+        Console.WriteLine("--- Nothing still calls itself SIRS ---");
+        var lineageFailures = LineageChecks.Run();
+        Console.WriteLine(lineageFailures == 0 ? "PASS\n" : $"{lineageFailures} case(s) FAILED\n");
+        failures += lineageFailures;
+
         Console.WriteLine("--- Working out the server type ---");
         var serverTypeFailures = ServerTypeChecks.Run();
         Console.WriteLine(serverTypeFailures == 0 ? "PASS\n" : $"{serverTypeFailures} case(s) FAILED\n");

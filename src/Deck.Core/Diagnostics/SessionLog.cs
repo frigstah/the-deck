@@ -57,7 +57,7 @@ public sealed class SessionLog
 
     public string? FilePath => _directory is null
         ? null
-        : Path.Combine(_directory, $"sirs-{DateTime.Now:yyyy-MM-dd}.log");
+        : Path.Combine(_directory, $"deck-{DateTime.Now:yyyy-MM-dd}.log");
 
     public string? Directory => _directory;
 
