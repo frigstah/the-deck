@@ -349,8 +349,29 @@
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="0">
+                        <!--
+                            The button's own Foreground has to be pushed back onto the text, because a
+                            ContentPresenter given a string builds a TextBlock, and that TextBlock picks
+                            up the application-wide implicit TextBlock style in preference to anything
+                            it would have inherited (see the warning on that style above).
+
+                            This was not academic. Every accent button - Save, Test connection, Go live -
+                            asked for white text and drew near-black instead. On the dark theme the two
+                            look the same, so it went unnoticed; on the light palette it was dark navy on
+                            dark teal, about 3:1, which is worse contrast than the hint text.
+
+                            Scoping the style here rather than colouring one control fixes every button in
+                            the product at once, and keeps it fixed for the next one.
+                        -->
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
-                                          Margin="{TemplateBinding Padding}" />
+                                          Margin="{TemplateBinding Padding}">
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                    <Setter Property="Foreground"
+                                            Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -371,6 +392,27 @@
         <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <!--
+        A button that reads as the end of the sentence above it, for the escape hatch beside a
+        question Deck has already answered for you. Given chrome it would look like a second,
+        equally likely answer, which is the opposite of the point.
+    -->
+    <Style x:Key="LinkButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="MinHeight" Value="18" />
+        <Setter Property="FontSize" Value="12" />
+        <Style.Triggers>
+            <!-- The base template dims its own chrome on hover, which is invisible when the chrome is
+                 transparent. This is the whole control, so the text responds. -->
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Opacity" Value="0.75" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <!-- The big on-air control. Deliberately the largest thing on the screen. -->

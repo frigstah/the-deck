@@ -22,6 +22,22 @@ public static class ServerTypeInfo
     };
 
     /// <summary>
+    /// What Deck is going to do about the server family, in one sentence.
+    /// <para>
+    /// The editor asks who hosts the stream and keeps the raw type picker behind "Change", so this
+    /// line is the only thing on screen that says what was decided - it has to stand on its own, and
+    /// it must never leave the impression that nothing has been settled when something has (C3).
+    /// </para>
+    /// </summary>
+    public static string ConnectionSummary(this ServerType type) => type switch
+    {
+        ServerType.Icecast => "Deck will connect as Icecast.",
+        ServerType.ShoutcastV2 => "Deck will connect as SHOUTcast v2.",
+        ServerType.ShoutcastV1 => "Deck will connect as SHOUTcast v1, the older kind.",
+        _ => "Deck will work out what kind of server this is — when you press Test, or the first time you go live.",
+    };
+
+    /// <summary>
     /// Icecast calls it a mount point, SHOUTcast v2 calls it a stream ID, and v1 has neither.
     /// The label follows the server so the user sees the word their host used.
     /// </summary>
@@ -35,10 +51,14 @@ public static class ServerTypeInfo
 
     public static string StreamPathHint(this ServerType type) => type switch
     {
-        ServerType.Icecast => "The part after the port, for example /live or /stream. Your host will have given you this.",
         ServerType.ShoutcastV2 => "Usually 1, unless your host told you otherwise.",
         ServerType.ShoutcastV1 => "This kind of server only carries one stream, so there is nothing to fill in.",
-        _ => string.Empty,
+
+        // Undecided included, and deliberately: "detect automatically" is now the normal state of a
+        // half-filled server, and it used to be the one state where this field was shown with nothing
+        // to explain it. The field is only shown at all for Icecast and undecided, and the mount point
+        // is what an undecided server almost always turns out to want.
+        _ => "The part after the port, for example /live or /stream. Your host will have given you this.",
     };
 
     public static bool UsesMountPoint(this ServerType type) => type is ServerType.Icecast;

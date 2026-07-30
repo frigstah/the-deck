@@ -65,6 +65,8 @@ public partial class ServerEditorWindow : Window
         }
     }
 
+    private void OnChangeServerType(object sender, RoutedEventArgs e) => _viewModel.RevealServerTypeOverride();
+
     private async void OnTest(object sender, RoutedEventArgs e) => await _viewModel.TestAsync();
 
     private void OnSave(object sender, RoutedEventArgs e)

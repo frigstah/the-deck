@@ -38,4 +38,11 @@ public sealed record QualityPreset(
         var megabytesPerHour = settings.BitrateKbps * 3600 / 8 / 1024.0;
         return $"about {megabytesPerHour:0} MB per listener per hour";
     }
+
+    /// <summary>
+    /// What a screen reader says when it reaches this choice. A list item announces the item's
+    /// ToString, not whatever the item template draws, and a record's generated one is every
+    /// property it holds - here that is the description and the whole encoder settings record (I6).
+    /// </summary>
+    public override string ToString() => Name;
 }
