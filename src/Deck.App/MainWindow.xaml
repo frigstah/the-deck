@@ -1230,7 +1230,7 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <TextBox Text="{Binding NowPlayingInput, UpdateSourceTrigger=PropertyChanged}"
-                                             IsEnabled="{Binding UsingTextFileMetadata, Converter={StaticResource InverseBoolean}, Mode=OneWay}"
+                                             IsEnabled="{Binding TitleFromAnotherSource, Converter={StaticResource InverseBoolean}, Mode=OneWay}"
                                              KeyDown="OnNowPlayingKeyDown"
                                              AutomationProperties.Name="Now playing title" />
                                     <Button Grid.Column="1" Content="Send"
@@ -1250,7 +1250,7 @@
                                             ToolTip="Point Deck at the file your playout software updates on each track." />
                                     <Button Content="Type it myself" Click="OnUseManualMetadata"
                                             Style="{StaticResource RowButtonStyle}"
-                                            Visibility="{Binding UsingTextFileMetadata, Converter={StaticResource BoolToVisibility}}" />
+                                            Visibility="{Binding TitleFromAnotherSource, Converter={StaticResource BoolToVisibility}}" />
                                 </WrapPanel>
                             </local:SettingRow>
 

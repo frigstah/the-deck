@@ -154,6 +154,34 @@ public sealed class NowPlayingService : IDisposable
     public void SetTrack(string? artist, string? title, string? album = null) =>
         SetTitle(TitleTemplate.Build(Template, artist, title, album));
 
+    /// <summary>
+    /// Takes titles from the box again and puts this one on air (F1). Somebody typing a title is
+    /// asking Deck to stop following whatever it was following, which is why this stops the running
+    /// source - and is exactly what <see cref="TryPushTitle"/> must not do.
+    /// </summary>
+    public void SetManualTitle(string title)
+    {
+        UseManual();
+        SetTitle(title);
+    }
+
+    /// <summary>
+    /// Puts a title on air from somewhere that is not the person at the deck - the remote control
+    /// endpoint or the command line (I10). Where titles come from is deliberately left alone: the
+    /// caller is asking for a line in front of listeners, not for Deck to change source, and when
+    /// the source is the local endpoint (F4) switching would shut down the very endpoint the caller
+    /// is talking to. False when another source owns the title and this one was not used.
+    /// </summary>
+    public bool TryPushTitle(string title)
+    {
+        // A watched file or Windows itself would overwrite this within seconds, so the caller is
+        // told rather than left to wonder why its titles keep disappearing.
+        if (Source is MetadataSource.TextFile or MetadataSource.MediaSession) return false;
+
+        SetTitle(title);
+        return true;
+    }
+
     /// <summary>Takes titles from the local endpoint (F4).</summary>
     public bool UseRemote(int port, bool allowOtherComputers, string? token)
     {

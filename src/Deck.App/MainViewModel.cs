@@ -1957,10 +1957,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     private void RaiseEndpointState() => RaiseAll(
         nameof(MetadataEndpointEnabled), nameof(MetadataEndpointStatus), nameof(MetadataEndpointUrl),
         nameof(MetadataPort), nameof(MetadataAllowOtherComputers), nameof(MetadataToken),
-        nameof(ShowMetadataEndpointDetails), nameof(NowPlayingStatus), nameof(UsingTextFileMetadata));
+        nameof(ShowMetadataEndpointDetails), nameof(NowPlayingStatus), nameof(TitleFromAnotherSource));
 
-    /// <summary>True when the title is coming from somewhere else, so the box is read-only.</summary>
-    public bool UsingTextFileMetadata => _engine.NowPlaying.Source != MetadataSource.Manual;
+    /// <summary>
+    /// True when something other than the person at the deck is supplying the title - a watched
+    /// file, Windows, or the endpoint - so the box is read-only until they take it back.
+    /// </summary>
+    public bool TitleFromAnotherSource => _engine.NowPlaying.Source != MetadataSource.Manual;
 
     public bool UsingMediaSession => _engine.NowPlaying.Source == MetadataSource.MediaSession;
 
@@ -1970,27 +1973,22 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         RaiseMetadataState();
     }
 
-    // A lambda rather than the method itself: an optional parameter stops a method group converting
-    // to Action, and the pane's Send button is one of the callers that does want the title kept.
     public RelayCommand UpdateNowPlayingCommand =>
-        _updateNowPlayingCommand ??= new RelayCommand(() => UpdateNowPlaying());
+        _updateNowPlayingCommand ??= new RelayCommand(UpdateNowPlaying);
 
     /// <summary>
-    /// Pushes whatever is in the box. Shared with the remote control endpoint (I10), which is the
-    /// one caller that does not want the title kept - see <paramref name="remember"/>.
+    /// Sends whatever is in the box: the deck footer's line and the Track pane's Send button. Both
+    /// are somebody typing a title, so both take over from any other source. Callers that only want
+    /// a title on air go through <see cref="IControlSurface.SetTitle"/> instead.
     /// </summary>
-    private void UpdateNowPlaying(bool remember = true)
+    private void UpdateNowPlaying()
     {
-        _engine.NowPlaying.UseManual();
-        _engine.NowPlaying.SetTitle(NowPlayingInput);
+        _engine.NowPlaying.SetManualTitle(NowPlayingInput);
 
         // Remembered from here rather than from the service's TitleChanged, which every source
         // fires: only a title somebody typed is theirs to keep (F1).
-        if (remember)
-        {
-            _settings.ManualTitle = _engine.NowPlaying.Title;
-            Persist();
-        }
+        _settings.ManualTitle = _engine.NowPlaying.Title;
+        Persist();
 
         RaiseMetadataState();
     }
@@ -2010,7 +2008,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     private void RaiseMetadataState()
     {
         RaiseAll(
-            nameof(NowPlayingStatus), nameof(UsingTextFileMetadata), nameof(UsingMediaSession),
+            nameof(NowPlayingStatus), nameof(TitleFromAnotherSource), nameof(UsingMediaSession),
             nameof(NowPlayingInput));
 
         // Changing where titles come from changes whether the deck's own line can be typed over.
@@ -2201,21 +2199,24 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
 
     ControlResult IControlSurface.SetTitle(string title) => OnUiBlocking(() =>
     {
-        // Refused rather than quietly ignored: automation that is fighting the media-session watcher
-        // for the title needs to be told, or it will look like Deck is dropping updates.
-        if (UsingTextFileMetadata && _engine.NowPlaying.Source != MetadataSource.Remote)
+        // Pushed rather than typed: this must not switch Deck to manual titles. A station running
+        // the now-playing endpoint (F4) that sends one title from here would otherwise lose the
+        // endpoint for the rest of the session - and settings still saying it is on makes that look
+        // intermittent. Refused rather than quietly ignored where another source does own the
+        // title: automation fighting the media-session watcher needs to be told, or it will look
+        // like Deck is dropping updates.
+        if (!_engine.NowPlaying.TryPushTitle(title))
         {
             return ControlResult.Refused(
                 "Deck is taking titles from somewhere else at the moment, so this one was not used.");
         }
 
-        NowPlayingInput = title;
-
         // Not remembered. A title arriving over the endpoint is almost always a track from playout
         // software, one of a few hundred in an evening - keeping it would write the settings file on
         // every track change and leave last night's last song as tomorrow's opening title. What the
         // user typed themselves is a different thing, and that is what gets kept.
-        UpdateNowPlaying(remember: false);
+        NowPlayingInput = _engine.NowPlaying.Title;
+        RaiseMetadataState();
 
         return ControlResult.Done($"Now playing: {_engine.NowPlaying.Title}");
     });

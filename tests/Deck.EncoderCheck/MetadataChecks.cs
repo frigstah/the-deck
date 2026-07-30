@@ -175,6 +175,55 @@ internal static class MetadataChecks
             }
         });
 
+        // ------------------------------------------- a title set while the endpoint runs (F4/I10)
+
+        failures += Check("a title pushed from outside leaves the endpoint running", () =>
+        {
+            // A station taking titles from its playout software over the endpoint sends one title
+            // itself - from the remote control endpoint, or Deck.exe --title. If that switches Deck
+            // to typed titles, the endpoint it was already using is shut down underneath it and
+            // everything the playout software sends afterwards is refused with no explanation
+            // anywhere. Settings still say the endpoint is on, so it is back tomorrow and the fault
+            // looks intermittent.
+            using var service = new NowPlayingService();
+
+            if (!service.UseRemote(0, allowOtherComputers: false, token: null))
+            {
+                throw new Exception($"the endpoint would not start: {service.SourceProblem}");
+            }
+
+            var port = service.Server.Port;
+
+            if (!service.TryPushTitle("Live from the studio")) throw new Exception("the pushed title was refused");
+            ExpectTitle(service.Title, "Live from the studio");
+
+            if (!service.Server.IsRunning) throw new Exception("setting a title shut the endpoint down");
+
+            // Still listening is not the same as still working, and it is the playout software
+            // getting an answer that the station actually cares about.
+            ExpectStatus(Send(port, PostRequest("/metadata", "song=Back+To+Automation")), 200);
+            ExpectTitle(service.Title, "Back To Automation");
+
+            if (service.Source != MetadataSource.Remote)
+            {
+                throw new Exception($"setting a title moved the source to {service.Source}");
+            }
+        });
+
+        failures += Check("a title typed at the deck still takes over from the endpoint", () =>
+        {
+            // The other half of the same split: typing a title is asking Deck to stop following
+            // anything else, so here the endpoint going away is the point.
+            using var service = new NowPlayingService();
+            service.UseRemote(0, allowOtherComputers: false, token: null);
+
+            service.SetManualTitle("Typed at the deck");
+
+            ExpectTitle(service.Title, "Typed at the deck");
+            if (service.Source != MetadataSource.Manual) throw new Exception("typing a title did not take over");
+            if (service.Server.IsRunning) throw new Exception("the endpoint is still listening after taking over");
+        });
+
         // ---------------------------------------------------------------- holding titles (F5)
 
         failures += Check("holding stops titles going out and releasing sends the latest", () =>
@@ -271,48 +320,57 @@ internal static class MetadataChecks
 
         public string? LastTitle { get; private set; }
 
-        public Response Get(string target, string? bearer = null)
-        {
-            var headers = bearer is null ? string.Empty : $"Authorization: Bearer {bearer}\r\n";
-            return Send($"GET {target} HTTP/1.1\r\nHost: 127.0.0.1\r\n{headers}\r\n");
-        }
+        public Response Get(string target, string? bearer = null) => Send(Port, GetRequest(target, bearer));
 
-        public Response Post(string target, string body)
-        {
-            var payload = Encoding.UTF8.GetBytes(body);
-            return Send(
-                $"POST {target} HTTP/1.1\r\nHost: 127.0.0.1\r\n" +
-                $"Content-Type: application/x-www-form-urlencoded\r\n" +
-                $"Content-Length: {payload.Length}\r\n\r\n{body}");
-        }
-
-        private Response Send(string request)
-        {
-            using var client = new TcpClient();
-            client.Connect(IPAddress.Loopback, Port);
-
-            using var stream = client.GetStream();
-            var bytes = Encoding.UTF8.GetBytes(request);
-            stream.Write(bytes);
-            stream.Flush();
-
-            using var reader = new StreamReader(stream, Encoding.UTF8);
-            var text = reader.ReadToEnd();
-
-            var split = text.IndexOf("\r\n\r\n", StringComparison.Ordinal);
-            var head = split < 0 ? text : text[..split];
-            var body = split < 0 ? string.Empty : text[(split + 4)..];
-
-            var statusLine = head.Split("\r\n")[0].Split(' ');
-            var status = statusLine.Length > 1 && int.TryParse(statusLine[1], out var code) ? code : 0;
-
-            return new Response(status, body);
-        }
+        public Response Post(string target, string body) => Send(Port, PostRequest(target, body));
 
         public void Dispose() => _server.Dispose();
     }
 
     private record Response(int Status, string Body);
+
+    private static string GetRequest(string target, string? bearer = null)
+    {
+        var headers = bearer is null ? string.Empty : $"Authorization: Bearer {bearer}\r\n";
+        return $"GET {target} HTTP/1.1\r\nHost: 127.0.0.1\r\n{headers}\r\n";
+    }
+
+    private static string PostRequest(string target, string body)
+    {
+        var payload = Encoding.UTF8.GetBytes(body);
+        return
+            $"POST {target} HTTP/1.1\r\nHost: 127.0.0.1\r\n" +
+            $"Content-Type: application/x-www-form-urlencoded\r\n" +
+            $"Content-Length: {payload.Length}\r\n\r\n{body}";
+    }
+
+    /// <summary>
+    /// Hand-written HTTP down a socket, so what is proved is what a stranger's automation gets - not
+    /// that the parser agrees with itself. Takes a port rather than a host, because some cases point
+    /// it at an endpoint a <see cref="NowPlayingService"/> is running rather than a bare server.
+    /// </summary>
+    private static Response Send(int port, string request)
+    {
+        using var client = new TcpClient();
+        client.Connect(IPAddress.Loopback, port);
+
+        using var stream = client.GetStream();
+        var bytes = Encoding.UTF8.GetBytes(request);
+        stream.Write(bytes);
+        stream.Flush();
+
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+        var text = reader.ReadToEnd();
+
+        var split = text.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+        var head = split < 0 ? text : text[..split];
+        var body = split < 0 ? string.Empty : text[(split + 4)..];
+
+        var statusLine = head.Split("\r\n")[0].Split(' ');
+        var status = statusLine.Length > 1 && int.TryParse(statusLine[1], out var code) ? code : 0;
+
+        return new Response(status, body);
+    }
 
     private static void ExpectStatus(Response response, int expected)
     {
