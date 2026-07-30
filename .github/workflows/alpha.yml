@@ -1,13 +1,19 @@
-# Builds an alpha pre-release from every push to main.
+# Builds a beta pre-release from every push to main.
 #
 # The version is 1.0.0.<run number>: a four-part number so the built-in updater can compare it
 # against the running build with System.Version and get an unambiguous answer. The run number only
 # ever goes up, so a later push is always a later version.
 #
+# DO NOT RENAME THIS FILE. github.run_number counts runs of a workflow, and a workflow is identified
+# by its path - renaming alpha.yml to beta.yml starts the count again at 1, which would publish
+# 1.0.0.1 over the top of 1.0.0.10. System.Version would read that as older, so the updater would
+# offer every existing install a downgrade. The label this workflow publishes under is a string;
+# the filename is part of the version number. Tidy the first, leave the second alone.
+#
 # The check suite runs before anything is packaged. A commit that fails it does not become a
-# download - an alpha is allowed to be rough, but it is not allowed to be known-broken.
+# download.
 
-name: Alpha release
+name: Beta release
 
 on:
   push:
@@ -19,7 +25,7 @@ permissions:
 
 concurrency:
   # A newer push supersedes an older build rather than racing it to the same release.
-  group: alpha-release
+  group: beta-release
   cancel-in-progress: true
 
 jobs:
@@ -62,10 +68,10 @@ jobs:
           @"
           Built automatically from ``${{ github.sha }}`` on $(Get-Date -Format 'yyyy-MM-dd HH:mm') UTC.
 
-          **This is an alpha.** It is whatever was on ``main`` at the time. The check suite passed,
-          which is the only promise being made. Nothing here has been through a release review, and
-          the [README](https://github.com/${{ github.repository }}#not-yet-verified) lists at length
-          what is still unverified.
+          **This is a beta.** The features are finished and the check suite passed before this was
+          packaged. What beta still means is that builds go out automatically from ``main`` without a
+          release review, and that the [README](https://github.com/${{ github.repository }}#not-yet-verified)
+          lists the paths not yet proven against a real server.
 
           ### Which download
 
@@ -95,7 +101,7 @@ jobs:
         run: |
           gh release create ${{ steps.version.outputs.tag }} `
             --prerelease `
-            --title "Deck ${{ steps.version.outputs.version }} (alpha)" `
+            --title "Deck ${{ steps.version.outputs.version }} (beta)" `
             --notes-file publish/NOTES.md `
             --target ${{ github.sha }} `
             (Get-Item publish/*.exe, publish/*.zip, publish/SHA256SUMS.txt | ForEach-Object { $_.FullName })

@@ -84,9 +84,12 @@ That produces three things in `publish/`: a per-user installer, a portable zip c
 `deck-portable.txt` marker, and the update package the built-in updater downloads. `SHA256SUMS.txt`
 holds the digests, which the updater checks rather than trusts.
 
-**Every push to `main` publishes an alpha.** `.github/workflows/alpha.yml` runs the check suite, and
+**Every push to `main` publishes a beta.** `.github/workflows/alpha.yml` runs the check suite, and
 if it passes, builds and publishes a pre-release tagged `v1.0.0.<run number>` — so the built-in
-updater always has something newer to find. Worth knowing before pushing: a commit becomes a
+updater always has something newer to find. The file is still named `alpha.yml` on purpose:
+`github.run_number` counts the runs of a workflow *path*, so renaming it would start the build
+number again at 1 and publish a version every existing install reads as older than the one it
+already has. Worth knowing before pushing: a commit becomes a
 download within a few minutes, and the tag pins it permanently. It is also why anything you would not
 want published needs to be out of the source *before* the push rather than in a follow-up commit.
 
@@ -119,6 +122,9 @@ src/Deck.App/           The deck, the setup panel, server editor, first-run wiza
   Theme.xaml            Both palettes and every style. Dark is applied over it in App.xaml.cs.
   LevelMeterControl.cs  The segmented meter, drawn; SpectrumControl.cs the 24-band spectrum
 tests/Deck.EncoderCheck/ Encoders, DSP, parsers, endpoints, MIDI, ASIO, palettes and contrast
+
+site/                   The website, one self-contained page, published to GitHub Pages on change
+branding/               The mark as vector source, plus the two comparisons the design was picked from
 ```
 
 Config lives in `%APPDATA%\Deck` — its own folder, not SIRS's, so the two can be installed side by
@@ -185,7 +191,7 @@ worth making: the alternative was a first screen that looks like a control panel
 | Listeners | Live count from Icecast, SHOUTcast v1 and v2 where the server reports it, summed across destinations |
 | Language | English built in, community translations as JSON files with coverage shown and English as the fallback |
 | Updates | Opt-in check against the GitHub releases, and a one-click install: Deck downloads the new build, checks it against the digest published beside it, closes, replaces itself and starts again. Refused while on air |
-| Installing | A per-user installer that needs no administrator rights, and a portable zip that keeps its settings beside the executable. Every push to `main` publishes both as an alpha pre-release |
+| Installing | A per-user installer that needs no administrator rights, and a portable zip that keeps its settings beside the executable. Every push to `main` publishes both as a beta pre-release |
 | UI | Single window laid out as a navigation rail — one subject in the pane at a time, and an on-air strip along the bottom that is present on every pane. First-run wizard, High-DPI, follows Windows light/dark or stays on the one you pick |
 
 ### Verified
