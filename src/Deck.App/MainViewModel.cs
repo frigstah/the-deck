@@ -239,6 +239,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     public string InputChip => _selectedInput?.Name ?? "no input";
 
     /// <summary>
+    /// What the input chip no longer says on its face. The chip reads "Input" so the row keeps one
+    /// fixed width, which means the hover is now the quickest way to answer "which input is this?" -
+    /// so it leads with the answer and mentions what the chip does second.
+    /// </summary>
+    public string InputChipTooltip => $"Input: {InputChip}. Click to change it without opening setup.";
+
+    /// <summary>
     /// Stops the deck's input picker being changed by accident. Persisted, because the whole value of
     /// it is being still locked when you sit down to the next show.
     /// </summary>
@@ -326,13 +333,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     /// one; it still shows elapsed time while running, so it does the indicator's job as well.
     /// </para>
     /// </summary>
+    /// <remarks>
+    /// No dot in the text. The dot is drawn by the button's template as its own element, so that it
+    /// can pulse while a recording runs without dragging the running time in and out of legibility.
+    /// </remarks>
     public string RecordButtonLabel => IsRecording
-        ? $"● {_engine.Recorder.Elapsed:mm\\:ss}"
-        : "● REC";
-
-    public Brush RecordButtonBrush => IsRecording
-        ? (Brush)AppResource("BadBrush")
-        : (Brush)AppResource("MutedTextBrush");
+        ? $"{_engine.Recorder.Elapsed:mm\\:ss}"
+        : "REC";
 
     /// <summary>
     /// Says why it is running, when Deck started it rather than the user. Without this, someone who
@@ -364,7 +371,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         : string.Empty;
 
     private void RaiseDeck() => RaiseAll(
-        nameof(InputChip), nameof(OutputChip), nameof(RecordButtonLabel), nameof(RecordButtonBrush),
+        nameof(InputChip), nameof(InputChipTooltip), nameof(OutputChip), nameof(RecordButtonLabel),
         nameof(RecordButtonTooltip), nameof(NowPlayingLine), nameof(BufferText));
 
     // ---------------------------------------------------------------- which pane is open
@@ -1070,7 +1077,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             RaiseAll(nameof(SelectedServerSummary), nameof(CanGoLive), nameof(QualitySummary),
                 nameof(ListenUrl), nameof(SelectedServerShort),
                 nameof(BroadcastTargetText), nameof(QualityShort),
-                nameof(OutputChip), nameof(SelectedBitrateLabel), nameof(SelectedSampleRateLabel),
+                nameof(OutputChip), nameof(SelectedQualityOption),
                 nameof(CanChangeQuality));
 
             if (wasLive) RestartShowAfterChange();
@@ -1085,19 +1092,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
 
     // ---------------------------------------------------------------- quality, from the deck
 
-    /// <summary>
-    /// The three bitrates anyone actually picks between. 128 is what every host accepts, 192 is the
-    /// usual compromise, 320 is as good as MP3 gets - and the full 32-320 range is still in the
-    /// server editor for the rare case that needs something else.
-    /// </summary>
-    public IReadOnlyList<string> BitrateLabels { get; } = ["128k", "192k", "320k"];
-
-    /// <summary>
-    /// The two rates that matter. 44.1 is CD and what most hosts expect; 48 is what every interface
-    /// and every video tool runs at, so it avoids a resample if that is where the audio comes from.
-    /// </summary>
-    public IReadOnlyList<string> SampleRateLabels { get; } = ["44.1 kHz", "48 kHz"];
-
     /// <summary>Lossless has no bitrate to choose, and with no server there is nothing to change.</summary>
     public bool CanChangeQuality => _selectedServer is not null && !_selectedServer.Encoder.Codec.IsLossless();
 
@@ -1107,44 +1101,57 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     /// <summary>Just the codec name — "MP3", "OPUS" — since the numbers beside it are now pickers.</summary>
     public string CodecShort => _selectedServer?.Encoder.Codec.DisplayName().ToUpperInvariant() ?? string.Empty;
 
-    public string SelectedBitrateLabel
+    /// <summary>
+    /// Bitrate and sample rate as one list rather than two pickers.
+    /// <para>
+    /// One list because the chip says "Quality" and nothing else, and two chevrons under one word is
+    /// not a thing anyone can read. It turns out to be better than what it replaced for a second
+    /// reason: changing both used to be two edits, which on air meant two confirmations and two
+    /// reconnections to arrive at one setting. Now it is one of each.
+    /// </para>
+    /// </summary>
+    public IReadOnlyList<string> QualityOptions { get; } =
+        (from bitrate in new[] { 128, 192, 320 }
+         from rate in new[] { "44.1 kHz", "48 kHz" }
+         select $"{bitrate}k · {rate}").ToList();
+
+    /// <summary>
+    /// The current pairing, or empty when the server is set to something the deck does not offer -
+    /// 256k from the server editor, say. Empty rather than a nearest guess: nothing is selected in
+    /// the list, which is honest, and picking a value still works.
+    /// </summary>
+    public string SelectedQualityOption
     {
-        get => _selectedServer is null ? BitrateLabels[0] : $"{_selectedServer.Encoder.BitrateKbps}k";
-        set
+        get
         {
-            if (_selectedServer is null) return;
-            if (!int.TryParse(value.TrimEnd('k'), out var kbps)) return;
-            if (_selectedServer.Encoder.BitrateKbps == kbps) return;
+            if (_selectedServer is null) return string.Empty;
 
-            if (!ConfirmDisruptionWhileLive("the bitrate"))
-            {
-                Raise(nameof(SelectedBitrateLabel));
-                return;
-            }
+            var encoder = _selectedServer.Encoder;
+            var candidate = $"{encoder.BitrateKbps}k · {(encoder.SampleRate == 48000 ? "48 kHz" : "44.1 kHz")}";
 
-            ApplyEncoderChange(_selectedServer.Encoder with { BitrateKbps = kbps });
+            return QualityOptions.Contains(candidate) ? candidate : string.Empty;
         }
-    }
 
-    public string SelectedSampleRateLabel
-    {
-        get => _selectedServer is null
-            ? SampleRateLabels[0]
-            : _selectedServer.Encoder.SampleRate == 48000 ? "48 kHz" : "44.1 kHz";
         set
         {
-            if (_selectedServer is null) return;
+            if (_selectedServer is null || string.IsNullOrEmpty(value)) return;
 
-            var rate = value.StartsWith("48", StringComparison.Ordinal) ? 48000 : 44100;
-            if (_selectedServer.Encoder.SampleRate == rate) return;
+            var parts = value.Split('·', StringSplitOptions.TrimEntries);
+            if (parts.Length != 2) return;
+            if (!int.TryParse(parts[0].TrimEnd('k'), out var kbps)) return;
 
-            if (!ConfirmDisruptionWhileLive("the sample rate"))
+            var rate = parts[1].StartsWith("48", StringComparison.Ordinal) ? 48000 : 44100;
+
+            var encoder = _selectedServer.Encoder;
+            if (encoder.BitrateKbps == kbps && encoder.SampleRate == rate) return;
+
+            if (!ConfirmDisruptionWhileLive("the quality"))
             {
-                Raise(nameof(SelectedSampleRateLabel));
+                Raise(nameof(SelectedQualityOption));
                 return;
             }
 
-            ApplyEncoderChange(_selectedServer.Encoder with { SampleRate = rate });
+            ApplyEncoderChange(encoder with { BitrateKbps = kbps, SampleRate = rate });
         }
     }
 
@@ -1173,8 +1180,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         // Capture runs at the encoder's rate, so a rate change means restarting the input too.
         if (!wasLive) StartAudio();
 
-        RaiseAll(nameof(QualitySummary), nameof(QualityShort), nameof(SelectedBitrateLabel),
-            nameof(SelectedSampleRateLabel), nameof(SelectedServerSummary));
+        RaiseAll(nameof(QualitySummary), nameof(QualityShort), nameof(SelectedQualityOption),
+            nameof(SelectedServerSummary));
 
         if (wasLive) RestartShowAfterChange();
     }
@@ -1815,7 +1822,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         }
 
         RaiseAll(nameof(IsRecording), nameof(RecordButtonText), nameof(RecordingStatus),
-            nameof(RecordButtonLabel), nameof(RecordButtonBrush), nameof(RecordButtonTooltip),
+            nameof(RecordButtonLabel), nameof(RecordButtonTooltip),
             nameof(RecordingShort));
     }
 

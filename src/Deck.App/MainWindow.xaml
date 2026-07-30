@@ -251,24 +251,25 @@
                             guards the chip: something you set once at the start of a show and then
                             want to see the state of at a glance.
 
-                            Its MaxWidth is the tightest on the row on purpose. Device names are far
-                            longer than anything else here - "IN 1-8 (BEHRINGER X-AIR) - default" - and
-                            left to itself this chip took enough of the row that the record button had
-                            nowhere to sit at the default window size. The full name is a hover away,
-                            and the Sound pane spells it out.
+                            It says "Input" and not which input, which is the one place this row gives
+                            something up. Device names are far longer than anything else here - "IN 1-8
+                            (BEHRINGER X-AIR) - default" - so this chip alone decided the width of the
+                            row, and anything growing anywhere reflowed it onto a second line. A fixed
+                            word is a fixed width. Which input is chosen is one click away, ticked in
+                            the list, in the tooltip, and spelled out on the Sound pane.
                         -->
                         <Border x:Name="InputChipBorder" Style="{StaticResource DeckChipStyle}" Margin="0,0,2,0">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="IN&#160;&#160;" Style="{StaticResource DeckChipLabelStyle}" />
+                                <TextBlock Text="Input&#160;" Style="{StaticResource DeckChipValueStyle}" />
                                 <ComboBox Style="{StaticResource DeckChipComboStyle}"
+                                          local:DeckChip.ShowsValue="False"
                                           Tag="{Binding ElementName=InputChipBorder}"
                                           ItemsSource="{Binding InputDevicesView}"
                                           SelectedItem="{Binding SelectedInput}"
                                           ItemTemplate="{StaticResource DeviceItemTemplate}"
                                           IsEnabled="{Binding InputLocked, Converter={StaticResource InverseBoolean}}"
-                                          MaxWidth="186"
                                           AutomationProperties.Name="Input"
-                                          ToolTip="Swap the input without opening setup.">
+                                          ToolTip="{Binding InputChipTooltip}">
                                     <ComboBox.GroupStyle>
                                         <StaticResource ResourceKey="DeviceGroupStyle" />
                                     </ComboBox.GroupStyle>
@@ -302,27 +303,24 @@
                         </Border>
 
                         <!--
-                            Quality: bitrate and sample rate as the handful of values anyone picks
-                            between, rather than the full range that lives in the server editor.
+                            Quality: the handful of bitrate and sample-rate pairings anyone picks
+                            between, rather than the full range that lives in the server editor. One
+                            word and one picker, not a codec plus two - "Quality" is the question, and
+                            the answers belong in the list where there is room to say them properly.
                             Hidden rather than empty before a server exists, and while the codec is
-                            lossless - FLAC has no bitrate to choose.
+                            lossless, since FLAC has no bitrate to choose.
                         -->
-                        <Border Style="{StaticResource DeckChipStyle}"
+                        <Border x:Name="QualityChipBorder" Style="{StaticResource DeckChipStyle}"
                                 Visibility="{Binding CanChangeQuality, Converter={StaticResource BoolToVisibility}}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding CodecShort}" Style="{StaticResource DeckChipLabelStyle}"
-                                           Margin="0,0,8,0" />
+                                <TextBlock Text="Quality&#160;" Style="{StaticResource DeckChipValueStyle}" />
                                 <ComboBox Style="{StaticResource DeckChipComboStyle}"
-                                          ItemsSource="{Binding BitrateLabels}"
-                                          SelectedItem="{Binding SelectedBitrateLabel}"
-                                          AutomationProperties.Name="Bitrate"
+                                          local:DeckChip.ShowsValue="False"
+                                          Tag="{Binding ElementName=QualityChipBorder}"
+                                          ItemsSource="{Binding QualityOptions}"
+                                          SelectedItem="{Binding SelectedQualityOption}"
+                                          AutomationProperties.Name="Quality"
                                           ToolTip="{Binding QualitySummary}" />
-                                <ComboBox Style="{StaticResource DeckChipComboStyle}"
-                                          ItemsSource="{Binding SampleRateLabels}"
-                                          SelectedItem="{Binding SelectedSampleRateLabel}"
-                                          Margin="10,0,0,0"
-                                          AutomationProperties.Name="Sample rate"
-                                          ToolTip="44.1 kHz is what most hosts expect. 48 kHz matches most interfaces and avoids a resample." />
                             </StackPanel>
                         </Border>
 
@@ -341,7 +339,6 @@
                         -->
                         <Button Content="{Binding RecordButtonLabel}" Click="OnToggleRecording"
                                 Style="{StaticResource DeckRecordButtonStyle}"
-                                Foreground="{Binding RecordButtonBrush}"
                                 ToolTip="{Binding RecordButtonTooltip}"
                                 AutomationProperties.Name="Record" />
                     </WrapPanel>

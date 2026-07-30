@@ -171,6 +171,16 @@
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
     </Style>
 
+    <!--
+        Careful with this one. Setting Foreground in an implicit style means every TextBlock in the
+        application takes this colour in preference to any it would have inherited, because an
+        implicit style setter sits above inheritance in WPF's precedence order. So a control template
+        that colours itself and expects its text to follow will draw grey text and nothing will warn
+        about it - the record button did exactly that for two rounds of "why is this not red".
+
+        Any TextBlock inside a template whose colour comes from the control must say so itself:
+        Foreground="{TemplateBinding Foreground}".
+    -->
     <Style TargetType="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         <Setter Property="VerticalAlignment" Value="Center" />
@@ -300,9 +310,32 @@
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
 
+    <!--
+        Keyboard focus, drawn in the theme's own language. The stock focus visual is a dotted black
+        rectangle inset inside the control, which on any dark surface reads as a rendering artefact -
+        it turned up on the record button the first time it was pressed and looked like a fault.
+
+        Replaced rather than removed. Someone driving Deck from the keyboard needs to know where they
+        are, and "no focus ring" is how that gets quietly broken.
+    -->
+    <Style x:Key="DeckFocusVisualStyle">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <!-- Inside the control's own edge, not outside it. Outside, the ring reads as a
+                         selection box drawn around the chip rather than as part of the control, and on
+                         a row this tight it crowds whatever is next to it. -->
+                    <Rectangle Margin="2" StrokeThickness="1" SnapsToDevicePixels="True"
+                               Stroke="{DynamicResource AccentBrush}" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style TargetType="Button">
         <Setter Property="Padding" Value="14,7" />
         <Setter Property="MinHeight" Value="32" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource DeckFocusVisualStyle}" />
         <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
@@ -788,6 +821,14 @@
         <Setter Property="Margin" Value="0,0,10,0" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Cursor" Value="Hand" />
+
+        <!--
+            Colour lives here rather than coming from the view model. It was a Brush property on the
+            view model and it never took effect - the button drew in the ordinary text colour in both
+            states - and a view model handing out brushes was the wrong shape anyway: "recording is
+            red" is a fact about how Deck looks, not about the recording.
+        -->
+        <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -804,13 +845,51 @@
                                 characters at the moment it was used, which on a full row pushed it
                                 onto a second line: a control that jumps when you press it reads as
                                 broken. A hidden twin rather than a hard-coded width, so it stays
-                                right if the font, the padding or the label ever changes.
+                                right if the font, the padding or the label ever changes - and built
+                                from the same elements as the visible row, so the two measure alike.
                             -->
-                            <TextBlock Text="&#9679; 00:00" Visibility="Hidden"
-                                       Margin="{TemplateBinding Padding}" />
+                            <StackPanel Orientation="Horizontal" Visibility="Hidden"
+                                        Margin="{TemplateBinding Padding}">
+                                <TextBlock Text="&#9679;" Margin="0,0,6,0" />
+                                <TextBlock Text="00:00" />
+                            </StackPanel>
 
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
-                                              Margin="{TemplateBinding Padding}" />
+                            <!--
+                                Left-aligned, not centred. Centred looks tidier at rest but the label
+                                goes from three characters to five, and with the button's width fixed
+                                that slid the dot seven pixels sideways every time a recording started
+                                - a small version of exactly the jumpiness the fixed width was for.
+                                Anchoring at the left means the dot never moves and the clock grows
+                                into the space that was already reserved for it.
+                            -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left"
+                                        VerticalAlignment="Center" Margin="{TemplateBinding Padding}">
+                                <!--
+                                    The dot is its own element so it can pulse on its own. Pulsing the
+                                    whole button would take the running time with it, and a clock that
+                                    fades in and out is harder to read than one that does not - the
+                                    dot is the part that means "still recording", so the dot is the
+                                    part that breathes. Colour comes from the button's Foreground,
+                                    which is red while recording.
+                                -->
+                                <!--
+                                    Foreground stated explicitly, on both, and this is the whole
+                                    reason the button drew grey while recording for as long as it did.
+                                    There is an implicit TextBlock style in this file that sets
+                                    Foreground, and an implicit style setter beats an *inherited*
+                                    value - so every TextBlock in here, including the one a
+                                    ContentPresenter makes for a string, took the ordinary text colour
+                                    and ignored the Button it was inside. Nothing warns about it: the
+                                    Foreground on the button was correct all along and simply never
+                                    arrived. A TextBlock rather than a ContentPresenter for the label
+                                    for the same reason - so the colour is set on the element that
+                                    draws, not on something that will make its own child.
+                                -->
+                                <TextBlock x:Name="Dot" Text="&#9679;" Margin="0,0,6,0"
+                                           Foreground="{TemplateBinding Foreground}" />
+                                <TextBlock Text="{TemplateBinding Content}" VerticalAlignment="Center"
+                                           Foreground="{TemplateBinding Foreground}" />
+                            </StackPanel>
                         </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -821,10 +900,61 @@
                             <Setter TargetName="Chrome" Property="Opacity" Value="0.45" />
                             <Setter Property="Cursor" Value="Arrow" />
                         </Trigger>
+
+                        <!--
+                            Slow on purpose. A fast blink is an alarm, and a recording running
+                            normally is not an alarm - it is a thing that should be quietly impossible
+                            to forget about. Just over a second each way reads as breathing.
+
+                            Deliberately NOT gated on the Windows "show animations" setting, which the
+                            setup panel's slide does respect. The line between them is what the motion
+                            is for: the slide is a transition, decorating something that has already
+                            happened, and turning it off costs nothing. This is the indicator itself -
+                            the same thing a text caret does, and nothing gates a blinking caret. Off
+                            it would leave a small red dot as the only sign a recording is running,
+                            which is what the pulse was asked for to fix. It stays legible standing
+                            still either way, because the colour says it too.
+
+                            It dims to 0.3 rather than to nothing. Fading right out looked fine on the
+                            dark palette - dark red on a dark chip still reads - but on the light one
+                            it took the dot to almost pure white for part of every cycle, which reads
+                            as a flicker or a fault rather than as breathing. A floor that keeps the
+                            dot present works on both grounds.
+                        -->
+                        <DataTrigger Binding="{Binding IsRecording}" Value="True">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard x:Name="PulseStoryboard">
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Dot"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         From="1" To="0.3" Duration="0:0:1.1"
+                                                         AutoReverse="True" RepeatBehavior="Forever">
+                                            <DoubleAnimation.EasingFunction>
+                                                <SineEase EasingMode="EaseInOut" />
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.EnterActions>
+                            <DataTrigger.ExitActions>
+                                <!-- Stopped rather than left to finish: removing the clock returns the
+                                     dot to a solid, un-animated opacity instead of wherever the fade
+                                     happened to be when recording ended. -->
+                                <StopStoryboard BeginStoryboardName="PulseStoryboard" />
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+
+        <!-- After the setters, because Setters is the implicit content and an explicit property
+             element closes it. -->
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsRecording}" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource BadBrush}" />
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 
     <!--
@@ -929,6 +1059,12 @@
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="Arrow" Property="Visibility" Value="Collapsed" />
                             <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+
+                        <!-- The chip carries its own name instead, and stays one fixed width whatever
+                             is chosen. See DeckChip.ShowsValue. -->
+                        <Trigger Property="local:DeckChip.ShowsValue" Value="False">
+                            <Setter TargetName="Selection" Property="Visibility" Value="Collapsed" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
