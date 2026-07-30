@@ -382,6 +382,51 @@
                     </StackPanel>
                 </Grid>
 
+                <!--
+                    Why the show is not going out.
+
+                    In the slack row, which is otherwise empty, so a problem appearing pushes nothing
+                    around: the meter stays where the eye learned it, and the footer stays pinned to
+                    the bottom edge. It is the only thing on the deck allowed to wrap, because it is
+                    the only thing whose whole text matters — this used to be a footer readout capped
+                    at 320 pixels with an ellipsis, which kept the diagnosis and cut off the remedy.
+
+                    Three lines, in the order they are needed: what went wrong, what to do about it,
+                    and then the detail for whoever wants it. Somebody mid-show reads the first line
+                    and stops.
+                -->
+                <Border Grid.Row="3" VerticalAlignment="Bottom" Margin="0,18,0,0"
+                        Padding="16,12" CornerRadius="3"
+                        Background="{DynamicResource SurfaceBrush}"
+                        Visibility="{Binding ShowConnectionProblem, Converter={StaticResource BoolToVisibility}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Carries the severity on its own, so the block reads as a problem before a
+                             word of it is read, without setting the whole panel alight. -->
+                        <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="0,1,14,1"
+                                Background="{Binding ConnectionProblemBrush}" />
+
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="{Binding ConnectionProblemHeadline}"
+                                       Style="{StaticResource DeckVerdictStyle}"
+                                       Foreground="{Binding ConnectionProblemBrush}"
+                                       TextWrapping="Wrap" />
+
+                            <TextBlock Text="{Binding ConnectionProblemAction}"
+                                       Style="{StaticResource DeckReadoutStyle}"
+                                       TextWrapping="Wrap" Margin="0,5,0,0" />
+
+                            <TextBlock Text="{Binding ConnectionProblemDetail}"
+                                       Style="{StaticResource HintStyle}"
+                                       TextWrapping="Wrap" Margin="0,7,0,0" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
                 <!-- what listeners are seeing, and how the connection is holding -->
                 <Grid Grid.Row="4" Margin="0,20,0,0">
                     <Border Style="{StaticResource RuleStyle}" Margin="0,0,0,14" VerticalAlignment="Top" />
@@ -435,8 +480,12 @@
                                        Foreground="{DynamicResource BadBrush}" FontWeight="Bold"
                                        Margin="0,0,18,0"
                                        Visibility="{Binding SilenceAlert, Converter={StaticResource TextToVisibility}}" />
+                            <!-- Still capped, and that is fine now: what lands here is a note, not an
+                                 explanation. Anything that has to be read in full goes to the problem
+                                 block above. The tooltip is for the odd long filename. -->
                             <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource DeckFooterStyle}"
                                        TextTrimming="CharacterEllipsis" MaxWidth="320" Margin="0,0,18,0"
+                                       ToolTip="{Binding StatusMessage}"
                                        Visibility="{Binding StatusMessage, Converter={StaticResource TextToVisibility}}" />
                             <TextBlock Text="{Binding BufferText}" Style="{StaticResource DeckFooterStyle}"
                                        Margin="0,0,18,0"
@@ -1686,8 +1735,22 @@
                                FontFamily="Consolas" FontWeight="Bold" FontSize="11.5"
                                TextTrimming="CharacterEllipsis"
                                Visibility="{Binding SilenceAlert, Converter={StaticResource TextToVisibility}}" />
+                    <!--
+                        The strip is one row tall, so a problem cannot be spelled out here the way the
+                        deck spells it out. It gets the verdict, which is written to stand alone, in
+                        the colour of the fault - and the whole explanation on hover, so nothing is
+                        merely hinted at.
+                    -->
+                    <TextBlock Text="{Binding ConnectionProblemHeadline}"
+                               Style="{StaticResource StatusChipStyle}"
+                               Foreground="{Binding ConnectionProblemBrush}" FontWeight="Bold"
+                               Margin="0" TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding ConnectionProblemDetail}"
+                               Visibility="{Binding ShowConnectionProblem, Converter={StaticResource BoolToVisibility}}" />
+
                     <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource StatusChipStyle}"
                                Margin="0" TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding StatusMessage}"
                                Visibility="{Binding StatusMessage, Converter={StaticResource TextToVisibility}}" />
                 </StackPanel>
 

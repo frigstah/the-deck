@@ -188,6 +188,7 @@ worth making: the alternative was a first screen that looks like a control panel
 | MIDI | Physical buttons and faders from a control surface, mixer or keyboard, assigned by pressing Learn and moving the control |
 | Accessibility | Standard controls throughout; the drawn meters publish their level as text for screen readers |
 | Reliability | Send buffer, 1 s reconnect backoff, clear connection state machine, live throughput and buffer statistics |
+| When it will not connect | The deck says which of the three it is — the password was refused, something else is already broadcasting, or the server is not answering — then whether Deck is still trying, then the full reason with nothing trimmed. The same for Icecast and both SHOUTcasts |
 | Session log | Connects, drops, device trouble and track changes, shown in-app and appended to a daily file |
 | Listeners | Live count from Icecast, SHOUTcast v1 and v2 where the server reports it, summed across destinations |
 | Language | English built in, community translations as JSON files with coverage shown and English as the fallback |
@@ -607,8 +608,24 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   buys the ability to record with no server configured at all.
 - **Authentication failures stop retrying.** A wrong password never comes right on its own, and
   hammering the server buries the real reason under reconnect messages. Everything else retries.
+- **A failure that cannot be read is not feedback.** The sinks already told the three failures apart —
+  a refused password, a stream somebody else is on, a server that is not there — and each wrote a
+  sentence naming the thing to go and change. Every word of it then arrived in a footer readout capped
+  at 320 pixels with an ellipsis on the end, in the same grey as the byte counter: the diagnosis fit,
+  the remedy did not, and there was nowhere to see the rest. Two things were wrong. The kind of
+  failure was being dropped along with the exception, so the deck had a string it could not
+  categorise and could say nothing *about* the problem, only quote it — the kind is now carried up
+  beside the words. And the explanation had no room, so it has its own block in the deck's slack row,
+  the one place where something appearing pushes nothing else around. Three lines in the order they
+  are needed: the verdict, whether Deck is still trying or has stopped, then the detail. Somebody
+  mid-show reads the first line and stops. Red is reserved for what waiting cannot fix, because
+  colouring an ordinary reconnect the same as a dead password cries wolf every time a network hiccups.
 - **SHOUTcast port fallback.** SHOUTcast takes broadcasts on the port after the listener port, and
-  hosts are split on which they quote. Deck tries both and says which worked.
+  hosts are split on which they quote. Deck tries both and says which worked. When both fail it keeps
+  whichever answer says more: the second port is a guess, and when the guess is wrong it fails with
+  "nothing is listening" — which was then reported as the reason and buried a real reply from the
+  port the user actually entered. Somebody whose stream was already taken got told their server could
+  not be reached, and went looking at their connection instead of at the encoder still running upstairs.
 - **Ogg pages never split a packet.** Opus packets are far below the 65025 bytes that would force a
   continuation, so the muxer skips that bookkeeping entirely and stays spec-compliant.
 - **FLAC is implemented here rather than bound to libFLAC**, for the same reason Opus uses Concentus:

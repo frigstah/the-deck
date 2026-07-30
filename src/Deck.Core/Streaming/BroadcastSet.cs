@@ -4,6 +4,22 @@ using Deck.Core.Servers;
 
 namespace Deck.Core.Streaming;
 
+/// <summary>
+/// A destination that is not on air, and the whole of why. Carried as a value rather than a string
+/// so the deck can say what kind of problem it is before it says the words, and can tell "still
+/// trying" apart from "stopped".
+/// </summary>
+/// <param name="Server">Which destination, needed as soon as there is a backup running.</param>
+/// <param name="Detail">The full explanation, never trimmed. What the user came to read.</param>
+public sealed record BroadcastProblem(
+    string Server,
+    StreamFailure Failure,
+    string Detail,
+    bool StillTrying)
+{
+    public string Headline => Failure.Headline();
+}
+
 public sealed class TargetStateChangedEventArgs(BroadcastTarget target, StreamStateChangedEventArgs change) : EventArgs
 {
     public BroadcastTarget Target { get; } = target;
@@ -195,10 +211,34 @@ public sealed class BroadcastSet : IAsyncDisposable
     public int ReconnectAttempts => _targets.Sum(t => t.Connection.ReconnectAttempts);
 
     /// <summary>The most recent failure from any destination, for the status line.</summary>
-    public string? LastError => _targets
-        .Where(t => t.State is StreamState.Failed or StreamState.Reconnecting)
-        .Select(t => t.Connection.LastError)
-        .FirstOrDefault(message => !string.IsNullOrWhiteSpace(message));
+    public string? LastError => Problem?.Detail;
+
+    /// <summary>
+    /// The destination that is not working and everything known about why - taken from one target
+    /// rather than assembled from several, so the name, the verdict and the detail always describe
+    /// the same server.
+    /// </summary>
+    public BroadcastProblem? Problem
+    {
+        get
+        {
+            foreach (var target in _targets)
+            {
+                if (target.State is not (StreamState.Failed or StreamState.Reconnecting)) continue;
+                if (target.Connection.LastError is not { Length: > 0 } detail) continue;
+
+                var failure = target.Connection.LastFailure ?? StreamFailure.Protocol;
+
+                return new BroadcastProblem(
+                    target.Name,
+                    failure,
+                    detail,
+                    StillTrying: target.State == StreamState.Reconnecting);
+            }
+
+            return null;
+        }
+    }
 
     private static bool Any(BroadcastTarget[] targets, StreamState state)
     {

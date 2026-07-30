@@ -77,6 +77,11 @@ internal static class Program
         Console.WriteLine(handshakeFailures == 0 ? "PASS\n" : $"{handshakeFailures} case(s) FAILED\n");
         failures += handshakeFailures;
 
+        Console.WriteLine("--- Why a broadcast is not going out ---");
+        var failureFailures = ConnectionFailureChecks.Run();
+        Console.WriteLine(failureFailures == 0 ? "PASS\n" : $"{failureFailures} case(s) FAILED\n");
+        failures += failureFailures;
+
         Console.WriteLine("--- Asking a server for its listener count ---");
         var chainFailures = ListenerChainChecks.Run();
         Console.WriteLine(chainFailures == 0 ? "PASS\n" : $"{chainFailures} case(s) FAILED\n");
