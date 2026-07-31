@@ -370,8 +370,15 @@ public partial class MainWindow : Window
         }
 
         _hotkeys.Dispose();
-        _tray?.Dispose();
+
+        // The view model before the tray. Disposing the view model stops the broadcast, and stopping
+        // it changes the connection state one last time - which drives the tray icon. With the tray
+        // gone first, that final update had nothing left to talk to. TrayPresence refuses updates
+        // after disposal now, so this is no longer what stands between Deck and a crash on the way
+        // out; it is here so the icon is still correct while the broadcast is being wound down,
+        // rather than merely surviving being asked.
         _viewModel.Dispose();
+        _tray?.Dispose();
 
         // The tray keeps the process alive once the window is hidden, so shut down explicitly.
         System.Windows.Application.Current.Shutdown();

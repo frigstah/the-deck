@@ -608,6 +608,18 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   buys the ability to record with no server configured at all.
 - **Authentication failures stop retrying.** A wrong password never comes right on its own, and
   hammering the server buries the real reason under reconnect messages. Everything else retries.
+- **The tray icon refuses updates after it is disposed**, and that guard is load-bearing rather than
+  tidiness. Closing Deck while on air used to take the whole program down with "Object reference not
+  set to an instance of an object" — from inside WinForms, on the way out, with nothing on screen to
+  connect it to a tray icon. Stopping the broadcast changes the connection state one last time, that
+  change reaches the UI through `BeginInvoke` so it is *queued*, and it therefore arrives after
+  everything has been torn down. `NotifyIcon` answers that badly: its property setters do not throw
+  `ObjectDisposedException` — `Dispose` nulls the hidden window it talks to Windows through, and the
+  next assignment walks straight into it. Because the notification is queued rather than immediate,
+  disposal order alone could not have fixed it, which is worth knowing before anyone decides the
+  guard looks redundant. Reported by a user, reproduced by going on air to a server that will not
+  answer and closing the window mid-reconnect. That reproduction is the regression test: it is a
+  WPF/WinForms shutdown race, so the check suite cannot reach it.
 - **A failure that cannot be read is not feedback.** The sinks already told the three failures apart —
   a refused password, a stream somebody else is on, a server that is not there — and each wrote a
   sentence naming the thing to go and change. Every word of it then arrived in a footer readout capped
