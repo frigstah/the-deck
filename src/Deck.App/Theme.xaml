@@ -35,6 +35,14 @@
     <Color x:Key="BadColor">#FFC93F36</Color>
     <Color x:Key="LiveColor">#FFC93F36</Color>
 
+    <!-- Credit gold. Not a status colour and never used as one: nothing in Deck means "gold", which
+         is the point - it belongs to the one line that is a thank-you rather than a reading. Darker
+         here than the metallic gold people picture, because that shade is a pale yellow on a white
+         window and a credit nobody can read is not much of a credit. Darker still than the first
+         attempt: the line fades as it pulses, and it has to clear the reading standard at its
+         dimmest rather than its brightest, which the check beside it measures. -->
+    <Color x:Key="GoldColor">#FF5E4606</Color>
+
     <!-- Soft fills behind the verdict pills. Tinted from the semantic colour rather than grey, so
          a verdict reads at a glance without shouting. -->
     <Color x:Key="OkSoftColor">#FFE1EFE8</Color>
@@ -91,6 +99,7 @@
     <SolidColorBrush x:Key="WarnBrush" Color="{DynamicResource WarnColor}" />
     <SolidColorBrush x:Key="BadBrush" Color="{DynamicResource BadColor}" />
     <SolidColorBrush x:Key="LiveBrush" Color="{DynamicResource LiveColor}" />
+    <SolidColorBrush x:Key="GoldBrush" Color="{DynamicResource GoldColor}" />
 
     <SolidColorBrush x:Key="OkSoftBrush" Color="{DynamicResource OkSoftColor}" />
     <SolidColorBrush x:Key="WarnSoftBrush" Color="{DynamicResource WarnSoftColor}" />

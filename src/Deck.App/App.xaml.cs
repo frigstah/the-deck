@@ -272,6 +272,10 @@ public partial class App : Application
         Set("BadColor", "#FFE8574C");
         Set("LiveColor", "#FFE8574C");
 
+        // Gold can actually be gold here. On the dark window the bright metallic shade is both
+        // legible and unmistakably gold, which it is not on white.
+        Set("GoldColor", "#FFE3C264");
+
         Set("OkSoftColor", "#FF17352A");
         Set("WarnSoftColor", "#FF33290F");
         Set("BadSoftColor", "#FF3A1F1D");
