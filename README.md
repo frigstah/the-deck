@@ -608,6 +608,19 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   buys the ability to record with no server configured at all.
 - **Authentication failures stop retrying.** A wrong password never comes right on its own, and
   hammering the server buries the real reason under reconnect messages. Everything else retries.
+- **Paste-a-URL reads details that are lined up rather than labelled.** Control panels hand out
+  tables, and a table loses every colon on the way into an email — so `Password     hunter2` was not
+  a field, and Deck filled in everything except the password. Which reads as a policy: people assumed
+  it would not carry passwords on purpose. Lines with no separator are now read too, but only when
+  the label is one Deck already knows, because with a colon "whatever comes before it" is a fair
+  guess at a label and without one there is nothing to stop a sentence becoming a field. Two spaces
+  minimum, since one is prose and two is a column. The same pass fixed a worse case: a note after the
+  value — `Password: hunter2 (case sensitive)` — used to be stored as part of the password *and*
+  reported as understood, so the user was told it had worked and found out at Go live, with a server
+  refusing a password that looked correct on screen. A label mentioning the **admin** password is
+  still never taken: on Icecast that is a different secret that opens the control pages rather than a
+  stream, and using it would fail to connect while putting a more valuable credential somewhere it
+  was never meant to go.
 - **The tray icon refuses updates after it is disposed**, and that guard is load-bearing rather than
   tidiness. Closing Deck while on air used to take the whole program down with "Object reference not
   set to an instance of an object" — from inside WinForms, on the way out, with nothing on screen to

@@ -82,6 +82,83 @@ internal static class ParserChecks
             "stream.example.com:8443/live",
             p => Expect(p, host: "stream.example.com", port: 8443, mount: "/live", tls: true));
 
+        // ------------------------------------------------- what real host emails actually look like
+
+        failures += Case("details lined up in columns, with no colons at all",
+            // From a message a user was actually sent. Deck read the address out of the URL at the
+            // top and filled everything in except the password - which reads as a deliberate refusal
+            // to carry passwords rather than a line it could not parse. A control panel that lays its
+            // details out as a table loses every colon on the way into an email.
+            """
+            House Stream URL:  http://radio.example.net:7942
+
+            House Stream Info for Butt player etc...
+            Server IP      radio.example.net
+            Port             7942
+            Password     hunter2
+
+            Max Bitrate: 192
+            """,
+            p => Expect(p, host: "radio.example.net", port: 7942, password: "hunter2"));
+
+        failures += Case("a label with a bracket after it",
+            """
+            Server: stream.example.com
+            Port: 8000
+            Password (source): hunter2
+            """,
+            p => Expect(p, host: "stream.example.com", port: 8000, password: "hunter2"));
+
+        failures += Case("a spelling of the label nobody thought to list",
+            // Hosts invent their own, and "DJ password" is unmistakably the same field.
+            """
+            Server: stream.example.com
+            Port: 8000
+            DJ password: hunter2
+            """,
+            p => Expect(p, host: "stream.example.com", port: 8000, password: "hunter2"));
+
+        failures += Case("a note after the password is not part of the password",
+            // Worse than not reading the line: the whole value was stored, and Deck reported the
+            // password as filled in - so the user was told it was understood and found out at Go
+            // live, with a server refusing a password that looked right on screen.
+            """
+            Server: stream.example.com
+            Port: 8000
+            Password: hunter2 (case sensitive)
+            """,
+            p => Expect(p, host: "stream.example.com", port: 8000, password: "hunter2"));
+
+        failures += Case("the admin password is not the broadcast password",
+            // A different secret entirely on Icecast: it opens the server's control pages rather
+            // than a stream. Taking it here would fail to connect while putting a more valuable
+            // credential somewhere it was never meant to go.
+            """
+            Server: stream.example.com
+            Port: 8000
+            Admin password: topsecret
+            """,
+            p => Expect(p, host: "stream.example.com", port: 8000, noPassword: true));
+
+        failures += Case("with both present, the source password is the one taken",
+            """
+            Server: stream.example.com
+            Port: 8000
+            Admin password: topsecret
+            Source password: hunter2
+            """,
+            p => Expect(p, host: "stream.example.com", port: 8000, password: "hunter2"));
+
+        failures += Case("a sentence is not a table",
+            // The safeguard on reading lines that have no separator: only known labels are believed.
+            // Without that, any prose line with a gap in it becomes a field.
+            """
+            House Stream Info for Butt player etc...
+            Server IP      radio.example.net
+            Port  7942
+            """,
+            p => Expect(p, host: "radio.example.net", port: 7942, noPassword: true));
+
         failures += ExpectFailure("free text with no server in it", "Hello, when does your show start?");
         failures += ExpectFailure("empty input", "   ");
 
@@ -131,8 +208,17 @@ internal static class ParserChecks
         string? username = null,
         string? password = null,
         ServerType? serverType = null,
-        int? streamId = null)
+        int? streamId = null,
+        // Separate from password, because "no password expected" cannot be said by passing null -
+        // null is how every one of these says "do not check this field", so the check that mattered
+        // most would have passed without looking at anything.
+        bool noPassword = false)
     {
+        if (noPassword && !string.IsNullOrEmpty(profile.Password))
+        {
+            return $"a password was filled in (\"{profile.Password}\") where none should have been";
+        }
+
         if (host is not null && !string.Equals(profile.Host, host, StringComparison.OrdinalIgnoreCase))
         {
             return $"host was \"{profile.Host}\", expected \"{host}\"";
