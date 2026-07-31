@@ -606,6 +606,12 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
 - **Opus via Concentus**, a managed port, so there is no native Opus DLL to ship per architecture.
 - **Recording runs its own encoder** rather than tapping the broadcast's. It costs a little CPU and
   buys the ability to record with no server configured at all.
+- **Anything that fades has to be legible at its dimmest, not its brightest.** The credit line in
+  Support pulses, and the first gold chosen for it measured a comfortable 4.6:1 against the light
+  window — at full strength. At the bottom of its fade it was 2.4:1, so a line that passed the
+  obvious test was unreadable for most of the time it was on screen. The contrast check measures it
+  faded, the pulse is shallower than it was, and the two palettes carry genuinely different golds:
+  the metallic shade everyone pictures is a pale yellow on white and only works on the dark window.
 - **Authentication failures stop retrying.** A wrong password never comes right on its own, and
   hammering the server buries the real reason under reconnect messages. Everything else retries.
 - **Paste-a-URL reads details that are lined up rather than labelled.** Control panels hand out

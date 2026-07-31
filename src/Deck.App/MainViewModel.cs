@@ -627,11 +627,31 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             _engine.Capture.InputGainDb = gain;
             _settings.InputGainDb = gain;
             Persist();
-            RaiseAll(nameof(InputGainDb), nameof(InputGainText));
+            RaiseAll(nameof(InputGainDb), nameof(InputGainText), nameof(CanResetInputGain));
         }
     }
 
     public string InputGainText => $"{(InputGainDb >= 0 ? "+" : string.Empty)}{InputGainDb:0.0} dB";
+
+    /// <summary>
+    /// Unity: the input passed through at the level it arrived. Zero rather than the middle of the
+    /// travel, which happens to be the same place only because the scale is symmetrical.
+    /// </summary>
+    public const double UnityGainDb = 0;
+
+    /// <summary>
+    /// Whether there is anything to undo. The reset control is offered only when it would do
+    /// something - a button that is always there but usually pointless teaches people to ignore it,
+    /// and this one sits beside a slider they are already adjusting.
+    /// </summary>
+    public bool CanResetInputGain => Math.Abs(InputGainDb - UnityGainDb) > 0.05;
+
+    /// <summary>
+    /// Back to unity. Reached two ways on purpose: a button for anyone who would never think to try,
+    /// and a double-click on the slider itself, which is what a fader does in every mixing desk and
+    /// audio program the user has met.
+    /// </summary>
+    public void ResetInputGain() => InputGainDb = UnityGainDb;
 
     public bool VoiceEnhance
     {
@@ -2683,9 +2703,25 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
 
             _settings.SetupMotion = match.Motion;
             Persist();
-            RaiseAll(nameof(SelectedSetupMotion), nameof(SetupMotionHint));
+            RaiseAll(nameof(SelectedSetupMotion), nameof(SetupMotionHint), nameof(CreditPulses));
         }
     }
+
+    /// <summary>
+    /// Whether the credit line in Support breathes, or simply sits there.
+    /// <para>
+    /// It pulses unless somebody has said in so many words that they want no movement in Deck. Not
+    /// "Follow Windows", which is where this started: that switch is off on a great many machines -
+    /// turned off for an old PC's sake, by an IT policy, or by somebody who never knew it existed -
+    /// and following it meant the line quietly did not pulse for most people, including the person
+    /// who asked for it. A gentle fade on one line is not what anyone turns animations off to avoid.
+    /// </para>
+    /// <para>
+    /// "Never slide" is different, because it is a person answering a question about this program.
+    /// That answer is honoured.
+    /// </para>
+    /// </summary>
+    public bool CreditPulses => _settings.SetupMotion != SetupMotion.Never;
 
     /// <summary>
     /// Says what Windows is currently set to when Deck is following it, because otherwise "Follow

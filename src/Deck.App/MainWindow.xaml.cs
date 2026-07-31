@@ -393,6 +393,21 @@ public partial class MainWindow : Window
 
     private void OnRefreshDevices(object sender, RoutedEventArgs e) => _viewModel.ReloadDevices();
 
+    /// <summary>
+    /// Back to unity, from either the button or a double-click on the slider.
+    /// <para>
+    /// Preview rather than the bubbling event, and marked handled. A Slider acts on a click before
+    /// the double-click is recognised - a click on the track pages the value along - so letting it
+    /// through would move the level and then reset it, which looks like a flicker and leaves the
+    /// wrong number on screen if the second click lands a moment late.
+    /// </para>
+    /// </summary>
+    private void OnResetInputGain(object sender, RoutedEventArgs e)
+    {
+        _viewModel.ResetInputGain();
+        e.Handled = true;
+    }
+
     private void OnOpenLog(object sender, RoutedEventArgs e)
     {
         // Non-modal: a log you have to close before touching anything is useless while on air.

@@ -735,17 +735,33 @@
                         <StackPanel Style="{StaticResource SettingGroupStyle}">
                             <TextBlock Text="L E V E L" Style="{StaticResource GroupHeadingStyle}" />
 
-                            <local:SettingRow Label="Input level" ContentWidth="300" ShowRule="False">
+                            <local:SettingRow Label="Input level" ContentWidth="368" ShowRule="False">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <Slider Minimum="-24" Maximum="24" TickFrequency="6"
+
+                                    <!-- Left of the slider, where the travel starts, and shown as
+                                         unavailable while the level is already at unity so it reads
+                                         as "nothing to undo" rather than as a control that does
+                                         nothing. -->
+                                    <Button Grid.Column="0" Content="Reset" Click="OnResetInputGain"
+                                            Style="{StaticResource RowButtonStyle}"
+                                            Margin="0,0,10,0" MinWidth="62"
+                                            IsEnabled="{Binding CanResetInputGain}"
+                                            ToolTip="Back to 0.0 dB, the level the input arrived at. Double-clicking the slider does the same."
+                                            AutomationProperties.Name="Reset the input level to zero decibels" />
+
+                                    <Slider Grid.Column="1" Minimum="-24" Maximum="24" TickFrequency="6"
                                             Value="{Binding InputGainDb, Delay=40}"
                                             IsSnapToTickEnabled="False" VerticalAlignment="Center"
+                                            PreviewMouseDoubleClick="OnResetInputGain"
+                                            ToolTip="Double-click to go back to 0.0 dB."
                                             AutomationProperties.Name="Input level in decibels" />
-                                    <TextBlock Grid.Column="1" Text="{Binding InputGainText}" Width="62"
+
+                                    <TextBlock Grid.Column="2" Text="{Binding InputGainText}" Width="62"
                                                TextAlignment="Right" FontFamily="Consolas" />
                                 </Grid>
                             </local:SettingRow>
@@ -1670,6 +1686,57 @@
                                         Style="{StaticResource RowButtonStyle}" MinWidth="130"
                                         HorizontalAlignment="Right" />
                             </local:SettingRow>
+                        </StackPanel>
+
+                        <!--
+                            The people who are not in the commit history.
+
+                            Last group in the last tab, which is where a credit belongs: found by
+                            anyone who goes looking, in the way of nobody who does not.
+
+                            It breathes rather than blinks: a slow, shallow fade on a sine curve so
+                            it swells instead of ticking. Anything faster or deeper beside a level
+                            meter would read as an alarm - and the floor is where it is because the
+                            line has to stay readable at its dimmest, not only at its brightest,
+                            which is what the theme check beside the gold measures.
+                        -->
+                        <StackPanel Style="{StaticResource SettingGroupStyle}" Margin="0,22,0,8">
+                            <TextBlock Text="S U P P O R T" Style="{StaticResource GroupHeadingStyle}" />
+
+                            <TextBlock Margin="0,4,0,0" TextWrapping="Wrap"
+                                       FontFamily="Consolas" FontSize="12.5" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource GoldBrush}"
+                                       Text="Elite Quality Control manager, supporter and onboarder: Urban Harvy">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <!-- The resting state, used when somebody has chosen "Never
+                                             slide" under Deck itself: fully lit and quite still,
+                                             rather than hidden. -->
+                                        <Setter Property="Opacity" Value="1" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CreditPulses}" Value="True">
+                                                <DataTrigger.EnterActions>
+                                                    <BeginStoryboard x:Name="CreditPulse">
+                                                        <Storyboard>
+                                                            <DoubleAnimation
+                                                                Storyboard.TargetProperty="Opacity"
+                                                                From="0.80" To="1" Duration="0:0:1.9"
+                                                                AutoReverse="True" RepeatBehavior="Forever">
+                                                                <DoubleAnimation.EasingFunction>
+                                                                    <SineEase EasingMode="EaseInOut" />
+                                                                </DoubleAnimation.EasingFunction>
+                                                            </DoubleAnimation>
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.EnterActions>
+                                                <DataTrigger.ExitActions>
+                                                    <StopStoryboard BeginStoryboardName="CreditPulse" />
+                                                </DataTrigger.ExitActions>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </StackPanel>
 
                     </StackPanel>

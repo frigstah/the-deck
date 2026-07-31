@@ -79,6 +79,34 @@ internal static class ThemeChecks
             }
         });
 
+        failures += Check("the credit line is readable, and still gold", () =>
+        {
+            // It is small text, so it is held to the body standard rather than waved through as
+            // decoration - a credit nobody can read is not much of a credit. The two palettes carry
+            // genuinely different golds because the metallic shade people picture is a pale yellow
+            // on a white window; this is the check that stops anyone "tidying" them into one value.
+            //
+            // Measured at the bottom of the pulse, not the top, which is the whole reason this check
+            // earns its place: the first gold read 4.6:1 at full strength and 2.4:1 at its dimmest,
+            // so a line that passed every obvious test was unreadable most of the time it was on
+            // screen. Keep this figure in step with the animation in MainWindow.xaml.
+            const double PulseFloor = 0.80;
+
+            foreach (var (theme, palette) in Both(light, dark))
+            {
+                var gold = palette["GoldColor"];
+                var ratio = Contrast(Fade(gold, PulseFloor), palette["BackgroundColor"]);
+
+                Expect(ratio >= BodyMinimum,
+                    $"{theme}: the credit is {ratio:0.0}:1 at its dimmest, needs {BodyMinimum}");
+
+                // Gold, not "some yellowish grey". Red and green well clear of blue is what makes it
+                // read as gold rather than as another neutral.
+                Expect(TryParse(gold, out var c), $"{theme}: {gold} is not a colour");
+                Expect(c.R > c.B + 0.15 && c.G > c.B + 0.08, $"{theme}: {gold} does not read as gold");
+            }
+        });
+
         failures += Check("hints and readouts are legible, not just present", () =>
         {
             // Muted text carries every hint under every setting row. It is small and it is prose, so
@@ -214,6 +242,19 @@ internal static class ThemeChecks
 
         var end = text.IndexOf(close, start, StringComparison.Ordinal);
         return end < 0 ? null : text[start..end];
+    }
+
+    /// <summary>
+    /// The same colour at part opacity. Only the alpha byte changes - <see cref="Contrast"/> already
+    /// composites a translucent foreground over what is behind it, so this is all that is needed to
+    /// ask what a fading element looks like at its dimmest.
+    /// </summary>
+    private static string Fade(string hex, double opacity)
+    {
+        if (!TryParse(hex, out var c)) throw new Exception($"cannot read colour {hex}");
+
+        return $"#{(int)Math.Round(opacity * 255):X2}" +
+               $"{(int)Math.Round(c.R * 255):X2}{(int)Math.Round(c.G * 255):X2}{(int)Math.Round(c.B * 255):X2}";
     }
 
     private static double Contrast(string foreground, string background)
