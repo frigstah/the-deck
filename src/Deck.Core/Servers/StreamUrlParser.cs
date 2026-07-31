@@ -59,6 +59,22 @@ public static partial class StreamUrlParser
         return new UrlParseResult(true, profile, recognised, null);
     }
 
+    /// <summary>
+    /// Every label the fields below answer to. Only needed for lines with no separator on them,
+    /// where the key has to be recognised to be believed - see <see cref="ExtractLabelledFields"/>.
+    /// </summary>
+    private static readonly HashSet<string> KnownKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "server", "server address", "host", "hostname", "server hostname", "ip", "server ip", "address",
+        "port", "server port", "source port", "encoder port",
+        "mount", "mountpoint", "mount point", "stream name", "stream path", "mount name",
+        "username", "user", "source user", "user name", "login",
+        "password", "source password", "encoder password", "broadcast password", "stream password", "pass",
+        "sid", "stream id", "streamid", "stream number",
+        "station", "station name", "name", "stream title",
+        "genre",
+    };
+
     private static Dictionary<string, string> ExtractLabelledFields(string input)
     {
         var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -73,11 +89,45 @@ public static partial class StreamUrlParser
             if (!fields.ContainsKey(key)) fields[key] = value;
         }
 
+        // Lines with no separator at all, where the label and the value are simply lined up in
+        // columns:
+        //
+        //     Server IP      radio.example.net
+        //     Port           7942
+        //     Password       hunter2
+        //
+        // Real, and common enough to matter - a control panel that lays its details out as a table
+        // loses every colon on the way into an email. Deck read the address out of the URL further
+        // up such a message and filled everything else in except the password, which looked like a
+        // deliberate refusal to carry passwords rather than a line it could not read.
+        //
+        // Only known labels are taken here, which is the whole safeguard. With a colon, "anything
+        // before it" is a sound guess at a label; without one there is nothing to say that a line of
+        // prose is not a field, and "House Stream Info for Butt player etc..." would become one.
+        foreach (Match match in AlignedFieldRegex().Matches(input))
+        {
+            var key = NormaliseKey(match.Groups["key"].Value);
+            if (!KnownKeys.Contains(key)) continue;
+
+            var value = match.Groups["value"].Value.Trim().Trim('"', '\'');
+
+            if (value.Length == 0) continue;
+            if (!fields.ContainsKey(key)) fields[key] = value;
+        }
+
         return fields;
     }
 
-    private static string NormaliseKey(string key) =>
-        WhitespaceRegex().Replace(key.Trim().ToLowerInvariant(), " ").Replace("-", " ").Replace("_", " ");
+    /// <summary>
+    /// A label reduced to its words. The trailing bracket goes with it, so "Password (source)" and
+    /// "Port (encoder)" are the labels they plainly are rather than two more spellings to list.
+    /// </summary>
+    private static string NormaliseKey(string key)
+    {
+        key = TrailingNoteRegex().Replace(key.Trim(), string.Empty);
+
+        return WhitespaceRegex().Replace(key.Trim().ToLowerInvariant(), " ").Replace("-", " ").Replace("_", " ");
+    }
 
     private static void ApplyLabelledFields(ServerProfile profile, Dictionary<string, string> fields, List<string> recognised)
     {
@@ -115,7 +165,7 @@ public static partial class StreamUrlParser
             recognised.Add("Username");
         }
 
-        if (TryGet(fields, out var password, "password", "source password", "encoder password", "broadcast password", "stream password", "pass"))
+        if (TryGetPassword(fields, out var password))
         {
             profile.Password = password;
             recognised.Add("Password");
@@ -147,6 +197,44 @@ public static partial class StreamUrlParser
             profile.Website = website;
             recognised.Add("Website");
         }
+    }
+
+    /// <summary>
+    /// The broadcast password, however the host spelled the label, and without whatever they wrote
+    /// after it.
+    /// <para>
+    /// The known spellings first, then anything ending in "password" - hosts invent their own, and
+    /// "DJ password" or "Live password" is unmistakably the same field. Never a label mentioning the
+    /// admin password: on Icecast that is a different secret entirely, it opens the server's control
+    /// pages rather than a stream, and taking it for the source password would fail to connect while
+    /// putting a more valuable credential somewhere it was never meant to go.
+    /// </para>
+    /// <para>
+    /// The trailing note goes because it is not part of the password. "Password: hunter2 (case
+    /// sensitive)" used to be stored whole, and this was worse than not reading the line at all:
+    /// Deck reported the password as filled in, so the user had been told it was understood, and
+    /// found out at Go live with a server refusing a password that looked right on screen.
+    /// </para>
+    /// </summary>
+    private static bool TryGetPassword(Dictionary<string, string> fields, out string value)
+    {
+        if (!TryGet(fields, out value,
+                "source password", "encoder password", "broadcast password", "stream password", "password", "pass"))
+        {
+            var invented = fields
+                .Where(f => !f.Key.Contains("admin", StringComparison.OrdinalIgnoreCase))
+                .Where(f => f.Key.EndsWith("password", StringComparison.OrdinalIgnoreCase) ||
+                            f.Key.EndsWith(" pass", StringComparison.OrdinalIgnoreCase))
+                .Select(f => f.Value)
+                .FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
+
+            if (invented is null) return false;
+            value = invented;
+        }
+
+        value = TrailingNoteRegex().Replace(value, string.Empty).Trim();
+
+        return value.Length > 0;
     }
 
     private static bool TryGet(Dictionary<string, string> fields, out string value, params string[] keys)
@@ -266,9 +354,25 @@ public static partial class StreamUrlParser
         if (profile.Port is 443 or 8443) profile.UseTls = true;
     }
 
-    [GeneratedRegex(@"^[^\S\r\n]*(?<key>[A-Za-z][A-Za-z \-_]{1,28}?)[^\S\r\n]*[:=][^\S\r\n]*(?<value>[^\r\n]+)$",
+    // Brackets allowed in the label, so "Password (source):" is read rather than skipped whole. The
+    // bracketed part is dropped by NormaliseKey.
+    [GeneratedRegex(@"^[^\S\r\n]*(?<key>[A-Za-z][A-Za-z \-_()/]{1,36}?)[^\S\r\n]*[:=][^\S\r\n]*(?<value>[^\r\n]+)$",
         RegexOptions.Multiline)]
     private static partial Regex LabelledFieldRegex();
+
+    /// <summary>
+    /// A label and a value lined up in columns with no separator between them. Two spaces at least,
+    /// because one is a sentence and two is a table - and the value may not contain a run of two, so
+    /// a line of prose cannot masquerade as a field. What comes out is still checked against
+    /// <see cref="KnownKeys"/> before it is believed.
+    /// </summary>
+    [GeneratedRegex(@"^[^\S\r\n]*(?<key>[A-Za-z][A-Za-z \-_()/]{1,28}?)(?:[^\S\r\n]{2,}|\t)(?<value>\S[^\r\n]*?)[^\S\r\n]*$",
+        RegexOptions.Multiline)]
+    private static partial Regex AlignedFieldRegex();
+
+    /// <summary>A parenthetical at the end, e.g. the "(case sensitive)" in a password line.</summary>
+    [GeneratedRegex(@"\s*\([^)]*\)\s*$")]
+    private static partial Regex TrailingNoteRegex();
 
     [GeneratedRegex(@"(?:[a-zA-Z][a-zA-Z0-9+.\-]*://)?(?:[^\s:@/]+(?::[^\s@/]*)?@)?(?:[A-Za-z0-9\-]+\.)+[A-Za-z]{2,}(?::\d{1,5})?(?:/[^\s]*)?|(?:[a-zA-Z][a-zA-Z0-9+.\-]*://)?(?:\d{1,3}\.){3}\d{1,3}(?::\d{1,5})?(?:/[^\s]*)?")]
     private static partial Regex UrlRegex();
