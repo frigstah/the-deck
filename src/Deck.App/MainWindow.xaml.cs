@@ -553,14 +553,22 @@ public partial class MainWindow : Window
     /// </summary>
     private void OnImportServers(object sender, RoutedEventArgs e)
     {
+        // Everything, by default.
+        //
+        // Deck works out what it was handed by reading it, not by its name, so an extension filter
+        // buys nothing here and costs a great deal: BUTT's export has whatever name the person gave
+        // it when they saved it, and the real one this was built against is called "BUTT export"
+        // with no extension at all. Filtering to a list of extensions hid the exact file the feature
+        // exists to read, in the feature's own file picker, with no hint that anything was being
+        // hidden - the folder simply looks empty.
+        //
+        // The narrower entry stays underneath for anyone hunting through a crowded folder.
         var dialog = new OpenFileDialog
         {
             Title = "Choose a server settings file",
             Filter =
-                "Server settings from Deck or BUTT|*.json;*.cfg;*.conf;*.txt|" +
-                "Deck server settings (*.json)|*.json|" +
-                "BUTT configuration (*.cfg;*.conf;*.txt)|*.cfg;*.conf;*.txt|" +
-                "All files (*.*)|*.*",
+                "All files (*.*)|*.*|" +
+                "Server settings from Deck or BUTT (*.json;*.cfg;*.conf;*.txt)|*.json;*.cfg;*.conf;*.txt",
         };
 
         if (dialog.ShowDialog(this) != true) return;
