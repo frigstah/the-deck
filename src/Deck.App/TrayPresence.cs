@@ -23,6 +23,7 @@ public sealed class TrayPresence : IDisposable
 
     private Drawing.Icon? _currentIcon;
     private StreamState _lastState = (StreamState)(-1);
+    private bool _disposed;
 
     /// <summary>
     /// What size the notification area actually wants: 16 at 100% scaling and larger above it. Asking
@@ -64,9 +65,28 @@ public sealed class TrayPresence : IDisposable
         Update();
     }
 
-    /// <summary>Refreshes the icon and tooltip. Cheap enough to call from the UI timer.</summary>
+    /// <summary>
+    /// Refreshes the icon and tooltip. Cheap enough to call from the UI timer.
+    /// <para>
+    /// Does nothing once disposed, and that guard is load-bearing rather than tidiness. Closing Deck
+    /// while it is on air disposes this and then stops the broadcast, and stopping changes the
+    /// connection state one last time - which is raised to the UI through
+    /// <see cref="System.Windows.Threading.Dispatcher.BeginInvoke(Delegate, object[])"/>, so it is
+    /// queued and arrives after everything here has been torn down.
+    /// </para>
+    /// <para>
+    /// <see cref="Forms.NotifyIcon"/> answers that badly. Its property setters do not throw
+    /// <see cref="ObjectDisposedException"/>; Dispose nulls the hidden window it talks to Windows
+    /// through, and the next assignment walks straight into it - so the whole program went down with
+    /// "Object reference not set to an instance of an object" from inside WinForms, on the way out,
+    /// with nothing on screen to connect it to the tray icon. Reported by a user; reproduced by going
+    /// on air to a server that will not answer and closing the window while it reconnects.
+    /// </para>
+    /// </summary>
     public void Update()
     {
+        if (_disposed) return;
+
         var state = _stateProvider();
         if (state == _lastState) return;
 
@@ -133,6 +153,12 @@ public sealed class TrayPresence : IDisposable
 
     public void Dispose()
     {
+        if (_disposed) return;
+
+        // Set before anything is torn down, not after: a queued update arriving part-way through
+        // would otherwise find a half-disposed icon, which is the fault this guards against.
+        _disposed = true;
+
         _notifyIcon.Visible = false;
         _notifyIcon.Dispose();
         _currentIcon?.Dispose();
