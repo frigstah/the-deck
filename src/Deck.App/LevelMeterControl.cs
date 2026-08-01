@@ -163,12 +163,11 @@ public sealed class LevelMeterControl : FrameworkElement
     }
 
     /// <summary>
-    /// Where the colours change is <see cref="MeterZones"/>' decision, not this control's - and it is
-    /// the painted scale that is asked for, not the verdict. The amber shows before the coaching
-    /// calls a level hot, because that is what tells somebody how much room is left; nothing here
-    /// judges the show.
+    /// Where the colours change is <see cref="MeterZones"/>' decision, not this control's. The
+    /// verdict printed beside the bar is reached from the same boundaries, so the amber part of the
+    /// scale and the word "loud" arrive together.
     /// </summary>
-    private static Brush LitBrush(float db) => MeterZones.Band(db) switch
+    private static Brush LitBrush(float db) => MeterZones.Zone(db) switch
     {
         MeterZone.Clip => Themed("MeterClipBrush", "#FFC9564C"),
         MeterZone.Loud => Themed("MeterLoudBrush", "#FFD7A64A"),
@@ -176,7 +175,7 @@ public sealed class LevelMeterControl : FrameworkElement
         _ => Themed("MeterQuietBrush", "#FF9AA5A2"),
     };
 
-    private static Brush UnlitBrush(float db) => MeterZones.Band(db) switch
+    private static Brush UnlitBrush(float db) => MeterZones.Zone(db) switch
     {
         MeterZone.Clip => Themed("MeterClipOffBrush", "#FFF0DEDC"),
         MeterZone.Loud => Themed("MeterLoudOffBrush", "#FFF0E4CE"),

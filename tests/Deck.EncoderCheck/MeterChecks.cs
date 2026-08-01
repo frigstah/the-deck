@@ -35,46 +35,12 @@ internal static class MeterChecks
             Expect(MeterZones.LoudDb < MeterZones.ClipDb, "the loud threshold has to be below the clip one");
             Expect(MeterZones.ClipDb < 0f, "the clip threshold has to be below full scale");
 
-            Expect(MeterZones.QuietDb < MeterZones.BandLoudDb, "the amber paint starts below the usable range");
-            Expect(MeterZones.BandLoudDb < MeterZones.BandClipDb, "the amber paint has to start below the red");
-            Expect(MeterZones.BandClipDb < 0f, "the red paint has to start below full scale");
-
-            // Nothing on the scale may fall outside a zone, which is what a gap in either switch
-            // would look like: a segment drawn in the wrong colour rather than an error.
+            // Nothing on the scale may fall outside a zone, which is what a gap in the switch would
+            // look like: a segment drawn in the wrong colour rather than an error.
             for (var db = -90f; db <= 0f; db += 0.25f)
             {
                 Expect(Enum.IsDefined(MeterZones.Zone(db)), $"{db:0.##} dB does not fall in any zone");
-                Expect(Enum.IsDefined(MeterZones.Band(db)), $"{db:0.##} dB does not fall in any band");
             }
-        });
-
-        failures += Check("the paint runs ahead of the words, never behind them", () =>
-        {
-            // The rule that lets the two differ at all. A scale is orientation: painting amber before
-            // a level is a problem is how a meter says "getting close", and every desk meter does it.
-            // What must never happen is the reverse - the coaching calling a level hot while the bar
-            // under it is still green, which would read as the software contradicting itself.
-            //
-            // The first version of this feature moved the verdict to match the paint, which fixed the
-            // contradiction by warning everybody three decibels earlier than Deck ever had. This is
-            // the same guarantee without that cost.
-            for (var db = -90f; db <= 0f; db += 0.05f)
-            {
-                var words = MeterZones.Zone(db);
-                var paint = MeterZones.Band(db);
-
-                Expect(paint >= words,
-                    $"at {db:0.##} dB the coaching says {words} while the bar is still painted {paint}");
-            }
-
-            // And it does run ahead somewhere, or the two would be the same thing under two names.
-            var runsAhead = false;
-            for (var db = -30f; db <= 0f; db += 0.05f)
-            {
-                if (MeterZones.Band(db) > MeterZones.Zone(db)) runsAhead = true;
-            }
-
-            Expect(runsAhead, "the paint never runs ahead of the words, so the caution band shows nothing early");
         });
 
         failures += Check("a level either side of a boundary lands on the right side of it", () =>
@@ -98,24 +64,22 @@ internal static class MeterChecks
             Expect(MeterZones.ClipDb == -1f, $"the clip threshold is {MeterZones.ClipDb}, not -1");
         });
 
-        failures += Check("the caution and clip zones are wide enough to be seen", () =>
+        failures += Check("the deck's meter draws the zones it is meant to", () =>
         {
-            // The reason the painted band exists at all. The bar carried one red segment and two
-            // amber ones out of sixty-four, which is not enough of a scale to read across a room -
-            // every other meter a broadcaster has used has a visible amber shoulder. One more of
-            // each.
+            // Segment counts rather than decibels, because that is what anybody actually sees and
+            // because the curve of the scale means the two are not the same question: three decibels
+            // can be worth one segment near the bottom of the bar and five near the top.
             //
-            // Written as segment counts rather than as decibels because that is the thing anybody
-            // actually cares about, and because the curve of the scale means the two are not the
-            // same question: three decibels can be worth one segment or five depending on where they
-            // are. Adjusting a threshold without meaning to move the colours on screen fails here.
+            // This is the check that makes a threshold change honest. Both attempts at widening the
+            // amber and red parts of the scale went through here, and it is what says plainly that
+            // the scale is now back to what it was.
             var counts = Count(DeckSegments);
 
-            Expect(counts[MeterZone.Clip] == 2,
-                $"the red part of the deck's meter is {counts[MeterZone.Clip]} segments, not 2");
+            Expect(counts[MeterZone.Clip] == 1,
+                $"the red part of the deck's meter is {counts[MeterZone.Clip]} segments, not 1");
 
-            Expect(counts[MeterZone.Loud] == 3,
-                $"the amber part of the deck's meter is {counts[MeterZone.Loud]} segments, not 3");
+            Expect(counts[MeterZone.Loud] == 2,
+                $"the amber part of the deck's meter is {counts[MeterZone.Loud]} segments, not 2");
 
             // And the green aiming zone still has to be the larger part of the working end of the
             // bar, or the meter stops teaching where to sit and starts reading as a warning that is
@@ -127,26 +91,24 @@ internal static class MeterChecks
                 $"{counts[MeterZone.Loud] + counts[MeterZone.Clip]} of caution, which is not aiming at anything");
         });
 
-        failures += Check("the narrow meters still show a caution zone at all", () =>
+        failures += Check("the narrow meters keep a green aiming zone", () =>
         {
-            // The mixer faders draw a meter a fraction of the width, floored at ten segments. At
-            // that size the old thresholds gave it no amber and no red whatsoever - the whole scale
-            // was green until it clipped, which is worse than useless on the one control where
-            // somebody is actively pushing a level up.
+            // The mixer faders draw a meter a fraction of the width, floored at ten segments. At that
+            // size the top two zones fall between segment centres and vanish, so the whole scale is
+            // green until it clips. That is a known characteristic of a ten-segment bar rather than a
+            // fault - what would be a fault is the aiming zone disappearing too, which is the one
+            // thing those little meters are for.
             var counts = Count(10);
 
-            Expect(counts[MeterZone.Loud] + counts[MeterZone.Clip] >= 1,
-                "the narrowest meter has no caution segment at all");
+            Expect(counts[MeterZone.Good] >= 1, "the narrowest meter has no green aiming zone at all");
         });
 
-        failures += Check("what Deck says about a level is what it has always said", () =>
+        failures += Check("the verdict beside the bar comes from the same numbers", () =>
         {
             // Driven through the real meter with real samples rather than by re-implementing the
-            // call, so this is a check on the shipping behaviour and not on a copy of it.
-            //
-            // The levels below are chosen around the boundaries that moved and moved back. -5 dB is
-            // the one that matters: it is inside the painted amber, and Deck still calls it good,
-            // which is exactly the arrangement asked for.
+            // call, so this is a check on the shipping behaviour and not on a copy of it. The levels
+            // are chosen around the boundaries that moved and moved back, -5 dB especially: Deck
+            // calls it good and draws it green, which is where this started and where it ended.
             foreach (var (peak, expected) in new (float Peak, LevelAdvice Advice)[]
             {
                 (-30f, LevelAdvice.TooQuiet),
@@ -160,8 +122,8 @@ internal static class MeterChecks
                 var advice = AdviceFor(peak);
                 Expect(advice == expected, $"a {peak:0.#} dB peak is judged {advice}, not {expected}");
 
-                // And the advice is the verdict zone, not the painted one. If these were ever wired
-                // to Band the coaching would quietly start warning three decibels early again.
+                // The colour of the bar and the words beside it, from one call. This is the coupling
+                // the whole file exists to hold.
                 var zone = MeterZones.Zone(peak);
                 var agrees = (zone, advice) switch
                 {
@@ -172,7 +134,7 @@ internal static class MeterChecks
                     _ => false,
                 };
 
-                Expect(agrees, $"at {peak:0.#} dB the coaching says {advice} but the verdict zone is {zone}");
+                Expect(agrees, $"at {peak:0.#} dB the bar draws {zone} while the words say {advice}");
             }
         });
 
@@ -191,7 +153,7 @@ internal static class MeterChecks
         for (var i = 0; i < segments; i++)
         {
             var db = AudioMath.MeterScaleToDb((float)((i + 0.5) / segments), FloorDb);
-            counts[MeterZones.Band(db)]++;
+            counts[MeterZones.Zone(db)]++;
         }
 
         return counts;
