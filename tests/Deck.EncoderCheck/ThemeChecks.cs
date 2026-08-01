@@ -151,6 +151,24 @@ internal static class ThemeChecks
             }
         });
 
+        failures += Check("a link is legible as text, not only as a button", () =>
+        {
+            // LinkButtonStyle draws in the accent at body size, with no fill behind it: the escape
+            // hatch in the server editor, and the coffee link under Support. The accent is checked
+            // above for text drawn *on* it, which is a different question from the accent itself
+            // being read as words on the window - and that is the one a link asks.
+            foreach (var (name, palette) in Faces())
+            {
+                foreach (var ground in new[] { "BackgroundColor", "SurfaceColor" })
+                {
+                    var ratio = Contrast(palette["AccentColor"], palette[ground]);
+
+                    Expect(ratio >= BodyMinimum,
+                        $"{name}: an accent-coloured link on {ground} is {ratio:0.0}:1, needs {BodyMinimum}");
+                }
+            }
+        });
+
         failures += Check("the rail is readable, and reads as a rail", () =>
         {
             // The rail keeps its own colours on either brightness, which means nothing about the

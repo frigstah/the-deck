@@ -431,7 +431,11 @@
   }
   footer .shell { display: flex; flex-wrap: wrap; gap: 1rem 2rem; align-items: baseline; }
   footer p { margin: 0; max-width: 52ch; }
-  footer .links { margin-left: auto; display: flex; gap: 1.25rem; font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; }
+  footer .links { display: flex; gap: 1.25rem; font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; }
+  /* Pushed to its own end of the row so the ask is not mistaken for one more
+     navigation link, and left as ordinary footer text rather than dressed up as a
+     button - this product gives everything away, and the asking should match. */
+  footer .coffee { margin-left: auto; white-space: nowrap; }
 
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 </style>
@@ -761,6 +765,9 @@
       <strong style="color: var(--text)">This is a beta.</strong> The features are finished and every
       build passes the check suite before it is published, but releases go out automatically from
       <code style="font-family: var(--mono)">main</code> without a release review.
+    </p>
+    <p class="coffee">
+      Appreciate this? <a href="https://buymeacoffee.com/frigstah" rel="noopener">Buy me a coffee</a>
     </p>
     <div class="links">
       <a href="https://github.com/frigstah/the-deck">GitHub</a>

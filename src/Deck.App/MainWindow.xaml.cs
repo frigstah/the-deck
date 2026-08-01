@@ -663,6 +663,24 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>Where to say thank you, if you want to. Deck asks once, in setup, and never again.</summary>
+    private const string CoffeeUrl = "https://buymeacoffee.com/frigstah";
+
+    private void OnBuyCoffee(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(CoffeeUrl) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            // The address is worth showing rather than swallowing: a machine with no default browser
+            // is exactly the one where somebody would want to copy it out by hand.
+            MessageBox.Show(
+                $"Deck could not open your browser: {ex.Message}\n\n{CoffeeUrl}", "The Deck");
+        }
+    }
+
     private void OnNowPlayingKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter) return;
