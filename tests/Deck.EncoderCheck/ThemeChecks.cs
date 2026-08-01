@@ -316,6 +316,41 @@ internal static class ThemeChecks
                 "buttons will silently draw in the body text colour");
         });
 
+        failures += Check("the website shows the colours the product actually ships", () =>
+        {
+            // The site advertises the palettes, and a swatch showing a colour the app no longer has
+            // is worse than showing nothing at all: somebody would be choosing from a picture of a
+            // product that does not exist. The page's block is generated rather than written, so
+            // this is an exact comparison against what the generator produces today.
+            var site = File.ReadAllText(Path.Combine(root, "site", "index.html"));
+
+            var start = site.IndexOf(SitePalettes.Open, StringComparison.Ordinal);
+            Expect(start >= 0, "the generated palette block is no longer in site/index.html");
+
+            var end = site.IndexOf(SitePalettes.Close, start, StringComparison.Ordinal);
+            Expect(end >= 0, "the generated palette block in site/index.html has no end marker");
+
+            var present = site[start..(end + SitePalettes.Close.Length)].Replace("\r\n", "\n");
+
+            Expect(present == SitePalettes.Css(),
+                "site/index.html no longer matches the palettes - regenerate it with " +
+                "\"dotnet run --project tests/Deck.EncoderCheck -- --site-palettes\"");
+
+            // And the words under each swatch are the words under the picker in the app, so somebody
+            // who chose Dragon from the page finds the same sentence when they get there.
+            foreach (var palette in Enum.GetValues<DeckPalette>())
+            {
+                var (name, description) = Palettes.Describe(palette);
+                var slug = palette.ToString().ToLowerInvariant();
+
+                Expect(site.Contains($"data-palette=\"{slug}\"", StringComparison.Ordinal),
+                    $"the website has no swatch for {name}");
+
+                Expect(site.Contains(Html(description), StringComparison.Ordinal),
+                    $"the website does not describe {name} the way the app does: \"{description}\"");
+            }
+        });
+
         failures += Check("every brush the window is handed is re-read when the palette changes", () =>
         {
             // The failure this exists for is invisible in code review and obvious on screen: the
@@ -379,6 +414,13 @@ internal static class ThemeChecks
             }
         }
     }
+
+    /// <summary>
+    /// The few characters the page writes as entities. Only what these descriptions actually contain -
+    /// a general escaper would be pretending this handles more than it does.
+    /// </summary>
+    private static string Html(string text) =>
+        text.Replace("&", "&amp;").Replace("é", "&eacute;").Replace("—", "&mdash;");
 
     private static Dictionary<string, string> ParseXaml(string xaml) =>
         Regex.Matches(xaml, "<Color x:Key=\"(?<name>\\w+)\">(?<value>#[0-9A-Fa-f]+)</Color>")
