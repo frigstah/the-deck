@@ -1723,6 +1723,20 @@
                         <StackPanel Style="{StaticResource SettingGroupStyle}" Margin="0,22,0,8">
                             <TextBlock Text="S U P P O R T" Style="{StaticResource GroupHeadingStyle}" />
 
+                            <!-- An ask, not a nag. It lives here rather than on the deck because
+                                 nothing that interrupts a show belongs on the deck, and somebody
+                                 who has come this far into setup is not mid-broadcast. The link
+                                 carries the accent, which every palette is checked to keep legible
+                                 as words on the window rather than only as a filled button. -->
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,10">
+                                <TextBlock Text="Appreciate this?" Style="{StaticResource HintStyle}"
+                                           VerticalAlignment="Center" />
+                                <Button Content="Buy me a coffee" Click="OnBuyCoffee"
+                                        Style="{StaticResource LinkButtonStyle}" Margin="5,0,0,0"
+                                        VerticalAlignment="Center"
+                                        ToolTip="Opens buymeacoffee.com/frigstah in your browser." />
+                            </StackPanel>
+
                             <TextBlock Margin="0,4,0,0" TextWrapping="Wrap"
                                        FontFamily="Consolas" FontSize="12.5" FontWeight="SemiBold"
                                        Foreground="{DynamicResource GoldBrush}"
