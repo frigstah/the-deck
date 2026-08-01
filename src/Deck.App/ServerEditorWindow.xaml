@@ -204,9 +204,14 @@
                                 <TextBlock Text="Bitrate (kbps)" Style="{StaticResource FieldLabelStyle}" />
                                 <ComboBox ItemsSource="{Binding Bitrates}" SelectedItem="{Binding BitrateKbps}" />
                             </StackPanel>
+                            <!-- Stated, not chosen. The rate is one setting for the whole of Deck,
+                                 under Sound, because it belongs to the sound rather than to any one
+                                 destination - but it still has to be visible here, since this is
+                                 where somebody checks their stream against what the host asked for. -->
                             <StackPanel Grid.Column="4">
                                 <TextBlock Text="Sample rate" Style="{StaticResource FieldLabelStyle}" />
-                                <ComboBox ItemsSource="{Binding SampleRates}" SelectedItem="{Binding SampleRate}" />
+                                <TextBlock Text="{Binding SampleRateSummary}" Style="{StaticResource ReadoutStyle}"
+                                           Margin="0,7,0,0" />
                             </StackPanel>
                             <StackPanel Grid.Column="6" VerticalAlignment="Bottom">
                                 <CheckBox Content="Stereo" IsChecked="{Binding IsStereo}" Margin="0,0,0,7" />

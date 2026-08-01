@@ -80,6 +80,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         _sendToMoreThanOneServer = _settings.AlsoSendToServerIds.Count > 0;
         RebuildExtraTargets();
 
+        // Before anything reads an encoder: the rate is one setting now, and until it has a value
+        // the servers are the only record of what it used to be.
+        ResolveSampleRate();
+
         Strings.Use(_settings.LanguageCode);
 
         _loudnessTarget = LoudnessTarget.All.FirstOrDefault(t => t.Name == _settings.LoudnessTargetName)
@@ -1363,6 +1367,142 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             nameof(SelectedServerSummary));
 
         if (wasLive) RestartShowAfterChange();
+    }
+
+    // ---------------------------------------------------------------- sample rate (D5)
+
+    /// <summary>
+    /// The one rate everything goes out at. Offered as kilohertz because that is how a host writes
+    /// it down and how an interface labels it; stored in hertz because that is what an encoder takes.
+    /// </summary>
+    public IReadOnlyList<string> SampleRateOptions { get; } =
+        EncoderSettings.OfferedSampleRates.Select(Kilohertz).ToList();
+
+    public string SelectedSampleRate
+    {
+        get => Kilohertz(_settings.SampleRate ?? EncoderSettings.DefaultSampleRate);
+        set
+        {
+            var chosen = EncoderSettings.OfferedSampleRates.FirstOrDefault(r => Kilohertz(r) == value);
+            if (chosen == 0 || chosen == _settings.SampleRate) return;
+
+            _settings.SampleRate = chosen;
+            Persist();
+            ApplySampleRateToEveryServer();
+
+            RaiseAll(nameof(SelectedSampleRate), nameof(SampleRateHint));
+        }
+    }
+
+    /// <summary>
+    /// Names the codecs that are about to ignore this, rather than leaving somebody to notice on
+    /// their own that the number under Sound and the number in the server's summary disagree.
+    /// </summary>
+    public string SampleRateHint
+    {
+        get
+        {
+            const string Lead = "The rate every server goes out at. Most hosts take 44,1 kHz; " +
+                                "use what yours asks for.";
+
+            var chosen = _settings.SampleRate ?? EncoderSettings.DefaultSampleRate;
+
+            var overridden = Servers
+                .Where(s => EncoderSettings.AvailableSampleRates(s.Encoder.Codec).Contains(chosen) is false)
+                .Select(s => s.Encoder.Codec.DisplayName())
+                .Distinct()
+                .ToList();
+
+            return overridden.Count == 0
+                ? Lead
+                : $"{Lead} {string.Join(" and ", overridden)} cannot take this rate, so those servers " +
+                  $"use the nearest one they can.";
+        }
+    }
+
+    private static string Kilohertz(int hertz) => $"{hertz / 1000.0:0.###} kHz";
+
+    /// <summary>
+    /// Writes the chosen rate onto every saved server, normalised per codec, and restarts whatever
+    /// is running on it.
+    /// <para>
+    /// Every server rather than the selected one, because this is no longer a property of a
+    /// destination: a show going out to a main and a backup at once has one sound, and two encoders
+    /// running at different rates off one capture was a way to be wrong in a way nobody would look
+    /// for.
+    /// </para>
+    /// </summary>
+    private void ApplySampleRateToEveryServer()
+    {
+        var wasLive = StreamState.IsBroadcasting();
+
+        if (!StampSampleRate()) return;
+
+        // Capture runs at the encoder's rate, so a rate change means restarting the input too.
+        if (!wasLive) StartAudio();
+
+        RaiseAll(nameof(QualitySummary), nameof(QualityShort), nameof(SelectedServerSummary));
+
+        if (wasLive) RestartShowAfterChange();
+    }
+
+    /// <summary>
+    /// The data half, with nothing that touches an audio device: writes the rate onto every server
+    /// and says whether anything moved. Split out because the constructor needs it before there is a
+    /// capture to restart, and calling the whole thing from there started the input twice.
+    /// </summary>
+    private bool StampSampleRate()
+    {
+        var chosen = _settings.SampleRate;
+        if (chosen is null) return false;
+
+        var changed = false;
+
+        foreach (var server in Servers)
+        {
+            var updated = (server.Encoder with { SampleRate = chosen.Value }).Normalised();
+            if (updated == server.Encoder) continue;
+
+            server.Encoder = updated;
+            changed = true;
+        }
+
+        if (changed) SaveServers();
+        return changed;
+    }
+
+    /// <summary>
+    /// What the rate should be on a Deck that has never had one chosen: whatever the servers are
+    /// already set to.
+    /// <para>
+    /// This runs once, when <see cref="AppSettings.SampleRate"/> is still null. Reaching for the
+    /// default instead would take somebody who had deliberately set 48 kHz on every server and move
+    /// their whole station to 44,1 the first time they opened a version with this setting in it -
+    /// silently, because nothing on screen would have changed until they next went live.
+    /// </para>
+    /// <para>
+    /// The most common rate among the saved servers wins, and ties go to the higher one. A list
+    /// imported from another encoder is usually all one rate anyway; where it is not, the majority is
+    /// the least surprising answer and the servers that lose are moved by the same code that would
+    /// have moved them had somebody chosen by hand.
+    /// </para>
+    /// </summary>
+    private void ResolveSampleRate()
+    {
+        if (_settings.SampleRate is not null) return;
+
+        _settings.SampleRate = EncoderSettings.ResolveSampleRate(
+            null, Servers.Select(server => server.Encoder.SampleRate));
+
+        // Saved outright rather than through Persist, which does nothing this early: the constructor
+        // suppresses writing so that merely loading does not rewrite the file. That is right for
+        // everything else here and wrong for this one, because this is a decision about somebody's
+        // data rather than a value being read back. Left unwritten it would be re-derived from the
+        // servers on every start - the same answer today, and a different one the day they add a
+        // server at another rate.
+        _settingsStore.Save(_settings);
+
+        StampSampleRate();
     }
 
     public string? ListenUrl => _selectedServer is null || string.IsNullOrWhiteSpace(_selectedServer.Host)

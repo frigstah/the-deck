@@ -180,7 +180,7 @@ worth making: the alternative was a first screen that looks like a control panel
 | Protocols | Icecast HTTP PUT with automatic SOURCE fallback, SHOUTcast v1 and v2, TLS |
 | Several servers at once | A main plus a backup relay, or the same show at two bitrates; one dropping does not take the others off air |
 | Testing | Six-stage connection test: find, connect, secure, identify, sign in, send audio |
-| Encoding | MP3, Ogg Opus, Ogg Vorbis and lossless Ogg FLAC, 32–320 kbps, quality presets plus full manual control |
+| Encoding | MP3, Ogg Opus, Ogg Vorbis and lossless Ogg FLAC, 32–320 kbps, quality presets plus full manual control. One sample rate for the whole of Deck, under Sound, since it belongs to the sound rather than to any one destination |
 | Processing | Voice Enhance, automatic level control, bass/middle/treble, a preset-driven three-band compressor, always-on safety limiter |
 | Metadata | A title typed on the deck itself and remembered between runs, a polled text file, the Windows media session, and a local endpoint your playout software can post to — including the Icecast admin form, unchanged |
 | Title format | `{artist} - {title}` templates with a live preview, and a hold switch for adverts and jingles |
@@ -613,6 +613,22 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   rethought, not recoloured: on a pale ground a lit segment is *darker* than the ground, so carrying
   the dark theme's quiet grey drew a heavy slab across two thirds of the meter and made a quiet signal
   look loud.
+- **The sample rate is a property of the sound, not of the destination.** It used to live on each
+  server, which meant it had to be got right in as many places as there were servers and could be got
+  wrong in all but one of them — and a show going out to a main and a backup at once could be running
+  two encoders at different rates off one capture. It is one setting under Sound now, and the server
+  editor states the rate rather than offering it.
+- **A setting that already had a value cannot be given a default.** The rate is stored as null until
+  somebody chooses, which is not the same as 44,1 kHz: on the first run after the move there are
+  already servers with rates of their own, and taking the default would have moved a station
+  deliberately running at 48 kHz down to 44,1 — silently, because nothing on screen changes until the
+  next time they go live. Deck adopts what the servers already say instead, most-common wins, ties to
+  the higher rate.
+- **One rate is a preference, not a promise.** Opus accepts 16, 24 and 48 kHz and nothing else, so a
+  server on Opus quietly runs at 48 however this is set. Rather than hide that, the hint under the
+  setting names the codecs that are about to ignore it, and the server editor shows what that server
+  will actually go out at.
+
 - **The meter's colours and its words are one decision.** Where the bar turns amber and where the
   verdict beside it starts saying "a little hot" used to be the same three numbers written out in
   three files — the drawn control, the live meter, and the sound check. Three copies of a threshold

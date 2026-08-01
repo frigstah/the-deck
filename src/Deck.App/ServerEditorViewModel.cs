@@ -309,8 +309,8 @@ public sealed class ServerEditorViewModel : ObservableObject
             if (!Set(ref _selectedPreset, value) || value is null) return;
 
             Profile.Encoder = value.Settings;
-            RaiseAll(nameof(Codec), nameof(BitrateKbps), nameof(SampleRate), nameof(Channels),
-                nameof(QualityDescription), nameof(Bitrates), nameof(SampleRates));
+            RaiseAll(nameof(Codec), nameof(BitrateKbps), nameof(SampleRateSummary), nameof(Channels),
+                nameof(QualityDescription), nameof(Bitrates));
         }
     }
 
@@ -334,8 +334,8 @@ public sealed class ServerEditorViewModel : ObservableObject
         {
             Profile.Encoder = (Profile.Encoder with { Codec = value }).Normalised();
             _selectedPreset = QualityPreset.Match(Profile.Encoder);
-            RaiseAll(nameof(Codec), nameof(CodecBlurb), nameof(Bitrates), nameof(SampleRates),
-                nameof(BitrateKbps), nameof(SampleRate), nameof(SelectedPreset),
+            RaiseAll(nameof(Codec), nameof(CodecBlurb), nameof(Bitrates),
+                nameof(BitrateKbps), nameof(SampleRateSummary), nameof(SelectedPreset),
                 nameof(QualityDescription), nameof(ShowBitrate), nameof(LosslessNote));
         }
     }
@@ -353,8 +353,6 @@ public sealed class ServerEditorViewModel : ObservableObject
 
     public IReadOnlyList<int> Bitrates => EncoderSettings.AvailableBitrates(Profile.Encoder.Codec);
 
-    public IReadOnlyList<int> SampleRates => EncoderSettings.AvailableSampleRates(Profile.Encoder.Codec);
-
     public int BitrateKbps
     {
         get => Profile.Encoder.BitrateKbps;
@@ -366,14 +364,25 @@ public sealed class ServerEditorViewModel : ObservableObject
         }
     }
 
-    public int SampleRate
+    /// <summary>
+    /// What this server will actually go out at, and where that was decided.
+    /// <para>
+    /// Read-only: the rate is chosen once under Sound for the whole of Deck. It is still shown here
+    /// because this window is where somebody checks their stream against what the host asked for,
+    /// and a missing number would send them looking. When the codec cannot take the chosen rate the
+    /// number differs from the setting, and saying so here is the only place that difference is
+    /// visible at all.
+    /// </para>
+    /// </summary>
+    public string SampleRateSummary
     {
-        get => Profile.Encoder.SampleRate;
-        set
+        get
         {
-            Profile.Encoder = Profile.Encoder with { SampleRate = value };
-            _selectedPreset = QualityPreset.Match(Profile.Encoder);
-            RaiseAll(nameof(SampleRate), nameof(SelectedPreset), nameof(QualityDescription));
+            var rate = $"{Profile.Encoder.SampleRate / 1000.0:0.###} kHz";
+
+            return Profile.Encoder.Codec == StreamCodec.OggOpus
+                ? $"{rate} — fixed by {StreamCodec.OggOpus.DisplayName()}"
+                : $"{rate} — set under Sound";
         }
     }
 
