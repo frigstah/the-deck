@@ -167,7 +167,7 @@ worth making: the alternative was a first screen that looks like a control panel
 | Input channels | Pick which inputs on a multi-channel interface feed the stream, or one side of a stereo input |
 | Mixing | Two sources with independent faders, mutes and meters — music under a live microphone |
 | Hot-plug | An input that drops out is taken back automatically the moment it returns |
-| Level coaching | Stereo peak meter with a painted caution band at the top of the scale, peak-hold marker, traffic-light verdict. The amber shows from -7 dBFS; the coaching still calls a level hot at -4, as it always has |
+| Level coaching | Stereo peak meter with zone colouring, peak-hold marker, traffic-light verdict |
 | Loudness | BS.1770 / EBU R128 metering in LUFS, momentary and whole-show, against a chosen target |
 | Frequencies and phase | An optional panel, closed by default: a 24-band spectrum, and a stereo phase reading that catches a miswired cable or an over-widened source before mono listeners lose it |
 | Sound check | Record 10 s and play it straight back, with a verdict on the level |
@@ -613,22 +613,22 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   rethought, not recoloured: on a pale ground a lit segment is *darker* than the ground, so carrying
   the dark theme's quiet grey drew a heavy slab across two thirds of the meter and made a quiet signal
   look loud.
-- **The painted scale and the verdict are two different questions.** A scale is orientation: every
-  meter on every desk has its top end painted amber and red, and it is painted *before* the level is
-  a problem, because that is what tells you how much room is left. A verdict is a judgement about the
-  show. Deck's bar carried one red segment and two amber ones out of sixty-four, which is not enough
-  of a scale to read across a room; it is now two and three, and the coaching thresholds did not move
-  to get there.
-- **That distinction was learnt the hard way, in one release.** The first attempt widened the bands
-  by moving the coaching with them — on the reasoning that a bar turning amber while the words say
-  the level is good contradicts itself. It does not: what would contradict itself is the reverse. So
-  the rule is one-way and checked at every twentieth of a decibel — the paint may run ahead of the
-  words and may never lag behind them — and the three numbers that decide what Deck *says* are pinned
-  by a check of their own, because they were once moved for the look of the thing and that is a
-  reason to change the paint and never a reason to change the advice.
-- **The zone counts are checked as segments, not decibels.** The scale is curved, so three decibels
-  can be worth one segment near the bottom and five near the top. How much of the bar changed colour
-  is the thing anybody actually cares about, so that is what the check measures.
+- **The meter's colours and its words are one decision.** Where the bar turns amber and where the
+  verdict beside it starts saying "a little hot" used to be the same three numbers written out in
+  three files — the drawn control, the live meter, and the sound check. Three copies of a threshold
+  is three chances for the bar to warn while the words say everything is fine, and the meter is meant
+  to teach. They are one set of constants now, and a check drives real samples through the meter and
+  fails if the colour and the verdict ever disagree.
+- **Widening the amber and red parts of the scale was tried twice and reverted twice**, which is
+  worth recording because both attempts looked reasonable. Moving the thresholds gave the wider band
+  but quietly made Deck warn three decibels earlier than it ever had. Painting the scale on different
+  boundaries from the verdict kept the advice intact but split one idea into two, and the meter is
+  the one place in the product where the picture and the words have to be the same thing. The bands
+  are two amber segments and one red out of sixty-four, as they were.
+- **The zone widths are checked as segments, not decibels.** The scale is curved, so three decibels
+  can be worth one segment near the bottom and five near the top. How much of the bar changes colour
+  is what anybody actually sees, so that is what the check measures — and it is what made both
+  attempts above, and their reversal, plainly visible rather than a matter of opinion.
 
 - **The settings folder is The Deck's own.** It is a fork, so both are installable side by side, and
   sharing one file would have each overwrite the other's servers whenever it closed.
