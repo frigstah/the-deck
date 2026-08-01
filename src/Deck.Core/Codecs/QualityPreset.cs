@@ -28,9 +28,20 @@ public sealed record QualityPreset(
 
     public static QualityPreset Default => MusicStandard;
 
-    /// <summary>Finds the preset matching these settings exactly, or null if the user has customised.</summary>
+    /// <summary>
+    /// Finds the preset matching these settings, or null if the user has customised.
+    /// <para>
+    /// The sample rate is not part of the comparison, and the rate written into each preset above is
+    /// only there because the record needs one. Since the rate became a single setting under Sound,
+    /// a preset no longer has an opinion about it - and comparing the whole record meant that
+    /// somebody running at 48 kHz saw every preset as "custom" and could not pick one.
+    /// </para>
+    /// </summary>
     public static QualityPreset? Match(EncoderSettings settings) =>
-        All.FirstOrDefault(p => p.Settings == settings);
+        All.FirstOrDefault(p =>
+            p.Settings.Codec == settings.Codec &&
+            p.Settings.BitrateKbps == settings.BitrateKbps &&
+            p.Settings.Channels == settings.Channels);
 
     /// <summary>Rough monthly data estimate to make bitrate choices concrete.</summary>
     public static string BandwidthPerListener(EncoderSettings settings)

@@ -729,6 +729,16 @@
                             <TextBlock Text="{Binding InputSourceHint}" Style="{StaticResource HintStyle}"
                                        Margin="0,12,0,0"
                                        Visibility="{Binding InputSourceHint, Converter={StaticResource TextToVisibility}}" />
+
+                            <!-- Here rather than in each server, because a sample rate is a property
+                                 of the sound and not of where it is being sent. One show, one rate,
+                                 however many destinations it goes to. -->
+                            <local:SettingRow Label="Sample rate" ContentWidth="330" ShowRule="False"
+                                              Hint="{Binding SampleRateHint}">
+                                <ComboBox ItemsSource="{Binding SampleRateOptions}"
+                                          SelectedItem="{Binding SelectedSampleRate}"
+                                          AutomationProperties.Name="Sample rate" />
+                            </local:SettingRow>
                         </StackPanel>
 
                         <!-- L E V E L -->

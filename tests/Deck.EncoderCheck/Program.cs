@@ -185,6 +185,11 @@ internal static class Program
         Console.WriteLine(controlFailures == 0 ? "PASS\n" : $"{controlFailures} case(s) FAILED\n");
         failures += controlFailures;
 
+        Console.WriteLine("--- One sample rate for the whole of Deck ---");
+        var rateFailures = SampleRateChecks.Run();
+        Console.WriteLine(rateFailures == 0 ? "PASS\n" : $"{rateFailures} case(s) FAILED\n");
+        failures += rateFailures;
+
         Console.WriteLine("--- Where the meter changes colour ---");
         var meterFailures = MeterChecks.Run();
         Console.WriteLine(meterFailures == 0 ? "PASS\n" : $"{meterFailures} case(s) FAILED\n");

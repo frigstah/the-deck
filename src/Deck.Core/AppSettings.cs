@@ -306,6 +306,23 @@ public sealed class AppSettings
     public DeckPalette Palette { get; set; } = DeckPalette.Deck;
 
     /// <summary>
+    /// The sample rate everything goes out at, for every server (D5).
+    /// <para>
+    /// One setting rather than one per destination. A sample rate is a property of the sound, not of
+    /// where it is being sent: it is decided once from what the sound card and the host can do, and
+    /// then never touched. Kept per server it was a field that had to be got right in four places
+    /// and could be got wrong in three of them.
+    /// </para>
+    /// <para>
+    /// Null means nobody has chosen yet, which is not the same as 44 100. On the first run after
+    /// this became a single setting there are already servers with rates of their own, and defaulting
+    /// would quietly move somebody's 48 kHz stream to 44,1. Null makes Deck adopt what the servers
+    /// already say instead; see <c>MainViewModel.ResolveSampleRate</c>.
+    /// </para>
+    /// </summary>
+    public int? SampleRate { get; set; }
+
+    /// <summary>
     /// Whether Deck looks for a newer release (I9). Off by default: a check tells whoever answers
     /// that this machine is running Deck, and nobody agreed to that by installing an encoder.
     /// </summary>
