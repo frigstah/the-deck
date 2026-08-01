@@ -613,6 +613,14 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   rethought, not recoloured: on a pale ground a lit segment is *darker* than the ground, so carrying
   the dark theme's quiet grey drew a heavy slab across two thirds of the meter and made a quiet signal
   look loud.
+- **The deck's Quality chip offers the standard ladder, not three favourites.** It held 128, 192 and
+  320 on the reasoning that those are the ones anyone picks between — and a stream set to anything
+  else showed a *blank* chip, because the current value was not in the list. The only way to use the
+  chip at all was to pick one of the three, which silently moved the server off the bitrate its host
+  had asked for. It is 96 to 320 in standard steps now, taken from what the chosen codec actually
+  accepts, so Opus is never offered the 224 it does not have. A server set below 96 still shows its
+  own rate rather than nothing.
+
 - **The sample rate is a property of the sound, not of the destination.** It used to live on each
   server, which meant it had to be got right in as many places as there were servers and could be got
   wrong in all but one of them — and a show going out to a main and a backup at once could be running
