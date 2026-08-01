@@ -167,10 +167,13 @@ public static class Palettes
     /// <summary>What each palette is called on screen, and the single line under the picker.</summary>
     public static (string Name, string Description) Describe(DeckPalette palette) => palette switch
     {
-        DeckPalette.Rose => ("Rosé", "Blush and plum, on white."),
+        // True of both faces, because this line sits under a picker that may be showing either one.
+        // "Charcoal, ember and gold" described Dragon well and described its parchment light face not
+        // at all.
+        DeckPalette.Rose => ("Rosé", "Blush and plum."),
         DeckPalette.Graphite => ("Graphite", "No colour except where colour means something."),
-        DeckPalette.Arcade => ("Arcade", "Cyan on near-black, and a live lamp that shouts."),
-        DeckPalette.Dragon => ("Dragon", "Charcoal, ember and gold."),
+        DeckPalette.Arcade => ("Arcade", "Neon, and a live lamp that shouts."),
+        DeckPalette.Dragon => ("Dragon", "Ember and gold."),
         _ => ("Deck", "The petrol teal Deck was drawn in."),
     };
 

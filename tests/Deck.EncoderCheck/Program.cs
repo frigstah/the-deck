@@ -28,6 +28,14 @@ internal static class Program
             return ProcessCaptureCheck.PlayTone(hertz);
         }
 
+        // Prints the palette block for the website. Not a check: it is how the block in index.html is
+        // produced in the first place, and the check below is what keeps it current afterwards.
+        if (args.Contains("--site-palettes"))
+        {
+            Console.WriteLine(SitePalettes.Css());
+            return 0;
+        }
+
         // Needs audio hardware and briefly makes real sound, so these are opt-in.
         if (args.Contains("--loopback") || args.Contains("--mixer") ||
             args.Contains("--recovery") || args.Contains("--metadata") || args.Contains("--process"))
