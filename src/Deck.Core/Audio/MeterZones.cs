@@ -1,20 +1,25 @@
 namespace Deck.Core.Audio;
 
 /// <summary>
-/// Where the meter changes colour, and where the coaching verdict changes with it (B1).
+/// Where the meter changes colour, and where the coaching verdict changes (B1). Two questions, and
+/// the difference between them is the whole of this file.
 /// <para>
-/// One set of numbers, because there is only one meter. These boundaries used to be written out
-/// three times - in the drawn control, in the live level meter, and in the sound check - and three
-/// copies of a threshold is three chances for the bar to turn amber while the words beside it still
-/// say the level is good. The meter is meant to teach: a colour that disagrees with the verdict
-/// teaches the wrong thing.
+/// The <em>verdict</em> is a judgement: at this level, is the show all right? Those are the numbers
+/// that decide whether Deck tells somebody to ease off, and they are not to be moved for the look of
+/// the thing. They used to be written out three times - in the drawn control, in the live meter, and
+/// in the sound check - which is three chances for them to drift apart, so they live here now.
 /// </para>
 /// <para>
-/// The caution band is deliberately wider than the level that actually clips. A peak meter reads
-/// sample peaks, and a lossy encoder can overshoot those by a decibel or more on the way out, so the
-/// point at which somebody should start easing off is well below the point at which the number goes
-/// red. Amber from -7 dBFS gives a singer time to notice and back off a step; red from -2,5 dBFS is
-/// close enough to the ceiling to mean it.
+/// The <em>band</em> is the scale, and a scale is orientation rather than judgement. Every meter on
+/// every desk has its top end painted amber and red, and it is painted before the level is actually
+/// a problem: that is what tells you at a glance how much room is left. A bar that stays green until
+/// the instant something is wrong has no way of saying "getting close", which is the one thing a
+/// meter is for.
+/// </para>
+/// <para>
+/// So the paint runs ahead of the words on purpose, and never the other way round - amber can appear
+/// while the verdict still says the level is good, but the verdict can never say a level is hot
+/// while the bar under it is still green. <c>MeterChecks</c> holds that one-way rule.
 /// </para>
 /// </summary>
 public static class MeterZones
@@ -22,23 +27,45 @@ public static class MeterZones
     /// <summary>Below this there is not enough signal to broadcast.</summary>
     public const float QuietDb = -24f;
 
-    /// <summary>From here up, ease off - the amber part of the scale.</summary>
-    public const float LoudDb = -7f;
+    /// <summary>From here up, the coaching says the level is getting hot.</summary>
+    public const float LoudDb = -4f;
 
-    /// <summary>From here up, it is about to clip - the red part of the scale.</summary>
-    public const float ClipDb = -2.5f;
+    /// <summary>From here up, the coaching calls it clipping.</summary>
+    public const float ClipDb = -1f;
 
     /// <summary>Quieter than this and nothing is arriving at all.</summary>
     public const float NoSignalDb = -55f;
 
     /// <summary>
-    /// Which zone a level falls in. Used both to colour a segment and to reach a verdict, which is
-    /// the point: they cannot drift apart if they are the same call.
+    /// Where the amber is painted. Lower than <see cref="LoudDb"/>, so the top of the scale is
+    /// legible as a caution band rather than as a couple of segments that only appear once it is too
+    /// late to use them.
+    /// </summary>
+    public const float BandLoudDb = -7f;
+
+    /// <summary>Where the red is painted, for the same reason.</summary>
+    public const float BandClipDb = -2.5f;
+
+    /// <summary>
+    /// What Deck thinks of this level. The verdict beside the bar, and the advice under it, both come
+    /// from here.
     /// </summary>
     public static MeterZone Zone(float db) => db switch
     {
         >= ClipDb => MeterZone.Clip,
         >= LoudDb => MeterZone.Loud,
+        >= QuietDb => MeterZone.Good,
+        _ => MeterZone.Quiet,
+    };
+
+    /// <summary>
+    /// What colour this part of the scale is painted. Only the drawn meter asks this; nothing that
+    /// reaches a conclusion about the show does.
+    /// </summary>
+    public static MeterZone Band(float db) => db switch
+    {
+        >= BandClipDb => MeterZone.Clip,
+        >= BandLoudDb => MeterZone.Loud,
         >= QuietDb => MeterZone.Good,
         _ => MeterZone.Quiet,
     };

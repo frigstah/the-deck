@@ -148,7 +148,7 @@ public sealed class SoundCheck : IDisposable
         var rmsDb = AudioMath.ToDb((float)Math.Sqrt(sumSquares / samples.Length));
 
         // Same boundaries as the live meter, from the same place: a recording played back should
-        // reach the same verdict the bar showed while it was being made.
+        // reach the same verdict the live one did about the same level.
         var advice = peakDb < MeterZones.NoSignalDb
             ? LevelAdvice.NoSignal
             : MeterZones.Zone(peakDb) switch
