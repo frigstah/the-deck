@@ -138,8 +138,13 @@ public sealed class LevelMeter
     /// <summary>
     /// Thresholds are chosen for speech and music heading into a lossy encoder: aim for peaks
     /// around -12 to -6 dBFS, which leaves headroom without sounding thin. They come from
-    /// <see cref="MeterZones"/> rather than from numbers written here, so the verdict and the
-    /// colour of the bar it sits beside are the same call.
+    /// <see cref="MeterZones"/> rather than from numbers written here, so the live meter and the
+    /// sound check cannot reach different conclusions about the same level.
+    /// <para>
+    /// Deliberately the verdict zones and not the painted ones: the top of the bar is coloured
+    /// before a level is a problem, the way every desk meter is, and none of that belongs in what
+    /// Deck tells somebody about their show.
+    /// </para>
     /// </summary>
     private static LevelAdvice Judge(float windowPeakDb, bool clipped)
     {
