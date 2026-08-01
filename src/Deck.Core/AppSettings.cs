@@ -21,6 +21,34 @@ public enum AppTheme
 }
 
 /// <summary>
+/// Which set of colours Deck wears (I5). Separate from <see cref="AppTheme"/>, and deliberately so:
+/// that setting answers "light or dark", this one answers "which colours", and the two questions are
+/// independent. Every palette here has both a light and a dark face, so choosing one never overrides
+/// what somebody told Windows about their eyes or their room.
+/// <para>
+/// Stored by name like everything else, so a palette removed in a later version reads back as
+/// <see cref="Deck"/> rather than as a crash.
+/// </para>
+/// </summary>
+public enum DeckPalette
+{
+    /// <summary>The petrol teal Deck ships with.</summary>
+    Deck,
+
+    /// <summary>Blush and plum.</summary>
+    Rose,
+
+    /// <summary>No hue at all, so anything coloured on screen is information.</summary>
+    Graphite,
+
+    /// <summary>Near-black, cyan, and a live lamp that shouts.</summary>
+    Arcade,
+
+    /// <summary>Charcoal, ember and gold.</summary>
+    Dragon,
+}
+
+/// <summary>
 /// Whether setup slides in and out, or simply appears (I12).
 /// <para>
 /// Three states rather than a switch, and for the same reason as <see cref="AppTheme"/>: following
@@ -269,6 +297,13 @@ public sealed class AppSettings
     /// </para>
     /// </summary>
     public AppTheme Theme { get; set; } = AppTheme.Dark;
+
+    /// <summary>
+    /// Which colours to wear (I5). Deck's own by default - the four others exist because a broadcast
+    /// encoder sits open on somebody's screen for hours at a time, and whose screen it is matters
+    /// more than whose product it is.
+    /// </summary>
+    public DeckPalette Palette { get; set; } = DeckPalette.Deck;
 
     /// <summary>
     /// Whether Deck looks for a newer release (I9). Off by default: a check tells whoever answers

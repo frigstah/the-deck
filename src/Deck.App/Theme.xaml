@@ -25,7 +25,7 @@
     <Color x:Key="SurfaceColor">#FFFFFFFF</Color>
     <Color x:Key="BorderColor">#FFDCDED9</Color>
     <Color x:Key="TextColor">#FF1B1F23</Color>
-    <Color x:Key="MutedTextColor">#FF666D73</Color>
+    <Color x:Key="MutedTextColor">#FF5E656B</Color>
     <Color x:Key="AccentColor">#FF2A6A70</Color>
     <!-- Text drawn on top of the accent. Flips to near-black on the dark theme, where
          the accent is lightened and white would drop to about 2:1. -->
@@ -56,7 +56,7 @@
          are chrome rather than content. -->
     <Color x:Key="RailColor">#FF1D2226</Color>
     <Color x:Key="RailSelectedColor">#FF262D33</Color>
-    <Color x:Key="RailTextColor">#FF7E8890</Color>
+    <Color x:Key="RailTextColor">#FF848E96</Color>
     <Color x:Key="StatusBarColor">#FFEAECE7</Color>
 
     <!-- Hover behind a caption button. A wash of the window's own text colour rather than a fixed

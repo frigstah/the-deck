@@ -15,6 +15,7 @@ using Deck.Core.Metadata;
 using Deck.Core.Recording;
 using Deck.Core.Servers;
 using Deck.Core.Streaming;
+using Deck.Core.Theming;
 using Deck.Core.Updates;
 
 namespace Deck.App;
@@ -60,6 +61,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
 
     public MainViewModel()
     {
+        App.PaletteChanged += OnPaletteChanged;
+
         _settings = _settingsStore.Load();
 
         foreach (var profile in _profileStore.Load()) Servers.Add(profile);
@@ -2678,7 +2681,41 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
 
     public string ThemeHint => _settings.Theme == AppTheme.System
         ? "Deck changes with the Windows light and dark setting, as soon as you change it."
-        : "Deck stays on this palette whatever Windows is set to.";
+        : "Deck stays this way whatever Windows is set to.";
+
+    /// <summary>
+    /// Which colours, in the order they were drawn. Deck's own first because it is the default;
+    /// after that there is no ranking to express, so they stay in the order they were designed in.
+    /// <para>
+    /// A separate question from light and dark, and separate on screen for the same reason: every
+    /// palette has both faces, so picking one never quietly overrules what somebody told Windows
+    /// about their eyes or their room.
+    /// </para>
+    /// </summary>
+    private static readonly (string Label, DeckPalette Palette)[] PaletteChoices =
+        Enum.GetValues<DeckPalette>()
+            .Select(p => (Palettes.Describe(p).Name, p))
+            .ToArray();
+
+    public IReadOnlyList<string> PaletteOptions => PaletteChoices.Select(p => p.Label).ToList();
+
+    public string SelectedPalette
+    {
+        get => PaletteChoices.First(p => p.Palette == _settings.Palette).Label;
+        set
+        {
+            var match = PaletteChoices.FirstOrDefault(p => p.Label == value);
+            if (match.Label is null || match.Palette == _settings.Palette) return;
+
+            _settings.Palette = match.Palette;
+            Persist();
+            App.UsePalette(match.Palette);
+
+            RaiseAll(nameof(SelectedPalette), nameof(PaletteHint));
+        }
+    }
+
+    public string PaletteHint => Palettes.Describe(_settings.Palette).Description;
 
     /// <summary>
     /// Whether setup slides. Same three states as the palette, and in the same order: the one that is
@@ -3118,8 +3155,37 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         _settingsStore.Save(_settings);
     }
 
+    /// <summary>
+    /// Every colour this class hands to the window, told to be read again.
+    /// <para>
+    /// A property that returns a Brush looks like it follows the theme - it looks the resource up
+    /// each time it is read - but a binding is only read again when the property says it changed,
+    /// and swapping the palette says nothing at all. So these are re-raised by hand, and the list
+    /// has to stay complete: a brush property added without a line here is one control that keeps
+    /// the old palette's colour until the window is next rebuilt, which on the deck means until
+    /// Deck is next started.
+    /// </para>
+    /// <para>
+    /// The destination rows are rebuilt rather than raised, because a row is a plain object with no
+    /// notification of its own; it is a short list and it is only rebuilt when somebody changes a
+    /// setting by hand.
+    /// </para>
+    /// </summary>
+    private void OnPaletteChanged()
+    {
+        RaiseAll(
+            nameof(AdviceBrush), nameof(AdvicePillBrush), nameof(LoudnessBrush), nameof(CorrelationBrush),
+            nameof(SoundCheckBrush), nameof(StateBrush), nameof(GoLiveButtonBrush),
+            nameof(GoLiveButtonTextBrush), nameof(GoLiveButtonBorderBrush), nameof(ConnectionProblemBrush),
+            nameof(ConnectionStatsBrush));
+
+        RefreshTargetStatus();
+    }
+
     public void Dispose()
     {
+        App.PaletteChanged -= OnPaletteChanged;
+
         _uiTimer.Stop();
 
         // Before the engine goes: the handshake file must not outlive the endpoint, or the next

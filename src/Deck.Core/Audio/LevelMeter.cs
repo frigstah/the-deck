@@ -137,17 +137,20 @@ public sealed class LevelMeter
 
     /// <summary>
     /// Thresholds are chosen for speech and music heading into a lossy encoder: aim for peaks
-    /// around -12 to -6 dBFS, which leaves headroom without sounding thin.
+    /// around -12 to -6 dBFS, which leaves headroom without sounding thin. They come from
+    /// <see cref="MeterZones"/> rather than from numbers written here, so the verdict and the
+    /// colour of the bar it sits beside are the same call.
     /// </summary>
     private static LevelAdvice Judge(float windowPeakDb, bool clipped)
     {
         if (clipped) return LevelAdvice.Clipping;
-        return windowPeakDb switch
+        if (windowPeakDb < MeterZones.NoSignalDb) return LevelAdvice.NoSignal;
+
+        return MeterZones.Zone(windowPeakDb) switch
         {
-            < -55f => LevelAdvice.NoSignal,
-            < -24f => LevelAdvice.TooQuiet,
-            < -4f => LevelAdvice.Good,
-            < -1f => LevelAdvice.Loud,
+            MeterZone.Quiet => LevelAdvice.TooQuiet,
+            MeterZone.Good => LevelAdvice.Good,
+            MeterZone.Loud => LevelAdvice.Loud,
             _ => LevelAdvice.Clipping,
         };
     }
