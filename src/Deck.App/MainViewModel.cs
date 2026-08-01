@@ -1279,7 +1279,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             RaiseAll(nameof(SelectedServerSummary), nameof(CanGoLive), nameof(QualitySummary),
                 nameof(ListenUrl), nameof(SelectedServerShort),
                 nameof(BroadcastTargetText), nameof(QualityShort),
-                nameof(SelectedQualityOption),
+                nameof(QualityOptions), nameof(SelectedQualityOption),
                 nameof(CanChangeQuality));
 
             if (wasLive) RestartShowAfterChange();
@@ -1301,32 +1301,39 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     public bool ShowLosslessChip => _selectedServer is not null && _selectedServer.Encoder.Codec.IsLossless();
 
     /// <summary>
-    /// The three bitrates anyone actually picks between. 128 is what every host accepts, 192 is the
-    /// usual compromise, 320 is as good as MP3 gets - and the full 32-320 range is still in the server
-    /// editor for the rare case that needs something else.
+    /// The standard bitrate ladder from 96 kbps up, for whichever codec this server uses.
+    /// <para>
+    /// It held three values - 128, 192, 320 - on the reasoning that those are the ones anyone picks
+    /// between, and that reasoning was wrong in a way that took a tester to find. A stream set to
+    /// 160 kbps showed a blank chip, because the current value was not in the list; the only way to
+    /// use the chip at all was to pick one of the three, which silently moved the server off the
+    /// bitrate its host had asked for.
+    /// </para>
+    /// <para>
+    /// The list is per codec rather than one set of numbers, because the ladders genuinely differ -
+    /// Opus has no 224 and Vorbis has no 112 - and offering a rate the encoder will refuse only to
+    /// correct it afterwards is a worse answer than not offering it.
+    /// </para>
     /// <para>
     /// Bitrate only. Sample rate was here briefly, paired with each bitrate, and it does not belong:
-    /// it is decided once when a server is set up, from what the host asks for, and then never touched
-    /// again. The deck is the surface for the things you change between songs, and putting a
-    /// set-and-forget setting on it doubles the length of this list to no purpose.
+    /// it is one setting for the whole of Deck now, under Sound. The deck is the surface for the
+    /// things you change between songs.
     /// </para>
     /// </summary>
-    public IReadOnlyList<string> QualityOptions { get; } = ["128k", "192k", "320k"];
+    public IReadOnlyList<string> QualityOptions => _selectedServer is null
+        ? []
+        : EncoderSettings
+            .DeckBitrates(_selectedServer.Encoder.Codec, _selectedServer.Encoder.BitrateKbps)
+            .Select(rate => $"{rate}k")
+            .ToList();
 
     /// <summary>
-    /// The current bitrate, or empty when the server is set to something the deck does not offer -
-    /// 256k from the server editor, say. Empty rather than a nearest guess: nothing is selected in
-    /// the list, which is honest, and picking a value still works.
+    /// What this server is set to. Always one of <see cref="QualityOptions"/>, since the current
+    /// value is in that list whether or not it is on the standard ladder.
     /// </summary>
     public string SelectedQualityOption
     {
-        get
-        {
-            if (_selectedServer is null) return string.Empty;
-
-            var candidate = $"{_selectedServer.Encoder.BitrateKbps}k";
-            return QualityOptions.Contains(candidate) ? candidate : string.Empty;
-        }
+        get => _selectedServer is null ? string.Empty : $"{_selectedServer.Encoder.BitrateKbps}k";
 
         set
         {
@@ -1363,8 +1370,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         // Capture runs at the encoder's rate, so a rate change means restarting the input too.
         if (!wasLive) StartAudio();
 
-        RaiseAll(nameof(QualitySummary), nameof(QualityShort), nameof(SelectedQualityOption),
-            nameof(SelectedServerSummary));
+        RaiseAll(nameof(QualitySummary), nameof(QualityShort),
+            nameof(QualityOptions), nameof(SelectedQualityOption),
+            nameof(SelectedServerSummary), nameof(CanChangeQuality), nameof(ShowLosslessChip));
 
         if (wasLive) RestartShowAfterChange();
     }
@@ -1451,6 +1459,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     /// and says whether anything moved. Split out because the constructor needs it before there is a
     /// capture to restart, and calling the whole thing from there started the input twice.
     /// </summary>
+    /// <summary>The same encoder settings, at whatever rate this station runs at.</summary>
+    private EncoderSettings AtStationRate(EncoderSettings encoder) =>
+        (encoder with { SampleRate = _settings.SampleRate ?? EncoderSettings.DefaultSampleRate }).Normalised();
+
     private bool StampSampleRate()
     {
         var chosen = _settings.SampleRate;
@@ -1513,6 +1525,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
 
     public void AddOrUpdateServer(ServerProfile profile)
     {
+        // A server arriving from the editor or the wizard carries whatever rate its encoder settings
+        // defaulted to, which is not necessarily the one this station runs at. The rate stopped
+        // being a per-server choice, so nothing that arrives gets to bring its own.
+        profile.Encoder = AtStationRate(profile.Encoder);
+
         var existing = Servers.FirstOrDefault(s => s.Id == profile.Id);
         if (existing is null)
         {
@@ -1569,6 +1586,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
 
     private int AddServers(List<ServerProfile> incoming)
     {
+        // Same for a shared file or a BUTT configuration: whatever rate came with them, this station
+        // has one and they join it.
+        foreach (var profile in incoming) profile.Encoder = AtStationRate(profile.Encoder);
+
         var added = ProfileStore.MergeInto(Servers, incoming);
 
         if (added > 0)

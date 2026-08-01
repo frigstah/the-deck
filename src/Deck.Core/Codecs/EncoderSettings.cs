@@ -75,6 +75,28 @@ public sealed record EncoderSettings
     /// <summary>What a Deck with no servers and no stored choice runs at: what every host expects.</summary>
     public const int DefaultSampleRate = 44100;
 
+    /// <summary>
+    /// The lowest bitrate the deck's own Quality chip offers. Below this is a voice setting somebody
+    /// chose deliberately in the server editor, not something to reach for between songs.
+    /// </summary>
+    public const int DeckMinimumBitrate = 96;
+
+    /// <summary>
+    /// What the Quality chip on the deck offers for a codec: the standard ladder from 96 kbps up,
+    /// taken from what that codec actually accepts, so Opus is not offered the 224 it cannot encode
+    /// and Vorbis is not offered 112.
+    /// <para>
+    /// The current bitrate is included even when it falls below the floor. The chip used to hold
+    /// three values and show nothing at all for a server set to anything else, which read as Deck
+    /// not supporting that bitrate - and picking from the list was then the only way out, which
+    /// silently moved the server off the rate its host had asked for.
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<int> DeckBitrates(StreamCodec codec, int current) =>
+        AvailableBitrates(codec)
+            .Where(rate => rate >= DeckMinimumBitrate || rate == current)
+            .ToList();
+
     public static IReadOnlyList<int> AvailableSampleRates(StreamCodec codec) => codec switch
     {
         // LAME supports the MPEG-1 and MPEG-2 rate families.

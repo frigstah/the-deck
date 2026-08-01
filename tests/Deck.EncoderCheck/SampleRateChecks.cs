@@ -4,11 +4,16 @@ using Deck.Core.Codecs;
 namespace Deck.EncoderCheck;
 
 /// <summary>
-/// One sample rate for the whole of Deck (D5), and the upgrade that got it there.
+/// The two things the deck decides about outgoing quality: the one sample rate the whole of Deck
+/// runs at (D5), and the bitrates its Quality chip offers.
 /// <para>
 /// The rate used to belong to each server. Moving it to a single setting under Sound is the kind of
 /// change that is easy to get right for a new install and easy to get wrong for everybody who
 /// already had one - which is what most of this file is about.
+/// </para>
+/// <para>
+/// The chip is here for the same reason in miniature: it used to hold three fixed values, and a
+/// server on any other bitrate showed nothing at all.
 /// </para>
 /// </summary>
 internal static class SampleRateChecks
@@ -110,6 +115,57 @@ internal static class SampleRateChecks
             var different = QualityPreset.MusicStandard.Settings with { BitrateKbps = 160 };
             Expect(QualityPreset.Match(different) is null,
                 "a bitrate nobody offers as a preset was matched to one anyway");
+        });
+
+        failures += Check("the deck's quality chip offers the standard ladder from 96 up", () =>
+        {
+            var mp3 = EncoderSettings.DeckBitrates(StreamCodec.Mp3, 128);
+
+            Expect(mp3.SequenceEqual([96, 112, 128, 160, 192, 224, 256, 320]),
+                $"MP3 offers {string.Join(", ", mp3)} rather than the standard ladder");
+
+            foreach (var codec in new[] { StreamCodec.Mp3, StreamCodec.OggOpus, StreamCodec.OggVorbis })
+            {
+                var offered = EncoderSettings.DeckBitrates(codec, 128);
+
+                Expect(offered.Count >= 6, $"{codec} offers only {offered.Count} bitrates on the deck");
+                Expect(offered[0] == 96, $"{codec}'s deck ladder starts at {offered[0]}, not 96");
+                Expect(offered[^1] == 320, $"{codec}'s deck ladder ends at {offered[^1]}, not 320");
+
+                // Never a rate the encoder would refuse and Normalised would then quietly correct.
+                foreach (var rate in offered)
+                {
+                    Expect(EncoderSettings.AvailableBitrates(codec).Contains(rate),
+                        $"{codec} is offered {rate} kbps on the deck and cannot encode it");
+                }
+
+                Expect(offered.SequenceEqual(offered.OrderBy(r => r)), $"{codec}'s ladder is out of order");
+                Expect(offered.Distinct().Count() == offered.Count, $"{codec}'s ladder repeats a rate");
+            }
+
+            // The ladders really do differ, which is why this is per codec rather than one list.
+            Expect(!EncoderSettings.DeckBitrates(StreamCodec.OggOpus, 128).Contains(224),
+                "Opus is offered 224 kbps, which it does not have");
+            Expect(!EncoderSettings.DeckBitrates(StreamCodec.OggVorbis, 128).Contains(112),
+                "Vorbis is offered 112 kbps, which it does not have");
+        });
+
+        failures += Check("a server below the ladder still shows what it is set to", () =>
+        {
+            // The report this came from: a stream on 160 kbps showed a blank chip, because the value
+            // was not one of the three offered. 160 is on the ladder now - but 64 is not, and a voice
+            // server set to it in the editor must still read 64 rather than nothing.
+            var voice = EncoderSettings.DeckBitrates(StreamCodec.Mp3, 64);
+
+            Expect(voice.Contains(64), "a 64 kbps server is not offered its own bitrate, so the chip reads blank");
+            Expect(voice.SequenceEqual(voice.OrderBy(r => r)), "adding the current rate put the ladder out of order");
+
+            // And it is the only thing below the floor that appears - the chip is not a full list.
+            Expect(voice.Count(r => r < EncoderSettings.DeckMinimumBitrate) == 1,
+                "more than the current bitrate appears below the deck's floor");
+
+            var onLadder = EncoderSettings.DeckBitrates(StreamCodec.Mp3, 160);
+            Expect(onLadder.Count(r => r == 160) == 1, "160 kbps appears twice once it is also the current rate");
         });
 
         failures += Check("the setting survives being written and read back", () =>
