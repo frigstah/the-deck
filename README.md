@@ -119,8 +119,10 @@ src/Deck.Core/          No UI. Everything below is usable headless.
 src/Deck.App/           The deck, the setup panel, server editor, first-run wizard, tray, hotkeys
   MainWindow.xaml       The deck in row 1, setup and mini mode over the top of it, the strip below
   SettingRow.cs         One setting: label left, control right, hairline between. 54 of these.
-  Theme.xaml            Both palettes and every style. Dark is applied over it in App.xaml.cs.
+  Theme.xaml            Every style, and the Deck light palette as WPF's starting point
   LevelMeterControl.cs  The segmented meter, drawn; SpectrumControl.cs the 24-band spectrum
+src/Deck.Core/Theming/
+  Palettes.cs           Five palettes in two faces each, as data rather than as XAML
 tests/Deck.EncoderCheck/ Encoders, DSP, parsers, endpoints, MIDI, ASIO, palettes and contrast
 
 site/                   The website, one self-contained page, published to GitHub Pages on change
@@ -165,7 +167,7 @@ worth making: the alternative was a first screen that looks like a control panel
 | Input channels | Pick which inputs on a multi-channel interface feed the stream, or one side of a stereo input |
 | Mixing | Two sources with independent faders, mutes and meters — music under a live microphone |
 | Hot-plug | An input that drops out is taken back automatically the moment it returns |
-| Level coaching | Stereo peak meter with zone colouring, peak-hold marker, traffic-light verdict |
+| Level coaching | Stereo peak meter with zone colouring, peak-hold marker, traffic-light verdict. The amber band starts at -7 dBFS and the red at -2,5, so there is room to notice before there is room to regret |
 | Loudness | BS.1770 / EBU R128 metering in LUFS, momentary and whole-show, against a chosen target |
 | Frequencies and phase | An optional panel, closed by default: a 24-band spectrum, and a stereo phase reading that catches a miswired cable or an over-widened source before mono listeners lose it |
 | Sound check | Record 10 s and play it straight back, with a verdict on the level |
@@ -191,6 +193,7 @@ worth making: the alternative was a first screen that looks like a control panel
 | When it will not connect | The deck says which of the three it is — the password was refused, something else is already broadcasting, or the server is not answering — then whether Deck is still trying, then the full reason with nothing trimmed. The same for Icecast and both SHOUTcasts |
 | Session log | Connects, drops, device trouble and track changes, shown in-app and appended to a daily file |
 | Listeners | Live count from Icecast, SHOUTcast v1 and v2 where the server reports it, summed across destinations |
+| Appearance | Five palettes — Deck, Rosé, Graphite, Arcade, Dragon — each drawn for light and for dark, chosen separately from light-or-dark and applied without a restart |
 | Language | English built in, community translations as JSON files with coverage shown and English as the fallback |
 | Updates | Opt-in check against the GitHub releases, and a one-click install: Deck downloads the new build, checks it against the digest published beside it, closes, replaces itself and starts again. Refused while on air |
 | Installing | A per-user installer that needs no administrator rights, and a portable zip that keeps its settings beside the executable. Every push to `main` publishes both as a beta pre-release |
@@ -292,8 +295,8 @@ worth making: the alternative was a first screen that looks like a control panel
   plain http, `file://`, an unlisted GitHub host), a release with no checksum, a release pointing
   off GitHub, a payload with no `Deck.exe`, and the command line that triggers a file copy over an
   install directory — which must never be reachable by accident.
-- **Both themes, on real hardware.** The window was captured from the running app in the Windows
-  light and dark settings, across several panes, with a live signal on the meter. This is how the
+- **Every palette, on real hardware.** The window was captured from the running app in all five
+  palettes and both brightnesses, across several panes, with a live signal on the meter. This is how the
   meter's peak-hold crash was found: it only fired once the level rose above the floor, so it looked
   intermittent and theme-related when it was neither.
 - **The rail layout.** Every one of the seven panes was rendered from the running app and checked
@@ -321,15 +324,25 @@ worth making: the alternative was a first screen that looks like a control panel
   technology. `TabControl` publishes the selected pane's contents only through the content host it
   finds by the name `PART_SelectedContentHost`, and the rail template had left it unnamed. Naming it
   took the window from five reachable buttons to every one of them.
-- **Both palettes define the same colours.** Checked as text, because nothing else catches it: the
-  light palette lives in `Theme.xaml` and the dark one is applied over it in code, so a colour added
-  to one and forgotten in the other builds, runs, and leaves a single stubbornly light element on a
-  dark window. All 29 keys are present in both.
-- **Contrast, computed rather than judged.** The WCAG relative-luminance formula over both palettes:
-  text and hint text to AA, the on-air block and every meter zone to the large-element bar. It caught
-  two colours on the first run — light hint text at 4.3:1 against the new ground, and a quiet meter
-  zone lifted so far from "slab" that lit and unlit were 1.44:1 apart. Both colours were fixed rather
-  than the thresholds lowered.
+- **Every palette defines every colour.** There are five palettes in two faces each, so the colours
+  live in `Palettes.cs` as data the checks can simply ask, rather than in two files compared as text.
+  `Theme.xaml` still declares the Deck light face — a resource dictionary has to be valid before any
+  code runs — and is checked value by value against it, since that is the one copy left.
+- **Contrast, computed rather than judged.** The WCAG relative-luminance formula over all ten faces:
+  text, hint text and rail labels to AA; the on-air block, the status colours and every meter zone to
+  the large-element bar. It has never once run clean first time. On the four new palettes it caught
+  five colours, two of them in the palette that had already shipped — footer readouts at 4.4:1 on the
+  status strip, and rail labels at 4.4:1 — both of which had been below AA since the light theme was
+  drawn, because until now nothing measured text against those two grounds.
+- **Neighbouring meter zones are told apart**, measured as perceptual distance in Lab rather than as
+  contrast. Written as contrast first, and it was wrong in both directions: it failed Arcade's cyan
+  running into its amber, which anybody can see is a boundary, and passed two browns of the same
+  lightness, which nobody can.
+- **Every brush the window is handed is re-read when the palette changes.** A `Brush` reaches the
+  window through a binding, and a binding is only read again when the property says it changed —
+  swapping the palette says nothing. So the deck repainted and the on-air button kept the colour of
+  the palette before it. The check compares the brush properties that exist against the names the
+  refresh raises, so adding one without refreshing it fails here.
 - **The deck and every setup pane render.** Each of the seven panes selected in turn through the
   automation tree and photographed, which is also how they were confirmed to expose themselves to a
   screen reader — Sound publishes 68 automation elements, Control 60.
@@ -429,11 +442,15 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   halfway through a sentence glancing up from four metres away, and it has been tested by looking at
   screenshots. It may turn out the clock wants to be bigger, or that the chips are noise, or that a
   sixth thing is missing.
-- **The on-air state has only been seen off air.** Every screenshot of both palettes shows OFF AIR.
+- **The on-air state has only been seen off air.** Every screenshot of every palette shows OFF AIR.
   The lamp, the red state block and the elapsed clock are all bound and the colours are checked for
   contrast, but no capture exists of the deck while it is actually live.
-- **The light theme has not been used for a show.** It is designed and its contrast is computed, but
-  the dark one is what has been lived in.
+- **Only Deck dark has been used for a show.** The other nine faces are designed, measured and
+  photographed from the running window, but the dark petrol one is what has been lived in. Rosé,
+  Graphite, Arcade and Dragon have never had a broadcast run through them.
+- **The palettes were checked against a number, not against an eye.** Contrast and perceptual
+  distance are computed for every pair that matters, and both caught real faults — but no
+  colour-blind person, and nobody in a bright room, has yet looked at Arcade or Dragon.
 - **The first-run wizard has not been re-fitted to the deck.** It is inherited from SIRS unchanged and
   still describes a window that no longer exists in quite that shape.
 
@@ -596,6 +613,21 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   rethought, not recoloured: on a pale ground a lit segment is *darker* than the ground, so carrying
   the dark theme's quiet grey drew a heavy slab across two thirds of the meter and made a quiet signal
   look loud.
+- **The meter's colours and its words are one decision.** Where the bar turns amber and where the
+  verdict beside it starts saying "a little hot" used to be the same three numbers written out in
+  three files — the drawn control, the live meter, and the sound check. Three copies of a threshold
+  is three chances for the bar to warn while the words say everything is fine, and the meter is
+  meant to teach. They are now one set of constants, and a check drives real samples through the
+  meter and fails if the colour and the verdict ever disagree.
+- **The caution band is wider than the level that actually clips.** Amber from -7 dBFS, red from
+  -2,5. A peak meter reads sample peaks and a lossy encoder can overshoot those by a decibel or more
+  on the way out, so the point at which somebody should ease off sits well below the point at which
+  the number goes red. The old boundaries gave the deck's meter one red segment and two amber ones
+  out of sixty-four — a warning nobody notices until it is a red bar, by which time the advice has
+  stopped being advice. It is now two and three, which is checked as segment counts rather than as
+  decibels: the scale is curved, so moving a threshold three decibels can be worth one segment or
+  five, and the number anybody actually cares about is how much of the bar changed colour.
+
 - **The settings folder is The Deck's own.** It is a fork, so both are installable side by side, and
   sharing one file would have each overwrite the other's servers whenever it closed.
 - **The DPAPI entropy still says SIRS.** It is not a secret, only a value that has to match whatever
@@ -725,11 +757,22 @@ One live Icecast broadcast is proven (above). These paths still have not met a r
   server editor and the log window, which works out from the window it is in which buttons make
   sense — the same rules the system caption follows — and applies the maximised-bounds correction so
   a window only has to place it to get the whole treatment.
-- **Following Windows is a default, not a rule.** Appearance on the Deck pane offers Follow Windows,
-  Light and Dark. Following the system is right for most people most of the time, which is why it is
-  the default — but a studio PC is often left on the system light theme by whoever set it up, and
-  the person sitting at it at midnight is not that person. Choosing outright makes Deck ignore the
-  system entirely, including while it is running.
+- **Following Windows is a default, not a rule.** Light or dark on the Deck pane offers Follow
+  Windows, Light and Dark. Following the system is right for most people most of the time, which is
+  why it is the default — but a studio PC is often left on the system light theme by whoever set it
+  up, and the person sitting at it at midnight is not that person. Choosing outright makes Deck
+  ignore the system entirely, including while it is running.
+- **Which colours and how bright are two questions.** Deck ships with five palettes — its own petrol
+  teal, plus Rosé, Graphite, Arcade and Dragon — and every one of them is drawn twice, for light and
+  for dark. They are two settings on screen for the same reason they are two in the file: picking a
+  palette must never quietly overrule what somebody told Windows about their eyes or their room. A
+  single list of ten combinations would have been a longer way of asking the same thing.
+- **A palette is designed twice, not derived once.** Inverting a light palette gives a muddy accent
+  and unreadable fills — an accent has to gain lightness to hold against a dark ground, and pill
+  backgrounds have to become deep tints of their own hue rather than pale ones darkened. What *is*
+  worked out rather than chosen is the last third of each palette: the soft fill behind a verdict and
+  the unlit half of the meter are the same colour faded into the window, which carries no design
+  decision and is how a twenty-first shade of nearly-the-background gets in by accident.
 - **Switching the Windows theme repaints Deck immediately.** It used to need a restart, and the
   reason is worth recording because it looked like it worked. The palette is applied by overwriting
   colour keys, and Theme.xaml declares its brushes as `Color="{DynamicResource BackgroundColor}"` —
@@ -829,4 +872,4 @@ is dynamically linked combines with GPL-3.0 without difficulty.
 carries its full commit history — so the lineage is in the repository itself rather than only in this
 paragraph. The audio engine, the source protocols and most of the verification suite are shared
 ancestry. What is original to The Deck is the interface: the deck window, the setting-row pane
-language, and both palettes.
+language, and the palettes.

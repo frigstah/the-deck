@@ -147,14 +147,17 @@ public sealed class SoundCheck : IDisposable
         var peakDb = AudioMath.ToDb(peak);
         var rmsDb = AudioMath.ToDb((float)Math.Sqrt(sumSquares / samples.Length));
 
-        var advice = peakDb switch
-        {
-            < -55f => LevelAdvice.NoSignal,
-            < -24f => LevelAdvice.TooQuiet,
-            < -4f => LevelAdvice.Good,
-            < -1f => LevelAdvice.Loud,
-            _ => LevelAdvice.Clipping,
-        };
+        // Same boundaries as the live meter, from the same place: a recording played back should
+        // reach the same verdict the bar showed while it was being made.
+        var advice = peakDb < MeterZones.NoSignalDb
+            ? LevelAdvice.NoSignal
+            : MeterZones.Zone(peakDb) switch
+            {
+                MeterZone.Quiet => LevelAdvice.TooQuiet,
+                MeterZone.Good => LevelAdvice.Good,
+                MeterZone.Loud => LevelAdvice.Loud,
+                _ => LevelAdvice.Clipping,
+            };
 
         var seconds = (double)samples.Length / format.Channels / format.SampleRate;
         return new SoundCheckSummary(peakDb, rmsDb, advice, seconds);

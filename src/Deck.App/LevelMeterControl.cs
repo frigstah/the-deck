@@ -162,19 +162,24 @@ public sealed class LevelMeterControl : FrameworkElement
         }
     }
 
-    private static Brush LitBrush(float db) => db switch
+    /// <summary>
+    /// Where the colours change is <see cref="MeterZones"/>' decision, not this control's. The
+    /// verdict printed beside the bar is reached from the same boundaries, so the amber part of the
+    /// scale and the word "loud" arrive together.
+    /// </summary>
+    private static Brush LitBrush(float db) => MeterZones.Zone(db) switch
     {
-        >= -1f => Themed("MeterClipBrush", "#FFC9564C"),
-        >= -4f => Themed("MeterLoudBrush", "#FFD7A64A"),
-        >= -24f => Themed("MeterGoodBrush", "#FF3F9E76"),
+        MeterZone.Clip => Themed("MeterClipBrush", "#FFC9564C"),
+        MeterZone.Loud => Themed("MeterLoudBrush", "#FFD7A64A"),
+        MeterZone.Good => Themed("MeterGoodBrush", "#FF3F9E76"),
         _ => Themed("MeterQuietBrush", "#FF9AA5A2"),
     };
 
-    private static Brush UnlitBrush(float db) => db switch
+    private static Brush UnlitBrush(float db) => MeterZones.Zone(db) switch
     {
-        >= -1f => Themed("MeterClipOffBrush", "#FFF0DEDC"),
-        >= -4f => Themed("MeterLoudOffBrush", "#FFF0E4CE"),
-        >= -24f => Themed("MeterGoodOffBrush", "#FFD6E8DF"),
+        MeterZone.Clip => Themed("MeterClipOffBrush", "#FFF0DEDC"),
+        MeterZone.Loud => Themed("MeterLoudOffBrush", "#FFF0E4CE"),
+        MeterZone.Good => Themed("MeterGoodOffBrush", "#FFD6E8DF"),
         _ => Themed("MeterQuietOffBrush", "#FFE8E8E4"),
     };
 

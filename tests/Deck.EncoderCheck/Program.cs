@@ -177,6 +177,11 @@ internal static class Program
         Console.WriteLine(controlFailures == 0 ? "PASS\n" : $"{controlFailures} case(s) FAILED\n");
         failures += controlFailures;
 
+        Console.WriteLine("--- Where the meter changes colour ---");
+        var meterFailures = MeterChecks.Run();
+        Console.WriteLine(meterFailures == 0 ? "PASS\n" : $"{meterFailures} case(s) FAILED\n");
+        failures += meterFailures;
+
         Console.WriteLine("--- Palettes and contrast ---");
         var themeFailures = ThemeChecks.Run();
         Console.WriteLine(themeFailures == 0 ? "PASS\n" : $"{themeFailures} case(s) FAILED\n");

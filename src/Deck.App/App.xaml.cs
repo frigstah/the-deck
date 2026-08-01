@@ -6,6 +6,7 @@ using System.Windows.Media;
 using Microsoft.Win32;
 using Deck.Core;
 using Deck.Core.Control;
+using Deck.Core.Theming;
 using Deck.Core.Updates;
 
 namespace Deck.App;
@@ -43,7 +44,9 @@ public partial class App : Application
         // read here rather than waiting for the view model to load them. Reading the file twice
         // costs nothing; showing the wrong palette for a moment and then correcting it is a flash
         // the user would see.
-        _preference = new SettingsStore().Load().Theme;
+        var stored = new SettingsStore().Load();
+        _preference = stored.Theme;
+        _palette = stored.Palette;
         ApplySystemTheme();
 
         // Windows can be switched between light and dark while Deck is running, and a broadcaster
@@ -195,12 +198,14 @@ public partial class App : Application
     /// <summary>Where Theme.xaml came from, taken from the dictionary App.xaml already merged.</summary>
     private Uri? _paletteSource;
 
-    private bool? _appliedDark;
+    private (DeckPalette Palette, bool Dark)? _applied;
 
     private static AppTheme _preference = AppTheme.System;
 
+    private static DeckPalette _palette = DeckPalette.Deck;
+
     /// <summary>
-    /// Changes the palette and keeps it changed. Called from the Deck pane; the caller is
+    /// Changes light or dark and keeps it changed. Called from the Deck pane; the caller is
     /// responsible for storing the choice, since this class has no business writing settings.
     /// </summary>
     public static void UseTheme(AppTheme theme)
@@ -208,6 +213,26 @@ public partial class App : Application
         _preference = theme;
         (Current as App)?.ApplySystemTheme();
     }
+
+    /// <summary>Changes which colours, independently of light or dark.</summary>
+    public static void UsePalette(DeckPalette palette)
+    {
+        _palette = palette;
+        (Current as App)?.ApplySystemTheme();
+    }
+
+    /// <summary>
+    /// Raised once the palette on screen has actually been replaced.
+    /// <para>
+    /// Everything drawn from a DynamicResource repaints on its own. What does not is a brush handed
+    /// to the window by a view model property: that resolves the resource when the binding is read,
+    /// and a binding is only read again when something says the property changed. Swapping the
+    /// palette says nothing, so those surfaces keep the colour they were built with - which is why
+    /// switching to Dragon left the on-air button teal, and why switching between light and dark
+    /// had been leaving it wrong in the same way long before there was more than one palette.
+    /// </para>
+    /// </summary>
+    public static event Action? PaletteChanged;
 
     /// <summary>
     /// Follows the Windows light/dark setting (I5), at any time rather than only at startup.
@@ -228,7 +253,8 @@ public partial class App : Application
     /// and unreadable soft fills: the petrol teal has to come up in lightness to hold against a dark
     /// ground, and the pill backgrounds have to go to deep tints of their own hue rather than to
     /// pale ones darkened. The rail goes <em>darker</em> than the window rather than lighter, so it
-    /// still reads as a rail instead of merging with the pane beside it.
+    /// still reads as a rail instead of merging with the pane beside it. Every palette in
+    /// <see cref="Palettes"/> is drawn twice for that reason rather than derived once.
     /// </para>
     /// </summary>
     private void ApplySystemTheme()
@@ -243,69 +269,27 @@ public partial class App : Application
         // Windows raises its preference-changed event for a great many things that are not the
         // theme, and rebuilding the palette on each of them would be wasteful and visible. This also
         // makes the system's changes free to ignore while the user has chosen a palette outright.
-        if (_appliedDark == dark) return;
+        if (_applied == (_palette, dark)) return;
 
         _paletteSource ??= Resources.MergedDictionaries.FirstOrDefault()?.Source;
         if (_paletteSource is null) return;
 
-        _appliedDark = dark;
+        _applied = (_palette, dark);
 
-        // A fresh copy is the light palette by definition, so light needs no code of its own and the
-        // two themes cannot drift apart.
+        // Written into a fresh copy while nothing is using it yet, for the reason above. Every face
+        // is written in full, including Deck's own light one: Theme.xaml's values and that face are
+        // checked to be the same thing, and writing them anyway means there is exactly one path
+        // through here rather than one path and a special case that only the default takes.
         var palette = new ResourceDictionary { Source = _paletteSource };
-        if (dark) ApplyDarkPalette(palette);
+
+        foreach (var (key, hex) in Palettes.Face(_palette, dark).Colours())
+        {
+            palette[key] = (Color)ColorConverter.ConvertFromString(hex)!;
+        }
 
         Resources.MergedDictionaries[0] = palette;
-    }
 
-    private static void ApplyDarkPalette(ResourceDictionary palette)
-    {
-        Set("BackgroundColor", "#FF15181B");
-        Set("SurfaceColor", "#FF1C2024");
-        Set("BorderColor", "#FF2C3238");
-        Set("TextColor", "#FFE7E9E7");
-        Set("MutedTextColor", "#FF939BA2");
-        Set("AccentColor", "#FF5FB6B4");
-        Set("OnAccentColor", "#FF10211F");
-        Set("OkColor", "#FF57C295");
-        Set("WarnColor", "#FFDFA84A");
-        Set("BadColor", "#FFE8574C");
-        Set("LiveColor", "#FFE8574C");
-
-        // Gold can actually be gold here. On the dark window the bright metallic shade is both
-        // legible and unmistakably gold, which it is not on white.
-        Set("GoldColor", "#FFE3C264");
-
-        Set("OkSoftColor", "#FF17352A");
-        Set("WarnSoftColor", "#FF33290F");
-        Set("BadSoftColor", "#FF3A1F1D");
-        Set("NeutralSoftColor", "#FF23282C");
-
-        // Darker than the window, not lighter. On a dark theme a lighter rail would read as a
-        // raised panel; darker keeps it reading as the edge of the window.
-        Set("RailColor", "#FF0F1215");
-        Set("RailSelectedColor", "#FF1A2025");
-        Set("RailTextColor", "#FF79828A");
-        Set("StatusBarColor", "#FF101317");
-
-        // Caption hover: a light wash on a dark window, where the light theme uses a dark one.
-        // Black at 9% over #15181B is very nearly nothing at all.
-        Set("CaptionHoverColor", "#20FFFFFF");
-        Set("CaptionPressedColor", "#38FFFFFF");
-
-        // Lit segments stay close to their light-theme hues - a green meter is a green meter - but
-        // the unlit ones become deep tints instead of pale ones, or the whole scale would glow.
-        Set("MeterQuietColor", "#FF6E7A78");
-        Set("MeterGoodColor", "#FF3F9E76");
-        Set("MeterLoudColor", "#FFD7A64A");
-        Set("MeterClipColor", "#FFDD5A4F");
-        Set("MeterQuietOffColor", "#FF262B2E");
-        Set("MeterGoodOffColor", "#FF1E332B");
-        Set("MeterLoudOffColor", "#FF332C1C");
-        Set("MeterClipOffColor", "#FF351F1D");
-
-        void Set(string key, string hex) =>
-            palette[key] = (Color)ColorConverter.ConvertFromString(hex)!;
+        PaletteChanged?.Invoke();
     }
 
     /// <summary>

@@ -1592,11 +1592,21 @@
                         <StackPanel Style="{StaticResource SettingGroupStyle}" Margin="0,14,0,0">
                             <TextBlock Text="A P P E A R A N C E" Style="{StaticResource GroupHeadingStyle}" />
 
-                            <local:SettingRow Label="Palette" ContentWidth="330"
+                            <!-- Two questions, not one. Which colours and how bright are
+                                 independent - every palette is drawn twice - so a list of ten
+                                 combinations would be a longer way of asking the same thing. -->
+                            <local:SettingRow Label="Colours" ContentWidth="330"
+                                              Hint="{Binding PaletteHint}">
+                                <ComboBox ItemsSource="{Binding PaletteOptions}"
+                                          SelectedItem="{Binding SelectedPalette}"
+                                          AutomationProperties.Name="Colours" />
+                            </local:SettingRow>
+
+                            <local:SettingRow Label="Light or dark" ContentWidth="330"
                                               Hint="{Binding ThemeHint}">
                                 <ComboBox ItemsSource="{Binding ThemeOptions}"
                                           SelectedItem="{Binding SelectedTheme}"
-                                          AutomationProperties.Name="Palette" />
+                                          AutomationProperties.Name="Light or dark" />
                             </local:SettingRow>
 
                             <local:SettingRow Label="Setup panel" ContentWidth="330"
