@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A backing-track player, existing only so the deck has one program to capture while the palettes
+    are photographed. Named for what it stands in for: the input chip on the deck shows the program
+    it is listening to, and a screenshot of a karaoke encoder should not be showing the name of a
+    scripting host.
+
+    WinExe rather than Exe so it has no console window, and so no window title for the deck to prefer
+    over the program's own name.
+
+    Not in Deck.sln - see the note in tools/fakecast/fakecast.csproj for why.
+  -->
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Karaoke Player</AssemblyName>
+    <RootNamespace>KaraokePlayer</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The same version Deck.Core uses, so the capture and the product are hearing one library. -->
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
+
+</Project>

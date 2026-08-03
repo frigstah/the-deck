@@ -226,15 +226,17 @@
   .panel-foot .right { margin-left: auto; }
 
   /* ================================================================ palettes
-     Five palettes, each drawn twice, exactly as the product ships them. The
+     Seven palettes, each drawn twice, exactly as the product ships them. The
      values below are not written by hand and not sampled from a screenshot: they
      are printed by the check suite straight out of Palettes.cs, and a check fails
      if this block and the product ever disagree. Regenerate with
 
          dotnet run --project tests/Deck.EncoderCheck -- --site-palettes
 
-     Everything inside a swatch is drawn from --p-* only, so a card knows nothing
-     about the page's own dark petrol and cannot leak it into a light face. */
+     It is a manifest as much as a stylesheet. What the page draws from it is the
+     frame around each screenshot; the rest is here so that the check has the whole
+     palette to compare, which is what stops this page and the product drifting
+     apart without anybody noticing. */
   .faces { display: flex; gap: 0.5rem; margin: 0 0 1.75rem; }
   .faces button {
     font-family: var(--mono);
@@ -250,54 +252,119 @@
   .faces button[aria-pressed="true"] { color: var(--on-accent); background: var(--accent); border-color: var(--accent); }
   .faces button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-  .palettes { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 1.25rem; }
+  /* These are photographs rather than a drawing of the product: the same build,
+     started once for each palette and each face, on air to a server running on
+     the same machine with a programme playing into it. That is why the meter is
+     lit, the clock is running and the listener count is a number - none of it is
+     mocked up, and a screenshot that had been would be found out by the first
+     person to open the app.
+
+     The mat under each picture is the palette's own background colour, taken
+     from the generated block below, so the edge of the window and the edge of the
+     card are the same colour and the deck appears to sit in the page rather than
+     on top of it. */
+  .palettes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.75rem 1.25rem; }
   .pal { margin: 0; }
-  .swatch {
-    container-type: inline-size;
+
+  /* The palette the product ships in, across the whole row and so at very nearly
+     the size it was taken: one picture somebody can actually read before being
+     offered six more they have to open. It also settles the arithmetic - seven
+     cards in a three-column grid would otherwise leave one on a row of its own. */
+  .pal.lead { grid-column: 1 / -1; }
+
+  .shot {
+    display: block;
+    position: relative;
+    width: 100%;
+    padding: 0.45rem;
+    border: 1px solid var(--p-line);
+    border-radius: 0;
     background: var(--p-ground);
-    border: 1px solid var(--p-line);
-    padding: 5cqw;
-    display: flex;
-    flex-direction: column;
-    gap: 4cqw;
+    cursor: zoom-in;
+    font: inherit;
+    color: inherit;
+    transition: transform 140ms ease, box-shadow 140ms ease;
   }
-  .pal-top { display: flex; align-items: center; gap: 3cqw; }
-  .pal-lamp { width: 3cqw; height: 3cqw; min-width: 7px; min-height: 7px; border-radius: 50%; background: var(--p-live); flex: none; }
-  .pal-state {
-    font-family: var(--display);
-    font-weight: 600;
-    font-size: clamp(0.8rem, 7cqw, 1.15rem);
-    letter-spacing: 0.02em;
-    color: var(--p-text);
-  }
-  .pal canvas { display: block; width: 100%; }
-  .pal-row { display: flex; align-items: center; gap: 3cqw; }
-  .pal-chip {
-    border: 1px solid var(--p-line);
-    background: var(--p-surface);
-    color: var(--p-muted);
-    padding: 1.6cqw 3cqw;
+  .shot img { display: block; width: 100%; height: auto; }
+  .shot:hover, .shot:focus-visible { transform: translateY(-3px); box-shadow: 0 12px 34px rgba(0, 0, 0, 0.5); }
+  .shot:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .palettes[data-face="dark"] .shot img[data-face="light"] { display: none; }
+  .palettes[data-face="light"] .shot img[data-face="dark"] { display: none; }
+
+  /* Shown on hover and on keyboard focus, and never the only way to know the
+     picture can be opened - the whole card is the target. */
+  .shot-zoom {
+    position: absolute;
+    right: 0.9rem;
+    bottom: 0.9rem;
     font-family: var(--mono);
-    font-size: clamp(0.52rem, 3.4cqw, 0.68rem);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--p-on-accent);
+    background: var(--p-accent);
+    padding: 0.3rem 0.6rem;
+    opacity: 0;
+    transition: opacity 140ms ease;
   }
-  /* Outlined rather than filled, because that is what the product does while a
-     show is out: going on air should be an inviting target and taking a station
-     off air should not be something the hand finds by accident. */
-  .pal-go {
-    margin-left: auto;
+  .shot:hover .shot-zoom, .shot:focus-visible .shot-zoom { opacity: 1; }
+  /* A finger cannot hover, so on a touch screen the offer is simply always there. */
+  @media (hover: none) { .shot-zoom { opacity: 1; } }
+  /* No dialog element, no way to open anything: the card stops offering. */
+  .palettes.no-lightbox .shot { cursor: default; }
+  .palettes.no-lightbox .shot-zoom { display: none; }
+
+  .lightbox {
+    padding: 0;
+    border: 1px solid var(--p-line);
+    background: var(--p-ground);
+    /* Two pixels wider than the window in the picture, which is what the border
+       takes: the point of opening one of these is to see it at the size it was
+       captured, and a screenshot stretched even a little is a soft screenshot. */
+    width: min(96vw, 1022px);
+    max-width: min(96vw, 1022px);
+    max-height: 94vh;
+    overflow: auto;
+  }
+  .lightbox::backdrop { background: rgba(4, 8, 10, 0.86); }
+  .lightbox-stage { overflow: auto; }
+  .lightbox-stage img { display: block; width: 100%; height: auto; }
+  /* On a phone the dialog is no wider than the card that opened it, so opening one
+     would show the same unreadable picture at the same size. Below this width the
+     picture is drawn at the size it was taken and the stage pans instead - the bar
+     underneath stays where it is, because it belongs to the dialog and not to the
+     picture. */
+  @media (max-width: 760px) {
+    .lightbox-stage img { width: 1020px; max-width: none; }
+  }
+  .lightbox-bar {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border-top: 1px solid var(--p-line);
+  }
+  .lightbox-bar b { font-family: var(--display); font-weight: 600; color: var(--p-text); }
+  .lightbox-bar span { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--p-muted); }
+  .lightbox-bar .keys { margin-left: auto; }
+  .lightbox button {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--p-accent);
     background: transparent;
     border: 1px solid var(--p-accent);
-    color: var(--p-accent);
-    padding: 1.6cqw 4cqw;
-    font-family: var(--mono);
-    font-size: clamp(0.52rem, 3.4cqw, 0.68rem);
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    white-space: nowrap;
+    padding: 0.35rem 0.8rem;
+    cursor: pointer;
   }
+  .lightbox button:focus-visible { outline: 2px solid var(--p-accent); outline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shot, .shot-zoom { transition: none; }
+    .shot:hover, .shot:focus-visible { transform: none; }
+  }
+
   figcaption { margin-top: 0.7rem; }
   figcaption b { font-family: var(--display); font-weight: 600; font-size: 0.95rem; display: block; }
   figcaption span { font-size: 0.85rem; color: var(--muted); }
@@ -313,6 +380,10 @@
   .palettes[data-face="dark"] [data-palette="arcade"] { --p-ground: #0B0E14; --p-surface: #121620; --p-line: #232A38; --p-text: #DDE4F2; --p-muted: #8791A6; --p-accent: #35D6EE; --p-on-accent: #04141A; --p-live: #FF3B6B; --p-mq: #566072; --p-mg: #35D6EE; --p-ml: #E0B341; --p-mc: #FF3B6B; --p-mq-off: #1A1E27; --p-mg-off: #133640; --p-ml-off: #362F1D; --p-mc-off: #3C1725; }
   .palettes[data-face="light"] [data-palette="dragon"] { --p-ground: #F6F0E6; --p-surface: #FFFCF6; --p-line: #E3D8C4; --p-text: #2B211A; --p-muted: #73604B; --p-accent: #A34A16; --p-on-accent: #FFFFFF; --p-live: #B3301F; --p-mq: #BFB1A0; --p-mg: #A34A16; --p-ml: #C9A227; --p-mc: #B3301F; --p-mq-off: #F3ECE2; --p-mg-off: #ECDCCD; --p-ml-off: #F1E7CF; --p-mc-off: #EED9CE; }
   .palettes[data-face="dark"] [data-palette="dragon"] { --p-ground: #17110E; --p-surface: #201814; --p-line: #392A21; --p-text: #F0E5D8; --p-muted: #A99177; --p-accent: #E0762F; --p-on-accent: #241008; --p-live: #E8574C; --p-mq: #7A6A5C; --p-mg: #E0762F; --p-ml: #E3C264; --p-mc: #E8574C; --p-mq-off: #2B231E; --p-mg-off: #3F2515; --p-ml-off: #40341F; --p-mc-off: #411F1A; }
+  .palettes[data-face="light"] [data-palette="forest"] { --p-ground: #F1F4EE; --p-surface: #FFFFFF; --p-line: #DBE3D6; --p-text: #1C2620; --p-muted: #56634F; --p-accent: #2F6B3A; --p-on-accent: #FFFFFF; --p-live: #C0392B; --p-mq: #B2BDAF; --p-mg: #2F6B3A; --p-ml: #C08820; --p-mc: #C0392B; --p-mq-off: #EDF1EA; --p-mg-off: #DAE4D8; --p-ml-off: #EBE7D5; --p-mc-off: #EBDED7; }
+  .palettes[data-face="dark"] [data-palette="forest"] { --p-ground: #121A14; --p-surface: #1A231C; --p-line: #2A372C; --p-text: #E3EAE1; --p-muted: #93A392; --p-accent: #6FC07A; --p-on-accent: #0C1A10; --p-live: #E8574C; --p-mq: #5F7062; --p-mg: #6FC07A; --p-ml: #D7A64A; --p-mc: #DD5A4F; --p-mq-off: #212B24; --p-mg-off: #253B28; --p-ml-off: #39361F; --p-mc-off: #3B2720; }
+  .palettes[data-face="light"] [data-palette="tide"] { --p-ground: #EFF3F8; --p-surface: #FFFFFF; --p-line: #D7E1EB; --p-text: #16202A; --p-muted: #52616F; --p-accent: #16607F; --p-on-accent: #FFFFFF; --p-live: #C0392B; --p-mq: #A8B6C1; --p-mg: #16607F; --p-ml: #C08820; --p-mc: #C0392B; --p-mq-off: #EBEFF5; --p-mg-off: #D5E1E9; --p-ml-off: #E9E6DE; --p-mc-off: #E9DDDF; }
+  .palettes[data-face="dark"] [data-palette="tide"] { --p-ground: #0C131A; --p-surface: #131C25; --p-line: #222F3B; --p-text: #DCE6EF; --p-muted: #8899A8; --p-accent: #4FB0D8; --p-on-accent: #03151E; --p-live: #E8574C; --p-mq: #556673; --p-mg: #4FB0D8; --p-ml: #D7A64A; --p-mc: #DD5A4F; --p-mq-off: #1B242C; --p-mg-off: #193240; --p-ml-off: #353024; --p-mc-off: #362125; }
 /* ---- end generated ---- */
 
   /* ================================================================== strip */
@@ -619,7 +690,7 @@
     <div class="shell">
       <div class="heading-block">
         <p class="eyebrow">Make it yours</p>
-        <h2>Five palettes, and every one of them drawn twice.</h2>
+        <h2>Seven palettes, and every one of them drawn twice.</h2>
         <p>
           Deck follows Windows into light and dark, so a palette that only existed in one of them
           would simply not appear for half the people who chose it. Which colours and how bright are
@@ -628,72 +699,93 @@
         </p>
         <p>
           Every colour is measured rather than judged &mdash; text, hints, rail labels and the meter,
-          against the contrast standard, on all ten faces. It is not decoration: this is a window
+          against the contrast standard, on all fourteen faces. It is not decoration: this is a window
           that sits open for the length of a show.
+        </p>
+        <p>
+          Every picture below is a photograph of the deck on air, one per palette. Open any of them to
+          see it full size.
         </p>
       </div>
 
-      <div class="faces" role="group" aria-label="Show the palettes light or dark">
+      <div class="faces" role="group" aria-label="Show the deck light or dark">
         <button type="button" data-face="dark" aria-pressed="true">Dark</button>
         <button type="button" data-face="light" aria-pressed="false">Light</button>
       </div>
 
       <div class="palettes" data-face="dark">
-        <figure class="pal" data-palette="deck">
-          <div class="swatch">
-            <div class="pal-top"><span class="pal-lamp"></span><span class="pal-state">ON AIR</span></div>
-            <canvas data-meter="segments" data-seed="1.3" data-height="26" aria-hidden="true"></canvas>
-            <div class="pal-row">
-              <span class="pal-chip">MP3 256</span>
-              <span class="pal-go">OFF AIR</span>
-            </div>
-          </div>
+        <figure class="pal lead">
+          <button type="button" class="shot" data-palette="deck" data-name="Deck">
+            <img data-face="dark" src="shots/palettes/deck-dark.png" width="1020" height="482" loading="lazy" decoding="async" alt="The deck on air in the Deck palette, dark">
+            <img data-face="light" src="shots/palettes/deck-light.png" width="1020" height="482" loading="lazy" decoding="async" alt="The deck on air in the Deck palette, light">
+            <span class="shot-zoom">Enlarge</span>
+          </button>
           <figcaption><b>Deck</b><span>The petrol teal Deck was drawn in.</span></figcaption>
         </figure>
-        <figure class="pal" data-palette="rose">
-          <div class="swatch">
-            <div class="pal-top"><span class="pal-lamp"></span><span class="pal-state">ON AIR</span></div>
-            <canvas data-meter="segments" data-seed="3.0" data-height="26" aria-hidden="true"></canvas>
-            <div class="pal-row">
-              <span class="pal-chip">MP3 256</span>
-              <span class="pal-go">OFF AIR</span>
-            </div>
-          </div>
+        <figure class="pal">
+          <button type="button" class="shot" data-palette="rose" data-name="Ros&eacute;">
+            <img data-face="dark" src="shots/palettes/rose-dark.png" width="1020" height="482" loading="lazy" decoding="async" alt="The deck on air in the Ros&eacute; palette, dark">
+            <img data-face="light" src="shots/palettes/rose-light.png" width="1020" height="482" loading="lazy" decoding="async" alt="The deck on air in the Ros&eacute; palette, light">
+            <span class="shot-zoom">Enlarge</span>
+          </button>
           <figcaption><b>Ros&eacute;</b><span>Blush and plum.</span></figcaption>
         </figure>
-        <figure class="pal" data-palette="graphite">
-          <div class="swatch">
-            <div class="pal-top"><span class="pal-lamp"></span><span class="pal-state">ON AIR</span></div>
-            <canvas data-meter="segments" data-seed="4.7" data-height="26" aria-hidden="true"></canvas>
-            <div class="pal-row">
-              <span class="pal-chip">MP3 256</span>
-              <span class="pal-go">OFF AIR</span>
-            </div>
-          </div>
+        <figure class="pal">
+          <button type="button" class="shot" data-palette="graphite" data-name="Graphite">
+            <img data-face="dark" src="shots/palettes/graphite-dark.png" width="1020" height="482" loading="lazy" decoding="async" alt="The deck on air in the Graphite palette, dark">
+            <img data-face="light" src="shots/palettes/graphite-light.png" width="1020" height="482" loading="lazy" decoding="async" alt="The deck on air in the Graphite palette, light">
+            <span class="shot-zoom">Enlarge</span>
+          </button>
           <figcaption><b>Graphite</b><span>No colour except where colour means something.</span></figcaption>
         </figure>
-        <figure class="pal" data-palette="arcade">
-          <div class="swatch">
-            <div class="pal-top"><span class="pal-lamp"></span><span class="pal-state">ON AIR</span></div>
-            <canvas data-meter="segments" data-seed="6.4" data-height="26" aria-hidden="true"></canvas>
-            <div class="pal-row">
-              <span class="pal-chip">MP3 256</span>
-              <span class="pal-go">OFF AIR</span>
-            </div>
-          </div>
+        <figure class="pal">
+          <button type="button" class="shot" data-palette="arcade" data-name="Arcade">
+            <img data-face="dark" src="shots/palettes/arcade-dark.png" width="1020" height="482" loading="lazy" decoding="async" alt="The deck on air in the Arcade palette, dark">
+            <img data-face="light" src="shots/palettes/arcade-light.png" width="1020" height="482" loading="lazy" decoding="async" alt="The deck on air in the Arcade palette, light">
+            <span class="shot-zoom">Enlarge</span>
+          </button>
           <figcaption><b>Arcade</b><span>Neon, and a live lamp that shouts.</span></figcaption>
         </figure>
-        <figure class="pal" data-palette="dragon">
-          <div class="swatch">
-            <div class="pal-top"><span class="pal-lamp"></span><span class="pal-state">ON AIR</span></div>
-            <canvas data-meter="segments" data-seed="8.1" data-height="26" aria-hidden="true"></canvas>
-            <div class="pal-row">
-              <span class="pal-chip">MP3 256</span>
-              <span class="pal-go">OFF AIR</span>
-            </div>
-          </div>
+        <figure class="pal">
+          <button type="button" class="shot" data-palette="dragon" data-name="Dragon">
+            <img data-face="dark" src="shots/palettes/dragon-dark.png" width="1020" height="482" loading="lazy" decoding="async" alt="The deck on air in the Dragon palette, dark">
+            <img data-face="light" src="shots/palettes/dragon-light.png" width="1020" height="482" loading="lazy" decoding="async" alt="The deck on air in the Dragon palette, light">
+            <span class="shot-zoom">Enlarge</span>
+          </button>
           <figcaption><b>Dragon</b><span>Ember and gold.</span></figcaption>
         </figure>
+        <figure class="pal">
+          <button type="button" class="shot" data-palette="forest" data-name="Forest">
+            <img data-face="dark" src="shots/palettes/forest-dark.png" width="1020" height="482" loading="lazy" decoding="async" alt="The deck on air in the Forest palette, dark, with leaves drifting behind it">
+            <img data-face="light" src="shots/palettes/forest-light.png" width="1020" height="482" loading="lazy" decoding="async" alt="The deck on air in the Forest palette, light, with leaves drifting behind it">
+            <span class="shot-zoom">Enlarge</span>
+          </button>
+          <figcaption><b>Forest</b><span>Green, with leaves moving behind the deck.</span></figcaption>
+        </figure>
+        <figure class="pal">
+          <button type="button" class="shot" data-palette="tide" data-name="Tide">
+            <img data-face="dark" src="shots/palettes/tide-dark.png" width="1020" height="482" loading="lazy" decoding="async" alt="The deck on air in the Tide palette, dark, with a swell behind it">
+            <img data-face="light" src="shots/palettes/tide-light.png" width="1020" height="482" loading="lazy" decoding="async" alt="The deck on air in the Tide palette, light, with a swell behind it">
+            <span class="shot-zoom">Enlarge</span>
+          </button>
+          <figcaption><b>Tide</b><span>Deep water, with the swell moving behind it.</span></figcaption>
+        </figure>
+
+        <!-- Inside the gallery rather than beside it, so that it inherits the --p-* of whichever
+             palette is open and wears that palette's own frame. A modal dialog is drawn in the top
+             layer wherever it happens to live in the document, so being a grid child costs nothing. -->
+        <dialog class="lightbox" id="lightbox" data-palette="deck" aria-label="Palette, full size">
+          <div class="lightbox-stage"><img id="lightbox-shot" alt=""></div>
+          <div class="lightbox-bar">
+            <b id="lightbox-name">Deck</b>
+            <span id="lightbox-face">Dark</span>
+            <span class="keys">
+              <button type="button" data-step="-1" aria-label="Previous palette">&larr;</button>
+              <button type="button" data-step="1" aria-label="Next palette">&rarr;</button>
+              <button type="button" data-close>Close</button>
+            </span>
+          </div>
+        </dialog>
       </div>
     </div>
   </section>
@@ -805,24 +897,6 @@
   var LIT = ["#DD5A4F", "#D7A64A", "#3F9E76", "#6E7A78"];
   var UNLIT = ["#351F1D", "#332C1C", "#1E332B", "#262B2E"];
 
-  /* A meter inside a palette swatch takes that palette's colours instead. Read
-     from the custom properties rather than kept in a table here, so the swatches
-     and their meters can only ever come from the one generated block above.
-     Read on measure rather than per frame: this is five extra meters at sixty
-     frames a second, and getComputedStyle is not free. */
-  function colours(canvas) {
-    var style = getComputedStyle(canvas);
-    var lit = [];
-    var unlit = [];
-
-    ["mc", "ml", "mg", "mq"].forEach(function (key) {
-      lit.push(style.getPropertyValue("--p-" + key).trim());
-      unlit.push(style.getPropertyValue("--p-" + key + "-off").trim());
-    });
-
-    return lit[0] ? { lit: lit, unlit: unlit } : { lit: LIT, unlit: UNLIT };
-  }
-
   // Same thresholds as LevelMeterControl.LitBrush: clip, loud, good, quiet.
   function zone(db) {
     if (db >= -1) return 0;
@@ -895,8 +969,6 @@
   function measure() {
     var dpr = window.devicePixelRatio || 1;
     meters.forEach(function (m) {
-      m.paint = colours(m.canvas);
-
       var rect = m.canvas.getBoundingClientRect();
       if (rect.width < 1) return;
       var h = m.cssHeight || rect.height || 20;
@@ -952,13 +1024,17 @@
   }
 
   /* ============================================================ light or dark
-     The swatches show one face at a time, because the point being made is that
-     each palette has two rather than that there are ten of them. The page itself
-     stays dark whatever is pressed: this is a control over the examples, not a
-     theme switch for the site, and dressing it up as one would promise something
-     the page does not do. */
+     The gallery shows one face at a time, because the point being made is that
+     each palette has two rather than that there are fourteen of them. The page
+     itself stays dark whatever is pressed: this is a control over the pictures,
+     not a theme switch for the site, and dressing it up as one would promise
+     something the page does not do. */
   var faceButtons = document.querySelectorAll(".faces button");
   var gallery = document.querySelector(".palettes");
+
+  function currentFace() {
+    return gallery ? gallery.getAttribute("data-face") : "dark";
+  }
 
   if (gallery) {
     Array.prototype.forEach.call(faceButtons, function (button) {
@@ -969,12 +1045,92 @@
           other.setAttribute("aria-pressed", other === button ? "true" : "false");
         });
 
-        // The meters read their colours when they are measured, so the new face
-        // has to be on the element before they are asked again.
-        refresh();
+        if (lightboxOpen()) showShot(shown);
       });
     });
   }
+
+  /* ================================================================ full size
+     A screenshot shrunk into a third of a column shows the colour and none of the
+     detail, and the detail is the argument: the level, the coaching line, the
+     chips, the listener count. So the card opens the same picture at the size it
+     was taken. Everything the mouse can do here the keyboard can do as well -
+     left and right move between palettes, Escape closes, and the dialog element
+     does the focus trapping rather than a pile of script. */
+  var lightbox = document.getElementById("lightbox");
+  var lightboxShot = document.getElementById("lightbox-shot");
+  var lightboxName = document.getElementById("lightbox-name");
+  var lightboxFace = document.getElementById("lightbox-face");
+  var cards = document.querySelectorAll(".shot");
+  var shown = 0;
+
+  function lightboxOpen() {
+    return lightbox && lightbox.open;
+  }
+
+  function showShot(index) {
+    var card = cards[index];
+    if (!card) return;
+
+    var face = currentFace();
+    var picture = card.querySelector('img[data-face="' + face + '"]');
+    if (!picture) return;
+
+    shown = index;
+    lightbox.setAttribute("data-palette", card.getAttribute("data-palette"));
+    lightboxShot.setAttribute("src", picture.getAttribute("src"));
+    lightboxShot.setAttribute("alt", picture.getAttribute("alt"));
+    lightboxName.textContent = card.getAttribute("data-name");
+    lightboxFace.textContent = face === "light" ? "Light" : "Dark";
+  }
+
+  function step(by) {
+    showShot((shown + by + cards.length) % cards.length);
+  }
+
+  if (lightbox && lightbox.showModal) {
+    Array.prototype.forEach.call(cards, function (card, index) {
+      card.addEventListener("click", function () {
+        showShot(index);
+        lightbox.showModal();
+      });
+    });
+
+    lightbox.addEventListener("click", function (event) {
+      var action = event.target.getAttribute && event.target.getAttribute("data-step");
+      if (action) { step(parseInt(action, 10)); return; }
+
+      // Anywhere outside the picture and its bar, including the backdrop, which is
+      // the dialog itself as far as a click is concerned.
+      if (event.target === lightbox || event.target.hasAttribute("data-close")) lightbox.close();
+    });
+
+    lightbox.addEventListener("keydown", function (event) {
+      if (event.key === "ArrowRight") { step(1); event.preventDefault(); }
+      if (event.key === "ArrowLeft") { step(-1); event.preventDefault(); }
+    });
+
+    // The card that was opened is where the focus should land again, not the top
+    // of the page - and after arrow keys that is not the card that opened it.
+    lightbox.addEventListener("close", function () {
+      if (cards[shown]) cards[shown].focus();
+    });
+  } else if (gallery) {
+    gallery.className += " no-lightbox";
+  }
+
+  /* The face that is not showing is hidden, so the browser is right not to fetch
+     it - and then pressing Light would leave seven empty frames while it did.
+     Seven pictures is a quarter of a megabyte between them, so they are fetched
+     once the page has finished the things a visitor is actually waiting for. */
+  window.addEventListener("load", function () {
+    setTimeout(function () {
+      Array.prototype.forEach.call(document.querySelectorAll(".shot img"), function (picture) {
+        var warm = new Image();
+        warm.src = picture.getAttribute("src");
+      });
+    }, 1200);
+  });
 
   /* ================================================================ the clock
      The panel is a picture of a show in progress, so its clock should run. */

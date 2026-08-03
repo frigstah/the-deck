@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using Deck.Core.Audio;
 using Deck.Core.Audio.Dsp;
@@ -46,6 +46,12 @@ public enum DeckPalette
 
     /// <summary>Charcoal, ember and gold.</summary>
     Dragon,
+
+    /// <summary>Green, with leaves moving behind the deck.</summary>
+    Forest,
+
+    /// <summary>Deep water, with the swell moving behind the deck.</summary>
+    Tide,
 }
 
 /// <summary>

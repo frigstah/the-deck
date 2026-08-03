@@ -9,7 +9,7 @@ namespace Deck.EncoderCheck;
 /// Every palette Deck can wear (I5), checked as numbers rather than as pixels.
 /// <para>
 /// There used to be two palettes: one in Theme.xaml and one in a method beside the window, kept in
-/// step by a check that read both files as text. There are now ten, so the colours moved into
+/// step by a check that read both files as text. There are now fourteen, so the colours moved into
 /// <see cref="Palettes"/> where they can simply be asked. Theme.xaml still declares the Deck light
 /// face - a resource dictionary has to be valid on its own before any code runs - and the first
 /// check below is what stops that copy drifting from the real one.
@@ -27,6 +27,21 @@ internal static class ThemeChecks
 
     /// <summary>Large text and non-text indicators - meter segments, rules, chrome.</summary>
     private const double LargeMinimum = 3.0;
+
+    /// <summary>
+    /// How far the background in a screenshot on the website may sit from the palette it is captioned
+    /// with. A flat fill in a screenshot is the same byte the palette declares, so this is not a
+    /// tolerance for the picture being roughly right - it is room for a rounding difference and
+    /// nothing else. Retuning a colour means taking the pictures again, which is the point.
+    /// </summary>
+    private const double ShotDrift = 1.0;
+
+    /// <summary>
+    /// How much of a meter colour has to be on screen before a screenshot counts as showing it. The
+    /// thinnest one measured is about 7,800 pixels, so this is well clear of a stray anti-aliased
+    /// edge and well below anything a real capture produces.
+    /// </summary>
+    private const int MeterPixels = 1000;
 
     public static int Run()
     {
@@ -149,6 +164,48 @@ internal static class ThemeChecks
                 var ratio = Contrast(palette["OnAccentColor"], palette["AccentColor"]);
                 Expect(ratio >= BodyMinimum, $"{name}: text on the accent is {ratio:0.0}:1, needs {BodyMinimum}");
             }
+        });
+
+        failures += Check("a palette with something moving behind it is still legible", () =>
+        {
+            // Forest and Tide draw a scene on the window. Every figure above measures text against
+            // the background colour, and once something is painted over that background those
+            // figures are answers to a question nobody is asking any more.
+            //
+            // So the text is measured again here against the heaviest pixel the backdrop can
+            // produce, rather than against the bare ground. This is the check that decides whether
+            // a moving picture behind an instrument is honest or just pretty - if a scene ever needs
+            // to be bolder than the palette can carry, this fails and the palette has to give way,
+            // not the reading.
+            foreach (var palette in Enum.GetValues<DeckPalette>())
+            {
+                if (Palettes.Backdrop(palette) == BackdropKind.None) continue;
+
+                foreach (var dark in new[] { false, true })
+                {
+                    var face = Palettes.Face(palette, dark).Colours();
+                    var ground = Palettes.GroundUnderBackdrop(palette, dark);
+                    var name = $"{palette} {(dark ? "dark" : "light")}";
+
+                    foreach (var role in new[] { "TextColor", "MutedTextColor" })
+                    {
+                        var ratio = Contrast(face[role], ground);
+                        Expect(ratio >= BodyMinimum,
+                            $"{name}: {role} over the backdrop is {ratio:0.0}:1, needs {BodyMinimum}");
+                    }
+
+                    // And the scene has to be visible at all, or the palette is carrying the cost of
+                    // a renderer for nothing.
+                    var visible = Contrast(ground, face["BackgroundColor"]);
+                    Expect(visible > 1.02,
+                        $"{name}: the backdrop is {visible:0.000}:1 against the window - it cannot be seen");
+                }
+            }
+
+            // A palette with no scene must not be paying for one.
+            Expect(Palettes.GroundUnderBackdrop(DeckPalette.Deck, dark: true) ==
+                   Palettes.Face(DeckPalette.Deck, dark: true).Colours()["BackgroundColor"],
+                "a palette with no backdrop reports a ground that is not its own background");
         });
 
         failures += Check("a link is legible as text, not only as a button", () =>
@@ -366,6 +423,81 @@ internal static class ThemeChecks
 
                 Expect(site.Contains(Html(description), StringComparison.Ordinal),
                     $"the website does not describe {name} the way the app does: \"{description}\"");
+            }
+        });
+
+        failures += Check("the pictures on the website are of the palettes they are captioned with", () =>
+        {
+            // The one thing on that page that cannot be generated out of Palettes.cs. A screenshot is
+            // a photograph of a build that existed on the day it was taken, and changing a colour here
+            // does nothing whatever to a picture there - so a palette could be retuned, or two files
+            // could be swapped by hand, and the page would go on showing a product that had moved on.
+            //
+            // So each picture is opened and its pixels counted. Three colours have to be found, and
+            // they are looked for exactly rather than approximately, because a flat fill in a
+            // screenshot is the very same byte the palette declares:
+            //
+            //   the background, which has to be the colour covering more of the window than any other;
+            //   the meter's own green, which is only on screen if the picture was taken of a deck with
+            //   sound going through it; and the quiet end of the meter, which is always drawn.
+            //
+            // The two meter colours are what identify the face. The backgrounds cannot: Arcade light
+            // and Tide light are less than one unit apart, so a picture of either would pass for the
+            // other, and it would pass quietly.
+            var site = File.ReadAllText(Path.Combine(root, "site", "index.html"));
+
+            var faces = Enum.GetValues<DeckPalette>()
+                .SelectMany(p => new[] { false, true }.Select(d => (Palette: p, Dark: d)))
+                .ToList();
+
+            // Which means the pair has to be unique, or the identification proves nothing.
+            var signatures = faces
+                .Select(f => Palettes.Face(f.Palette, f.Dark).Colours())
+                .Select(c => $"{c["MeterGoodColor"]}/{c["MeterQuietColor"]}")
+                .ToList();
+
+            Expect(signatures.Distinct().Count() == signatures.Count,
+                "two faces draw their meter in exactly the same colours, so a picture of one would " +
+                "pass as a picture of the other");
+
+            foreach (var (palette, dark) in faces)
+            {
+                var (name, _) = Palettes.Describe(palette);
+                var face = dark ? "dark" : "light";
+                var relative = $"shots/palettes/{palette.ToString().ToLowerInvariant()}-{face}.png";
+                var file = Path.Combine(root, "site", relative.Replace('/', Path.DirectorySeparatorChar));
+
+                Expect(File.Exists(file), $"the website has no picture of {name} {face}");
+
+                var colours = Palettes.Face(palette, dark).Colours();
+                var pixels = PngReader.Histogram(file);
+                var dominant = PngReader.Dominant(pixels);
+
+                var off = Distance(dominant, colours["BackgroundColor"]);
+
+                Expect(off <= ShotDrift,
+                    $"the picture of {name} {face} is mostly {dominant}, not the " +
+                    $"{colours["BackgroundColor"]} that palette is drawn on - re-take the screenshots");
+
+                foreach (var role in new[] { "MeterGoodColor", "MeterQuietColor" })
+                {
+                    var found = PngReader.Count(pixels, colours[role]);
+
+                    Expect(found >= MeterPixels,
+                        $"the picture of {name} {face} has {found} pixels of its {role} " +
+                        $"({colours[role]}) and needs {MeterPixels} - either it is a picture of a " +
+                        "different palette, or of a deck with nothing going through it");
+                }
+
+                // And the page has to reserve the shape the picture actually is, or the section
+                // jumps about as the images arrive.
+                var (width, height, _) = PngReader.Read(file);
+                var tag = Regex.Match(site, $@"<img[^>]*src=""{Regex.Escape(relative)}""[^>]*>");
+
+                Expect(tag.Success, $"the website does not show {relative}");
+
+                Expect(tag.Value.Contains($@"width=""{width}""") && tag.Value.Contains($@"height=""{height}"""),
+                    $"the website says {relative} is a different size than the {width}x{height} it is");
             }
         });
 

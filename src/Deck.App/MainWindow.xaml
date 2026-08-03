@@ -91,6 +91,18 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
+        <!-- ==================================================== the backdrop
+
+             First child, so it is painted before anything else and everything else is painted over
+             it. It spans the whole window and takes no hits, so it cannot come between a finger and
+             a control.
+
+             Only two palettes draw anything at all; the rest leave it empty, which costs a virtual
+             call per resize and nothing else. What it draws is held so close to the window's own
+             colour that the contrast figures measured for the palette still hold - which is the
+             only honest way to put a picture behind an instrument. -->
+        <local:DeckBackdrop Grid.Row="0" Grid.RowSpan="3" Animate="{Binding MotionAllowed}" />
+
         <!-- ==================================================== title bar
 
              Two halves. The left is a block of rail colour exactly the width of the rail, so the
