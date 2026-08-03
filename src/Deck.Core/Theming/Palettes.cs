@@ -162,8 +162,56 @@ public sealed record PaletteFace
 /// <see cref="Face"/> rather than trusted.
 /// </para>
 /// </summary>
+/// <summary>What moves behind the deck, for the palettes that have something (I5).</summary>
+public enum BackdropKind
+{
+    None,
+    Leaves,
+    Waves,
+}
+
 public static class Palettes
 {
+    /// <summary>
+    /// The most of itself a backdrop is ever allowed to be, over the window's own colour.
+    /// <para>
+    /// This number is the reason a moving picture behind an instrument is defensible at all. Every
+    /// palette's text is measured against its background, and a backdrop painted over that
+    /// background quietly invalidates the measurement - so the scene is held this close to the
+    /// ground, and the check beside the palettes re-measures the text against the worst pixel the
+    /// backdrop can produce rather than against the bare colour.
+    /// </para>
+    /// <para>
+    /// 0,12 rather than a number chosen by eye. Measuring each palette against the reading standard
+    /// gives a ceiling of 0,20 on the dark faces and 0,15 on Tide light, which is the binding one -
+    /// and sitting on a limit is not the same as respecting it, so this stops well below it. The
+    /// scene is as bold as the palettes can carry with margin left over, and the check re-measures
+    /// the text against it rather than taking that on trust.
+    /// </para>
+    /// </summary>
+    public const double MaximumBackdropDeviation = 0.12;
+
+    /// <summary>Which scene a palette carries, if any.</summary>
+    public static BackdropKind Backdrop(DeckPalette palette) => palette switch
+    {
+        DeckPalette.Forest => BackdropKind.Leaves,
+        DeckPalette.Tide => BackdropKind.Waves,
+        _ => BackdropKind.None,
+    };
+
+    /// <summary>
+    /// The heaviest colour the backdrop can put on the window, which is what text actually sits on
+    /// once a scene is drawn.
+    /// </summary>
+    public static string GroundUnderBackdrop(DeckPalette palette, bool dark)
+    {
+        var face = Face(palette, dark).Colours();
+
+        return Backdrop(palette) == BackdropKind.None
+            ? face["BackgroundColor"]
+            : PaletteFace.Mix(face["AccentColor"], face["BackgroundColor"], MaximumBackdropDeviation);
+    }
+
     /// <summary>What each palette is called on screen, and the single line under the picker.</summary>
     public static (string Name, string Description) Describe(DeckPalette palette) => palette switch
     {
@@ -174,6 +222,8 @@ public static class Palettes
         DeckPalette.Graphite => ("Graphite", "No colour except where colour means something."),
         DeckPalette.Arcade => ("Arcade", "Neon, and a live lamp that shouts."),
         DeckPalette.Dragon => ("Dragon", "Ember and gold."),
+        DeckPalette.Forest => ("Forest", "Green, with leaves moving behind the deck."),
+        DeckPalette.Tide => ("Tide", "Deep water, with the swell moving behind it."),
         _ => ("Deck", "The petrol teal Deck was drawn in."),
     };
 
@@ -187,6 +237,10 @@ public static class Palettes
         (DeckPalette.Arcade, true) => ArcadeDark,
         (DeckPalette.Dragon, false) => DragonLight,
         (DeckPalette.Dragon, true) => DragonDark,
+        (DeckPalette.Forest, false) => ForestLight,
+        (DeckPalette.Forest, true) => ForestDark,
+        (DeckPalette.Tide, false) => TideLight,
+        (DeckPalette.Tide, true) => TideDark,
         (_, true) => DeckDark,
         _ => DeckLight,
     };
@@ -346,5 +400,61 @@ public static class Palettes
         Gold = "#FFE3C264",
         Rail = "#FF0D0907", RailSelected = "#FF241811", RailText = "#FF8F7867", StatusBar = "#FF100B08",
         MeterQuiet = "#FF7A6A5C", MeterGood = "#FFE0762F", MeterLoud = "#FFE3C264", MeterClip = "#FFE8574C",
+    };
+
+    // ------------------------------------------------------------------ Forest
+    //
+    // The two palettes with something moving behind them. Their grounds are held a shade further
+    // from their accents than the others', because a backdrop drawn on top of the ground eats a
+    // little of the contrast that everything else is measured against.
+
+    private static readonly PaletteFace ForestLight = new()
+    {
+        Dark = false,
+        Background = "#FFF1F4EE", Surface = "#FFFFFFFF", Border = "#FFDBE3D6",
+        Text = "#FF1C2620", MutedText = "#FF56634F",
+        Accent = "#FF2F6B3A", OnAccent = "#FFFFFFFF",
+        Ok = "#FF1F6E4C", Warn = "#FF8A5B12", Bad = "#FFC0392B", Live = "#FFC0392B",
+        Gold = "#FF5C460C",
+        Rail = "#FF1E2A1F", RailSelected = "#FF2C3B2D", RailText = "#FF97A296", StatusBar = "#FFE6EBE2",
+        MeterQuiet = "#FFB2BDAF", MeterGood = "#FF2F6B3A", MeterLoud = "#FFC08820", MeterClip = "#FFC0392B",
+    };
+
+    private static readonly PaletteFace ForestDark = new()
+    {
+        Dark = true,
+        Background = "#FF121A14", Surface = "#FF1A231C", Border = "#FF2A372C",
+        Text = "#FFE3EAE1", MutedText = "#FF93A392",
+        Accent = "#FF6FC07A", OnAccent = "#FF0C1A10",
+        Ok = "#FF57C295", Warn = "#FFDFA84A", Bad = "#FFE8574C", Live = "#FFE8574C",
+        Gold = "#FFE3C264",
+        Rail = "#FF0B110C", RailSelected = "#FF17211A", RailText = "#FF869684", StatusBar = "#FF0D140F",
+        MeterQuiet = "#FF5F7062", MeterGood = "#FF6FC07A", MeterLoud = "#FFD7A64A", MeterClip = "#FFDD5A4F",
+    };
+
+    // -------------------------------------------------------------------- Tide
+
+    private static readonly PaletteFace TideLight = new()
+    {
+        Dark = false,
+        Background = "#FFEFF3F8", Surface = "#FFFFFFFF", Border = "#FFD7E1EB",
+        Text = "#FF16202A", MutedText = "#FF52616F",
+        Accent = "#FF16607F", OnAccent = "#FFFFFFFF",
+        Ok = "#FF1F6E4C", Warn = "#FF8A5B12", Bad = "#FFC0392B", Live = "#FFC0392B",
+        Gold = "#FF5C460C",
+        Rail = "#FF0E1E2A", RailSelected = "#FF1B2E3C", RailText = "#FF94A3B1", StatusBar = "#FFE4EBF2",
+        MeterQuiet = "#FFA8B6C1", MeterGood = "#FF16607F", MeterLoud = "#FFC08820", MeterClip = "#FFC0392B",
+    };
+
+    private static readonly PaletteFace TideDark = new()
+    {
+        Dark = true,
+        Background = "#FF0C131A", Surface = "#FF131C25", Border = "#FF222F3B",
+        Text = "#FFDCE6EF", MutedText = "#FF8899A8",
+        Accent = "#FF4FB0D8", OnAccent = "#FF03151E",
+        Ok = "#FF57C295", Warn = "#FFDFA84A", Bad = "#FFE8574C", Live = "#FFE8574C",
+        Gold = "#FFE3C264",
+        Rail = "#FF070E14", RailSelected = "#FF121D27", RailText = "#FF7F91A1", StatusBar = "#FF091018",
+        MeterQuiet = "#FF556673", MeterGood = "#FF4FB0D8", MeterLoud = "#FFD7A64A", MeterClip = "#FFDD5A4F",
     };
 }

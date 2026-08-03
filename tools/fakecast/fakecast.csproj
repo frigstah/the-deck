@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Not in Deck.sln, and deliberately. Every push to main cuts a release, so anything in the solution
+    is on the path between a commit and a download; a harness that only ever runs by hand does not
+    belong there. The cost is that it can go stale without anybody noticing until the next time it is
+    needed, which is the trade being made rather than an oversight.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>fakecast</AssemblyName>
+    <RootNamespace>FakeCast</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Deck.Core\Deck.Core.csproj" />
+  </ItemGroup>
+
+</Project>

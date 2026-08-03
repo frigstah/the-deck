@@ -25,3 +25,12 @@ data/
 
 # Release archives built locally
 *.zip
+
+# The venue poster. Print artwork rather than part of the product, and the PDF and the 300 dpi PNG
+# are both build output of branding/poster/poster.py - which needs fonts that do not live in this
+# repository, so a checkout could not rebuild them anyway.
+branding/poster/
+
+# The bed the meter is photographed against. Three and a half megabytes of noise, written by
+# bed.py from a fixed seed - so a checkout can make an identical one rather than carry it.
+tools/shots/bed.wav

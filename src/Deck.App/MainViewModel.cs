@@ -2919,7 +2919,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
     /// That answer is honoured.
     /// </para>
     /// </summary>
-    public bool CreditPulses => _settings.SetupMotion != SetupMotion.Never;
+    /// <summary>
+    /// Whether anything on the window is allowed to move of its own accord - the credit under
+    /// Support, and the scene behind the deck on the palettes that have one.
+    /// <para>
+    /// Deliberately Deck's own motion setting rather than the Windows one. That switch is off on a
+    /// great many machines, for an old PC's sake or an IT policy or because nobody knew it was
+    /// there, and a drifting leaf is not what any of them were avoiding. Somebody who chooses
+    /// "Never slide" under Deck itself is answering a question about this program.
+    /// </para>
+    /// </summary>
+    public bool MotionAllowed => _settings.SetupMotion != SetupMotion.Never;
+
+    public bool CreditPulses => MotionAllowed;
 
     /// <summary>
     /// Says what Windows is currently set to when Deck is following it, because otherwise "Follow

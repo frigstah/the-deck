@@ -214,6 +214,9 @@ public partial class App : Application
         (Current as App)?.ApplySystemTheme();
     }
 
+    /// <summary>Which colours are on. Read by the backdrop, which draws a different scene per palette.</summary>
+    public static DeckPalette CurrentPalette => _palette;
+
     /// <summary>Changes which colours, independently of light or dark.</summary>
     public static void UsePalette(DeckPalette palette)
     {
