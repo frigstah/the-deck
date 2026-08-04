@@ -48,6 +48,11 @@ public partial class MainWindow : Window
         Loaded += OnLoaded;
         Closing += OnClosing;
         StateChanged += OnWindowStateChanged;
+
+        // Both, because a strip can be put somewhere by dragging it and made longer by pulling its
+        // edge, and somebody who has done either has said something about where they want it.
+        LocationChanged += (_, _) => RememberStripPlacement();
+        SizeChanged += (_, _) => RememberStripPlacement();
     }
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -212,20 +217,100 @@ public partial class MainWindow : Window
 
     private bool _deckWasMaximised;
 
-    private void OnEnterMiniMode(object sender, RoutedEventArgs e) => SetMiniMode(true);
+    /// <summary>
+    /// Keeps note of where the strip is, every time it moves or is resized, so that the answer is
+    /// already written down whenever Deck closes or goes back to the deck.
+    /// <para>
+    /// Recorded as it happens rather than captured on the way out, because there are two ways out -
+    /// pressing Deck and closing the window - and one of them was going to be forgotten.
+    /// </para>
+    /// </summary>
+    private void RememberStripPlacement()
+    {
+        if (!_viewModel.IsMiniMode || WindowState != WindowState.Normal) return;
+        if (double.IsNaN(Left) || double.IsNaN(Top)) return;
+
+        _viewModel.Settings.MiniLeft = Left;
+        _viewModel.Settings.MiniTop = Top;
+        _viewModel.Settings.MiniWidth = Width;
+    }
+
+    /// <summary>
+    /// Where the strip should go back to, or null if it should not go anywhere in particular.
+    /// <para>
+    /// A remembered place is refused if it is no longer on a screen. Somebody who left the strip on a
+    /// second monitor and then unplugged it should not have to find Deck by dragging blind, and the
+    /// alternative - a window that opens where nothing can be seen - is the worst kind of bug because
+    /// it looks like the program failed to start.
+    /// </para>
+    /// <para>
+    /// The test is the whole desktop's bounding box rather than any single screen, so an arrangement
+    /// with a gap in it - two monitors of different heights, side by side - can still let a spot
+    /// through that is technically in the gap. Being slightly wrong there is not worth the interop:
+    /// the strip is 56 pixels tall and the title bar is all of it, so it can be dragged back.
+    /// </para>
+    /// </summary>
+    private Rect? RememberedStrip()
+    {
+        var settings = _viewModel.Settings;
+
+        if (!settings.RememberMiniPlacement) return null;
+        if (settings.MiniLeft is not { } left || settings.MiniTop is not { } top) return null;
+
+        var width = Math.Max(settings.MiniWidth ?? MiniWidth, MiniWidth);
+        var middle = new Point(left + (width / 2), top + (MiniHeight / 2));
+
+        var desktop = new Rect(
+            SystemParameters.VirtualScreenLeft,
+            SystemParameters.VirtualScreenTop,
+            SystemParameters.VirtualScreenWidth,
+            SystemParameters.VirtualScreenHeight);
+
+        return desktop.Contains(middle) ? new Rect(left, top, width, MiniHeight) : null;
+    }
+
+    private void OnEnterMiniMode(object sender, RoutedEventArgs e) => SetMiniMode(true, sender as FrameworkElement);
 
     private void OnLeaveMiniMode(object sender, RoutedEventArgs e) => SetMiniMode(false);
 
-    private void SetMiniMode(bool mini)
+    /// <param name="pressed">
+    /// The control that asked for this, when something was pressed. The strip appears where it was,
+    /// so it arrives under the hand rather than somewhere else on the screen.
+    /// </param>
+    private void SetMiniMode(bool mini, FrameworkElement? pressed = null)
     {
         if (_viewModel.IsMiniMode == mini) return;
 
-        if (mini) EnterMiniMode();
+        if (mini) EnterMiniMode(pressed);
         else LeaveMiniMode();
     }
 
-    private void EnterMiniMode()
+    /// <summary>
+    /// Where on the screen the strip should be centred, given the control that was pressed to ask for
+    /// it - or null when nothing was pressed, which is Deck starting up as a strip.
+    /// <para>
+    /// Read before anything else happens, and deliberately before coming out of maximised: the point
+    /// being caught is where the pointer was when it clicked, and un-maximising moves the window out
+    /// from under it.
+    /// </para>
+    /// </summary>
+    private double? AnchorFor(FrameworkElement? pressed)
     {
+        if (pressed is null || !pressed.IsVisible) return null;
+
+        var source = PresentationSource.FromVisual(this);
+        if (source?.CompositionTarget is not { } target) return null;
+
+        // PointToScreen answers in device pixels and Top is in device-independent ones, which are the
+        // same number only at 100%.
+        var middle = pressed.PointToScreen(new Point(pressed.ActualWidth / 2, pressed.ActualHeight / 2));
+        return target.TransformFromDevice.Transform(middle).Y;
+    }
+
+    private void EnterMiniMode(FrameworkElement? pressed = null)
+    {
+        var anchor = AnchorFor(pressed);
+
         _deckWasMaximised = WindowState == WindowState.Maximized;
 
         // Come out of maximised before reading the placement, or what gets remembered is the whole
@@ -247,11 +332,36 @@ public partial class MainWindow : Window
         SetupOffset.Y = 0;
         SetupPanel.Visibility = Visibility.Collapsed;
 
+        var remembered = RememberedStrip();
+
         MinHeight = MiniHeight;
         MaxHeight = MiniHeight;
         MinWidth = MiniWidth;
         Height = MiniHeight;
-        Width = MiniWidth;
+        Width = remembered?.Width ?? MiniWidth;
+
+        // Where somebody put it beats anything that can be worked out from where the deck happened to
+        // be standing. Nothing is remembered until the strip has actually been moved, so this is the
+        // second time onwards; the first time falls through to the anchor below.
+        if (remembered is { } spot)
+        {
+            Left = spot.X;
+            Top = spot.Y;
+        }
+
+        // A window keeps its top-left corner when it changes size, so shrinking the deck to a strip
+        // used to leave the strip up at the deck's top edge - three hundred pixels above the button
+        // that had just been pressed, and a long reach back to it for somebody who wanted to put the
+        // strip somewhere. It arrives centred on what was pressed instead: still under the pointer,
+        // and ready to be dragged without going to fetch it first.
+        //
+        // Left alone, so the strip stays over the ground the deck was on. And no clamping to the
+        // screen: the button was inside the deck and the deck was on the screen, so a 56-pixel strip
+        // centred on it is too.
+        else if (anchor is { } centre)
+        {
+            Top = centre - (MiniHeight / 2);
+        }
 
         // The strip is the title bar now. Short of the bottom edge, so there is still a border to
         // drag when the strip is the whole window.

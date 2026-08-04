@@ -753,6 +753,23 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
         ? "The strip reads \"ON AIR WITH 7 LISTENERS\". Turn this off if the strip is somewhere other people can see it."
         : "Off. The strip reads \"ON AIR\". The count is still on the deck while you are live.";
 
+    public bool RememberMiniPlacement
+    {
+        get => _settings.RememberMiniPlacement;
+        set
+        {
+            if (_settings.RememberMiniPlacement == value) return;
+
+            _settings.RememberMiniPlacement = value;
+            Persist();
+            RaiseAll(nameof(RememberMiniPlacement), nameof(MiniPlacementHint));
+        }
+    }
+
+    public string MiniPlacementHint => RememberMiniPlacement
+        ? "The strip goes back where you last left it, on this screen or another one, and is still there tomorrow. Until you have moved it once there is nothing to go back to, so it arrives under the Mini button."
+        : "Off. The strip arrives centred on the Mini button, wherever the deck happens to be.";
+
     public Brush AdviceBrush => SeverityBrush(_engine.Capture.InputMeter.Advice.Severity());
 
     /// <summary>Fill behind the level verdict pill; the headline above supplies the text colour.</summary>
