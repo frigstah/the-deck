@@ -274,6 +274,38 @@ public sealed class AppSettings
     /// </summary>
     public bool MiniMode { get; set; }
 
+    /// <summary>
+    /// Whether the strip comes back where it was last left, rather than where the deck was standing
+    /// when Mini was pressed.
+    /// <para>
+    /// The other half of the sentence above. <see cref="MiniMode"/> already says Deck should remember
+    /// that somebody works as a strip; this says it should remember where they work. Someone who has
+    /// parked it along the top of a screen has said where they want it more clearly than any default
+    /// could guess.
+    /// </para>
+    /// <para>
+    /// Off on a new install, because the surprising case is worse than the tedious one. Without it
+    /// the strip always arrives centred on the button that was just pressed, which is somewhere the
+    /// hand and the eye already are; with it, a strip left on a second screen last week comes back on
+    /// that screen, and somebody who never asked for that has to work out where their window went.
+    /// Being asked to drag it once is a smaller cost than losing it.
+    /// </para>
+    /// </summary>
+    public bool RememberMiniPlacement { get; set; }
+
+    /// <summary>
+    /// Where the strip was left, in device-independent pixels, or null if it has never been moved.
+    /// Only the width, because the strip's height is fixed - one row of content - and a remembered
+    /// height would be a remembered mistake.
+    /// </summary>
+    public double? MiniLeft { get; set; }
+
+    /// <inheritdoc cref="MiniLeft"/>
+    public double? MiniTop { get; set; }
+
+    /// <inheritdoc cref="MiniLeft"/>
+    public double? MiniWidth { get; set; }
+
     public double SilenceAlertSeconds { get; set; } = 15;
 
     /// <summary>

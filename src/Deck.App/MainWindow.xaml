@@ -1641,11 +1641,18 @@
                             <!-- Here rather than with the on-air settings, because it changes what is
                                  on a screen and not what happens to a broadcast. -->
                             <local:SettingRow Label="Show listeners on the mini strip" ContentWidth="38"
-                                              ShowRule="False"
                                               Hint="{Binding ListenersOnStripHint}">
                                 <CheckBox Style="{StaticResource ToggleSwitchStyle}"
                                           IsChecked="{Binding ShowListenersOnStrip}"
                                           AutomationProperties.Name="Show listeners on the mini strip" />
+                            </local:SettingRow>
+
+                            <local:SettingRow Label="Put the mini strip back where you left it" ContentWidth="38"
+                                              ShowRule="False"
+                                              Hint="{Binding MiniPlacementHint}">
+                                <CheckBox Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding RememberMiniPlacement}"
+                                          AutomationProperties.Name="Put the mini strip back where you left it" />
                             </local:SettingRow>
                         </StackPanel>
 
