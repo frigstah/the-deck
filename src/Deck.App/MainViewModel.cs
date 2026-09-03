@@ -1978,7 +1978,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
             _engine.GoLive(profiles);
             RefreshTargetStatus();
 
-            if (RecordEveryShow && !IsRecording) StartRecordingWithShow();
+            // Recording is not started here. This call has only started trying, and a station that
+            // turns the attempt away should leave nothing behind - see FollowShowForRecording.
         }
         catch (Exception ex)
         {
@@ -3240,6 +3241,48 @@ public sealed class MainViewModel : ObservableObject, IDisposable, IControlSurfa
 
         if (IsRecording) Raise(nameof(RecordingStatus));
         if (IsSoundCheckRecording) RaiseAll(nameof(SoundCheckProgress), nameof(SoundCheckStatus));
+
+        FollowShowForRecording();
+    }
+
+    private StreamState _lastShowState = Core.Streaming.StreamState.Idle;
+
+    /// <summary>
+    /// Keeps a recording that the show started in step with the show, including the endings nobody
+    /// pressed a button for.
+    /// <para>
+    /// Pressing Go live does not put a station on air; it starts trying. The connection is made after
+    /// the call returns, and it can be refused - a password the server does not accept is refused
+    /// outright and never retried. Recording from the moment the button was pressed therefore left a
+    /// recorder running against a show that never happened, and nothing ever stopped it: the only
+    /// thing that did was coming off air, which is a thing you cannot do when you never went on.
+    /// </para>
+    /// <para>
+    /// So it follows the state instead. It starts when the stream is genuinely up, which also means
+    /// a refused password leaves no stub file behind to explain, and it stops whenever the show stops
+    /// being a show. Reconnecting still counts as one - a stream that dropped for ten seconds
+    /// mid-song is exactly when the recording matters most - so only a real ending ends it.
+    /// </para>
+    /// <para>
+    /// Only ever a recording Deck started itself. <see cref="_recordingStartedWithShow"/> is what
+    /// says so, and someone who pressed record by hand keeps recording whatever the stream does.
+    /// </para>
+    /// </summary>
+    private void FollowShowForRecording()
+    {
+        var state = StreamState;
+        var previous = _lastShowState;
+
+        if (state == previous) return;
+        _lastShowState = state;
+
+        if (state == Core.Streaming.StreamState.Live)
+        {
+            if (RecordEveryShow && !IsRecording) StartRecordingWithShow();
+            return;
+        }
+
+        if (previous.IsBroadcasting() && !state.IsBroadcasting()) StopRecordingWithShow();
     }
 
     private void RaiseSoundCheckState() => RaiseAll(
