@@ -94,6 +94,10 @@ jobs:
           ``````
           "@ | Set-Content publish/NOTES.md -Encoding UTF8
 
+      # The release is the only copy that is kept. There used to be an upload-artifact step here as
+      # well, putting the same files on the run a second time for fourteen days - but the release
+      # already holds them, and the updater and the website both read the releases API, so nothing
+      # ever read the artifacts. Removed. If a build ever needs one, give it retention-days: 1.
       - name: Publish the pre-release
         shell: pwsh
         env:
@@ -105,12 +109,3 @@ jobs:
             --notes-file publish/NOTES.md `
             --target ${{ github.sha }} `
             (Get-Item publish/*.exe, publish/*.zip, publish/SHA256SUMS.txt | ForEach-Object { $_.FullName })
-
-      - uses: actions/upload-artifact@v6
-        with:
-          name: Deck-${{ steps.version.outputs.version }}
-          path: |
-            publish/*.exe
-            publish/*.zip
-            publish/SHA256SUMS.txt
-          retention-days: 14
